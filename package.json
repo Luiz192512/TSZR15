@@ -1,0 +1,11 @@
+{
+  "name": "tszr15-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "test": "node --test",
+    "validate": "node scripts/validate-catalog.mjs"
+  }
+}

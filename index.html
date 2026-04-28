@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TSZR15 Catalogo R15</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero">
+        <p class="eyebrow">Yamaha R15 Catalog Foundation</p>
+        <h1>Catalogo filtrado para a R15, sem vestuario e sem itens de outras motos.</h1>
+        <p class="hero-copy">
+          Esta base organiza o menu comercial, a familia tecnica e os slots do configurador
+          3D para o MVP da loja.
+        </p>
+        <div class="stats" id="stats"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Menu da loja</p>
+            <h2>Categorias visiveis</h2>
+          </div>
+          <p class="section-copy">
+            Os mesmos cinco grupos aprovados para a vitrine, com contagem baseada apenas
+            no catalogo publicado.
+          </p>
+        </div>
+        <div class="category-pills" id="category-filters"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Catalogo publicado</p>
+            <h2>Produtos R15</h2>
+          </div>
+          <p class="section-copy">
+            Os cards abaixo mostram cada SKU com categoria de vitrine, familia tecnica
+            e elegibilidade para o configurador 3D.
+          </p>
+        </div>
+        <div class="products-grid" id="products-grid"></div>
+      </section>
+
+      <section class="panel panel-split">
+        <div>
+          <p class="section-label">Slots do configurador</p>
+          <h2>Areas 3D mapeadas</h2>
+          <ul class="token-list" id="render-slots"></ul>
+        </div>
+        <div>
+          <p class="section-label">Itens removidos</p>
+          <h2>Bloqueios do importador</h2>
+          <div class="rejections" id="rejections"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+  </html>
