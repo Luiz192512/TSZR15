@@ -464,8 +464,8 @@ def write_summary(workbook: Workbook) -> None:
 
     rows = [
         ("Custos fixos obrigatorios", '=SUMPRODUCT((Custos!$E$2:$E$22<>"Variavel")*(Custos!$E$2:$E$22<>"Overage")*(Custos!$D$2:$D$22="Obrigatorio")*(Custos!$K$2:$K$22=1)*Custos!$J$2:$J$22)', "Sem custos opcionais e sem taxas por venda."),
-        ("Custos fixos recomendados/opcionais ligados", '=SUMPRODUCT((Custos!$E$2:$E$22<>"Variavel")*(Custos!$E$2:$E$22<>"Overage")*(Custos!$K$2:$K$22=1)*Custos!$J$2:$J$22)', "Inclui linhas opcionais marcadas em Premissas."),
-        ("Custos variaveis de pagamento no cenario atual", '=SUMPRODUCT((Custos!$E$2:$E$22="Variavel")*(Custos!$K$2:$K$22=1)*Custos!$J$2:$J$22)', "Baseado em pedidos, ticket e mix de pagamento das Premissas."),
+        ("Custos fixos adicionais recomendados/opcionais ligados", '=SUMPRODUCT((Custos!$E$2:$E$22<>"Variavel")*(Custos!$E$2:$E$22<>"Overage")*((Custos!$D$2:$D$22="Recomendado")+(Custos!$D$2:$D$22="Opcional"))*(Custos!$K$2:$K$22=1)*Custos!$J$2:$J$22)', "Mostra apenas o adicional acima do minimo obrigatorio."),
+        ("Custos variaveis do cenario atual", '=SUMPRODUCT((Custos!$E$2:$E$22="Variavel")*(Custos!$K$2:$K$22=1)*Custos!$J$2:$J$22)', "Inclui taxas de pagamento, storage variavel e IOF do cenario atual."),
         ("Overages tecnicos no cenario atual", '=SUMPRODUCT((Custos!$E$2:$E$22="Overage")*(Custos!$K$2:$K$22=1)*Custos!$J$2:$J$22)', "Normalmente zero se o uso ficar no baseline."),
         ("Total mensal operacional", '=B2+B3+B4+B5', "Soma do que entra no orcamento mensal do site."),
         ("Delta se cartao receber na hora", '=Custos!J16', "Custo extra mensal se trocar o cartao de 30 dias para recebimento imediato."),
