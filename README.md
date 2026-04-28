@@ -1,41 +1,40 @@
-# TSZR15 Catalog Foundation
+# TSZR15
 
-This repository now contains a first implementation of the Yamaha R15 catalog rules described in `PLAN.md`.
+Base de loja Yamaha R15 em `Next.js` com:
 
-## What is included
+- catalogo curado e filtrado para R15
+- familias tecnicas e slots do configurador
+- tela inicial de catalogo
+- inicio do configurador 3D em `react-three-fiber`
+- endpoints internos para bootstrap do catalogo e do configurador
+- validacao automatica e testes do catalogo
 
-- A storefront category model with the five approved menu labels:
-  - `Suporte & Sliders`
-  - `Estética`
-  - `Escapamentos`
-  - `Adesivagem`
-  - `Manutenção`
-- A curated R15 catalog with:
-  - technical families
-  - configurator render slots
-  - supplier metadata
-  - compatibility placeholders
-- Import rules that automatically reject:
-  - `Vestuário`
-  - products tagged for other motorcycles such as `R3` and `SBM 250s`
-  - products named after other bike models like `ZX10`
-- Approved style-reference exceptions for the R15 catalog:
-  - `Frente R6`
-  - `Hayabusa Adesivos Japonês`
-- A simple storefront preview in `index.html`
-- Validation and tests for the catalog rules
+## Rotas
 
-## Commands
+- `/`: vitrine principal com filtros de categoria, busca e destaque de itens 3D
+- `/configurador`: workbench inicial do configurador 3D da R15
+- `/api/catalog`: JSON do catalogo publicado
+- `/api/configurator/bootstrap`: JSON dos slots e produtos do configurador
+
+## Estrutura principal
+
+- `app/`: App Router do Next.js
+- `src/catalog/`: regras, categorias, produtos e funcoes de validacao
+- `src/components/catalog/`: experiencia de vitrine
+- `src/components/configurator/`: painel e cena 3D inicial
+- `tests/`: testes de regra de negocio do catalogo
+
+## Scripts
 
 ```bash
+npm install
+npm run dev
+npm run build
 npm run validate
 npm test
 ```
 
-To open the preview locally:
+## Observacoes
 
-```bash
-npm start
-```
-
-Then open the local URL reported by `serve`.
+- O catalogo publicado mantem apenas itens R15 ou excecoes aprovadas por referencia visual, como `Frente R6` e `Hayabusa Adesivos Japones`.
+- O viewer 3D atual usa geometria base para validar fluxo, slots e selecao. O proximo passo natural e substituir os blocos por modelos `GLB` da R15 e dos acessorios.

@@ -30,6 +30,24 @@ export function getConfiguratorProducts() {
   return catalogProducts.filter((product) => product.is3DEligible && product.renderSlot);
 }
 
+export function groupConfiguratorProductsBySlot() {
+  return renderSlots
+    .map((slot) => ({
+      slot,
+      products: catalogProducts.filter((product) => product.renderSlot === slot)
+    }))
+    .filter((group) => group.products.length > 0);
+}
+
+export function getCatalogStats() {
+  return [
+    { label: "Produtos publicados", value: catalogProducts.length },
+    { label: "Itens com slot 3D", value: getConfiguratorProducts().length },
+    { label: "Categorias no menu", value: storefrontCategories.length },
+    { label: "Slots ativos", value: groupConfiguratorProductsBySlot().length }
+  ];
+}
+
 export function groupProductsByCategory(products = catalogProducts) {
   return storefrontCategories.map((category) => ({
     ...category,

@@ -1,0 +1,545 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;700;800&display=swap");
+
+:root {
+  --bg: #f5ecde;
+  --bg-strong: #ead5b6;
+  --surface: rgba(255, 250, 242, 0.84);
+  --surface-strong: rgba(255, 248, 239, 0.94);
+  --surface-dark: #2f1e16;
+  --stroke: rgba(81, 46, 27, 0.16);
+  --text: #23140d;
+  --muted: #634c40;
+  --accent: #bf4f1e;
+  --accent-strong: #8a3412;
+  --success: #2b7f59;
+  --warning: #bd7c0e;
+  --shadow: 0 30px 80px rgba(94, 45, 17, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 30%),
+    radial-gradient(circle at 85% 15%, rgba(191, 79, 30, 0.12), transparent 20%),
+    linear-gradient(140deg, #f8f0e6 0%, var(--bg) 42%, var(--bg-strong) 100%);
+  font-family: "Manrope", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page-shell {
+  width: min(1240px, calc(100vw - 28px));
+  margin: 0 auto;
+  padding: 24px 0 56px;
+}
+
+.site-header,
+.hero-panel,
+.surface-panel,
+.catalog-card,
+.configurator-panel,
+.workbench-layout {
+  border: 1px solid var(--stroke);
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.site-header {
+  position: sticky;
+  top: 18px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 18px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+}
+
+.brand-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: linear-gradient(155deg, var(--accent) 0%, #de7d3d 100%);
+  color: #fff9f2;
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+}
+
+.brand-copy strong,
+.hero-copy h1,
+.section-heading h2,
+.configurator-card h3,
+.catalog-card h3,
+.slot-card h3 {
+  font-family: "Bebas Neue", Impact, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-copy span,
+.nav-link-muted,
+.support-copy,
+.empty-copy,
+.helper-text {
+  color: var(--muted);
+}
+
+.nav-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.nav-link:hover {
+  transform: translateY(-2px);
+  border-color: var(--stroke);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.hero-panel {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  padding: 32px;
+}
+
+.hero-panel-compact {
+  align-items: start;
+}
+
+.eyebrow,
+.section-label {
+  margin: 0 0 8px;
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hero-copy h1 {
+  margin: 0;
+  max-width: 11ch;
+  font-size: clamp(3.1rem, 6.8vw, 5.8rem);
+  line-height: 0.93;
+}
+
+.lead,
+.support-copy,
+.helper-text,
+.catalog-meta,
+.filter-summary {
+  line-height: 1.65;
+}
+
+.hero-actions,
+.stats-grid,
+.menu-preview,
+.catalog-controls,
+.filter-pills,
+.catalog-grid,
+.workbench-layout,
+.slot-actions,
+.selected-summary,
+.selection-list {
+  margin-top: 22px;
+}
+
+.hero-actions,
+.menu-preview,
+.filter-pills,
+.selection-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.button,
+.pill-button,
+.slot-button,
+.selection-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  padding: 12px 16px;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.button:hover,
+.pill-button:hover,
+.slot-button:hover {
+  transform: translateY(-2px);
+}
+
+.button-primary {
+  background: linear-gradient(155deg, var(--accent) 0%, #e07a37 100%);
+  color: #fff8f0;
+  border-color: transparent;
+}
+
+.button-secondary,
+.pill-button,
+.slot-button {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stat-card {
+  padding: 18px;
+  border: 1px solid var(--stroke);
+  border-radius: 22px;
+  background: var(--surface-strong);
+}
+
+.stat-value {
+  display: block;
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.stat-label {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.menu-chip,
+.selection-chip,
+.badge,
+.slot-tag {
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.menu-chip,
+.selection-chip,
+.slot-tag {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--stroke);
+}
+
+.surface-panel {
+  margin-top: 24px;
+  padding: 28px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  line-height: 0.95;
+}
+
+.catalog-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.search-box input {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0 16px;
+  color: var(--text);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: end;
+}
+
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.pill-button.is-active,
+.slot-button.is-active {
+  background: var(--accent);
+  color: #fff8f0;
+  border-color: transparent;
+}
+
+.catalog-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.catalog-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+.catalog-card:hover,
+.slot-card:hover {
+  transform: translateY(-2px);
+}
+
+.catalog-card h3,
+.slot-card h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.1;
+}
+
+.badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge-category {
+  background: rgba(191, 79, 30, 0.12);
+  color: var(--accent-strong);
+}
+
+.badge-family {
+  background: rgba(34, 20, 13, 0.08);
+  color: var(--text);
+}
+
+.badge-3d {
+  background: rgba(43, 127, 89, 0.12);
+  color: var(--success);
+}
+
+.catalog-meta {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.catalog-meta strong {
+  color: var(--text);
+}
+
+.empty-state {
+  margin-top: 20px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px dashed var(--stroke);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.workbench-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 18px;
+  padding: 18px;
+  margin-top: 24px;
+}
+
+.configurator-panel {
+  padding: 18px;
+  background: var(--surface-strong);
+}
+
+.viewer-frame {
+  position: relative;
+  min-height: 620px;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.45), transparent 30%),
+    linear-gradient(180deg, #fbf4ea 0%, #ebd6bc 100%);
+}
+
+.viewer-overlay {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.overlay-chip {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 250, 243, 0.85);
+  border: 1px solid rgba(47, 30, 22, 0.08);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.slot-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.slot-card {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.7);
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.slot-card.is-active {
+  border-color: rgba(191, 79, 30, 0.35);
+  background: rgba(255, 249, 241, 0.9);
+}
+
+.slot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.selected-summary {
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--surface-dark);
+  color: #fff8f0;
+}
+
+.selected-summary h3 {
+  margin: 0;
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.05em;
+}
+
+.summary-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.summary-item {
+  display: grid;
+  gap: 4px;
+}
+
+.summary-item strong {
+  font-size: 0.88rem;
+  color: rgba(255, 248, 240, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summary-item span {
+  font-weight: 700;
+}
+
+@media (max-width: 1040px) {
+  .hero-panel,
+  .workbench-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .toggle-row {
+    justify-content: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    width: min(100vw - 18px, 100%);
+    padding: 16px 0 32px;
+  }
+
+  .site-header,
+  .hero-panel,
+  .surface-panel,
+  .workbench-layout,
+  .configurator-panel {
+    border-radius: 24px;
+  }
+
+  .site-header,
+  .hero-panel,
+  .surface-panel,
+  .configurator-panel {
+    padding: 18px;
+  }
+
+  .site-header {
+    position: static;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .catalog-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .viewer-frame {
+    min-height: 420px;
+  }
+}
