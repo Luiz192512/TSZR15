@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -19,6 +21,11 @@ SECTION_FILL = PatternFill(fill_type="solid", fgColor="DBEAFE")
 GOOD_FILL = PatternFill(fill_type="solid", fgColor="DCFCE7")
 WARN_FILL = PatternFill(fill_type="solid", fgColor="FEF3C7")
 MUTED_FILL = PatternFill(fill_type="solid", fgColor="F1F5F9")
+
+EXCEL_CANDIDATES = [
+    Path(r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE"),
+    Path(r"C:\Program Files (x86)\Microsoft Office\root\Office16\EXCEL.EXE"),
+]
 
 
 def autosize(worksheet) -> None:
@@ -48,7 +55,7 @@ def write_assumptions(workbook: Workbook) -> None:
         ("USD/BRL PTAX fechamento", 4.9700, "BRL por USD", "Banco Central do Brasil, fechamento de 2026-04-27."),
         ("Pedidos por mes", 100, "pedidos", "Valor editavel."),
         ("Ticket medio", 250, "BRL", "Valor editavel."),
-        ("GMV mensal", "=B3*B4", "BRL", "Faturamento bruto mensal usado nas taxas variaveis."),
+        ("GMV mensal", "=B4*B5", "BRL", "Faturamento bruto mensal usado nas taxas variaveis."),
         ("Mix Pix", 0.60, "fracao", "Valor editavel."),
         ("Mix cartao", 0.35, "fracao", "Valor editavel."),
         ("Mix boleto", 0.05, "fracao", "Valor editavel."),
@@ -75,11 +82,17 @@ def write_assumptions(workbook: Workbook) -> None:
         row[1].alignment = Alignment(wrap_text=True, vertical="top")
         row[3].alignment = Alignment(wrap_text=True, vertical="top")
 
-    for idx in range(2, ws.max_row + 1):
-        if idx in {3, 4, 5, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22}:
-            ws[f"B{idx}"].number_format = "#,##0.00"
-        if idx in {7, 8, 9, 10, 11, 12, 23}:
-            ws[f"B{idx}"].number_format = "0.00%"
+    ws["B3"].number_format = "#,##0.0000"
+    ws["B4"].number_format = "#,##0"
+    ws["B5"].number_format = '"R$" #,##0.00'
+    ws["B6"].number_format = '"R$" #,##0.00'
+    for ref in ["B7", "B8", "B9", "B10", "B11", "B12", "B23"]:
+        ws[ref].number_format = "0.00%"
+    ws["B13"].number_format = '"R$" #,##0.00'
+    for ref in ["B14", "B15", "B16"]:
+        ws[ref].number_format = "#,##0.00"
+    for ref in ["B17", "B18", "B19", "B20", "B21", "B22"]:
+        ws[ref].number_format = "#,##0"
 
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
@@ -255,7 +268,7 @@ def write_costs(workbook: Workbook) -> None:
             "=G11*H11",
             "=I11*Premissas!$B$3",
             1,
-            "Se B19=0, voce fica no Free ate 3.000 emails/mes; se B19=1, usa Pro com 50.000 emails/mes.",
+            "Se B20=0, voce fica no Free ate 3.000 emails/mes; se B20=1, usa Pro com 50.000 emails/mes.",
             "https://resend.com/pricing",
         ],
         [
@@ -569,6 +582,40 @@ def render_markdown() -> str:
     )
 
 
+def recalculate_with_excel(xlsx_path: Path) -> bool:
+    if os.name != "nt":
+        return False
+
+    if not any(candidate.exists() for candidate in EXCEL_CANDIDATES):
+        return False
+
+    escaped_path = str(xlsx_path).replace("'", "''")
+    command = (
+        "$excel = New-Object -ComObject Excel.Application; "
+        "$excel.Visible = $false; "
+        "$excel.DisplayAlerts = $false; "
+        f"$path = '{escaped_path}'; "
+        "$wb = $excel.Workbooks.Open($path); "
+        "$excel.CalculateFullRebuild(); "
+        "$wb.Save(); "
+        "$wb.Close($true); "
+        "$excel.Quit(); "
+        "[System.Runtime.Interopservices.Marshal]::ReleaseComObject($wb) | Out-Null; "
+        "[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null"
+    )
+
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return True
+    except Exception:
+        return False
+
+
 def main() -> None:
     DOCS_DIR.mkdir(exist_ok=True)
 
@@ -583,12 +630,14 @@ def main() -> None:
 
     xlsx_path = DOCS_DIR / f"{OUTPUT_STEM}.xlsx"
     workbook.save(xlsx_path)
+    recalculated = recalculate_with_excel(xlsx_path)
 
     markdown_path = DOCS_DIR / f"{OUTPUT_STEM}.md"
     markdown_path.write_text(render_markdown(), encoding="utf-8")
 
     print(f"Wrote {xlsx_path}")
     print(f"Wrote {markdown_path}")
+    print(f"Excel recalculation: {'ok' if recalculated else 'skipped'}")
 
 
 if __name__ == "__main__":
