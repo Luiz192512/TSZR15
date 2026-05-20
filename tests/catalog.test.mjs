@@ -20,6 +20,7 @@ import {
   buildAddressLine,
   buildCustomerSnapshot
 } from "../src/customer/customer-data.js";
+import { getStatusLabel, operationalStatuses } from "../src/orders/status.js";
 
 test("storefront menu keeps the five approved labels", () => {
   const labels = getStorefrontMenu().map((category) => category.label);
@@ -228,4 +229,10 @@ test("customer snapshot builds complete checkout data from account records", () 
 test("catalog validation reports no implementation issues", () => {
   assert.deepEqual(validateCatalog(), []);
   assert.ok(blockedMotorcycleKeywords.length > 0);
+});
+
+test("tracking status labels stay customer-readable", () => {
+  assert.equal(getStatusLabel("rastreio_recebido", operationalStatuses), "Rastreio recebido");
+  assert.equal(getStatusLabel("em_transito", operationalStatuses), "Em transito");
+  assert.equal(getStatusLabel("status_customizado", operationalStatuses), "Status Customizado");
 });

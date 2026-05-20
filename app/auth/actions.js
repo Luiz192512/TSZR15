@@ -7,6 +7,7 @@ import {
   ASSISTED_PURCHASE_CONSENT_TEXT,
   ASSISTED_PURCHASE_CONSENT_VERSION
 } from "@/src/customer/customer-data.js";
+import { startAdminSession } from "@/src/admin/admin-auth.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 function formValue(formData, key) {
@@ -88,15 +89,25 @@ async function insertConsent(supabase, userId) {
 }
 
 export async function signInAction(formData) {
+  const email = formValue(formData, "email");
+  const password = formValue(formData, "password");
+  const nextPath = formValue(formData, "next") || "/conta";
+
+  if (email.toLowerCase() === "admin") {
+    const isValidAdmin = await startAdminSession(password);
+
+    if (!isValidAdmin) {
+      redirectWithError("/entrar", "Senha administrativa invalida ou token nao configurado.");
+    }
+
+    redirect("/admin");
+  }
+
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
     redirectWithError("/entrar", "Configure as variaveis do Supabase antes de entrar.");
   }
-
-  const email = formValue(formData, "email");
-  const password = formValue(formData, "password");
-  const nextPath = formValue(formData, "next") || "/conta";
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 

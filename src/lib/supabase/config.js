@@ -7,7 +7,12 @@ export function getPublicSupabaseConfig() {
 
   return {
     isConfigured: Boolean(url && publishableKey),
+    projectRef: getSupabaseProjectRef(url),
     publishableKey,
     url
   };
+}
+
+export function getSupabaseProjectRef(url) {
+  return String(url ?? "").match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1] ?? "";
 }

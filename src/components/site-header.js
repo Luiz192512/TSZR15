@@ -25,6 +25,9 @@ export function SiteHeader({ user } = {}) {
         <Link className="nav-link" href="/pedido">
           Carrinho
         </Link>
+        <Link className="nav-link" href="/rastreio">
+          Rastreio
+        </Link>
         {user ? (
           <Link className="nav-link nav-link-auth" href="/conta">
             Minha conta

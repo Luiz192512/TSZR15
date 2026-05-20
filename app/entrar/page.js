@@ -39,7 +39,7 @@ export default async function SignInPage({ searchParams }) {
 
           <label>
             <span>Email</span>
-            <input autoComplete="email" name="email" placeholder="voce@email.com" required type="email" />
+            <input autoComplete="username" inputMode="email" name="email" placeholder="voce@email.com" required type="text" />
           </label>
 
           <label>

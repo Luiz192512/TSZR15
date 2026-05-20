@@ -2717,6 +2717,19 @@ body::before {
   padding: 12px;
 }
 
+.setup-command-block {
+  margin: 18px 0;
+  border: 1px solid rgba(242, 7, 16, 0.38);
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  padding: 14px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
 .consent-box {
   border-color: rgba(242, 7, 16, 0.32);
   border-radius: 0;
@@ -3358,4 +3371,394 @@ body::before {
   .featured-slide-footer .button {
     width: 100%;
   }
+}
+
+.admin-page,
+.tracking-page {
+  padding-bottom: 72px;
+}
+
+.admin-toolbar,
+.tracking-layout,
+.admin-shell,
+.admin-content-grid,
+.tracking-content-grid,
+.admin-status-grid,
+.tracking-status-grid {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.admin-toolbar {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  margin: 28px 0 18px;
+}
+
+.admin-toolbar h1,
+.tracking-lookup-card h1,
+.admin-detail-header h1,
+.tracking-result-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  font-style: italic;
+  line-height: 0.92;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.admin-message {
+  margin: 0 0 16px;
+}
+
+.admin-shell {
+  grid-template-columns: minmax(280px, 0.34fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.admin-list-panel,
+.admin-detail-panel,
+.tracking-result-panel,
+.admin-section,
+.admin-form-block {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 32%),
+    #0d0d0d;
+  box-shadow: var(--shadow-tight);
+}
+
+.admin-list-panel,
+.admin-detail-panel,
+.tracking-result-panel {
+  padding: clamp(16px, 2.4vw, 28px);
+}
+
+.admin-list-panel {
+  position: sticky;
+  top: 106px;
+}
+
+.admin-panel-heading,
+.admin-detail-header,
+.tracking-result-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.admin-panel-heading strong,
+.admin-section h2,
+.admin-section h3,
+.admin-form-block h2 {
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.admin-order-list,
+.admin-item-list,
+.tracking-event-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.admin-order-link,
+.admin-item-row,
+.tracking-event-row,
+.admin-definition-list div,
+.admin-total-box,
+.admin-status-grid div,
+.tracking-status-grid div,
+.tracking-step {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
+}
+
+.admin-order-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-order-link:hover,
+.admin-order-link.is-active {
+  border-color: rgba(242, 7, 16, 0.72);
+  background: rgba(242, 7, 16, 0.12);
+  transform: translateY(-1px);
+}
+
+.admin-order-link span,
+.admin-item-row span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-order-link strong,
+.admin-order-link em,
+.admin-order-link small,
+.admin-item-row strong,
+.admin-item-row em {
+  overflow-wrap: anywhere;
+}
+
+.admin-order-link em,
+.admin-order-link small,
+.admin-item-row em,
+.tracking-event-row span,
+.admin-definition-list dt,
+.admin-detail-header p,
+.tracking-result-header p,
+.admin-total-box span,
+.admin-status-grid span,
+.tracking-status-grid span {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.admin-detail-panel {
+  display: grid;
+  gap: 22px;
+}
+
+.admin-total-box {
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+  padding: 14px;
+  text-align: right;
+}
+
+.admin-total-box strong {
+  color: #ff323b;
+  font-size: 1.45rem;
+}
+
+.admin-status-grid,
+.tracking-status-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-status-grid div,
+.tracking-status-grid div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.admin-status-grid strong,
+.tracking-status-grid strong {
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.admin-content-grid,
+.tracking-content-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-section,
+.admin-form-block {
+  padding: 16px;
+}
+
+.admin-section h2,
+.admin-section h3,
+.admin-form-block h2 {
+  margin: 0 0 12px;
+  font-size: 0.92rem;
+}
+
+.admin-item-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px;
+}
+
+.admin-definition-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.admin-definition-list div {
+  padding: 12px;
+}
+
+.admin-definition-list dt,
+.admin-definition-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-operation-form {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-operation-form textarea,
+.admin-operation-form select,
+.admin-operation-form input,
+.tracking-lookup-card input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.admin-operation-form textarea,
+.admin-operation-form select,
+.admin-operation-form input {
+  min-height: 42px;
+  padding: 9px 10px;
+}
+
+.admin-operation-form textarea {
+  resize: vertical;
+}
+
+.tracking-event-row {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.tracking-event-row p {
+  margin: 0;
+  color: #d9dce2;
+  line-height: 1.45;
+}
+
+.tracking-layout {
+  grid-template-columns: minmax(300px, 0.35fr) minmax(0, 1fr);
+  align-items: start;
+  margin-top: 28px;
+}
+
+.tracking-lookup-card {
+  position: sticky;
+  top: 106px;
+}
+
+.tracking-result-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.tracking-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.tracking-step {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.tracking-step span {
+  display: block;
+  width: 30px;
+  height: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  transform: skewX(-20deg);
+}
+
+.tracking-step.is-done span,
+.tracking-step.is-active span {
+  border-color: var(--red);
+  background: var(--red);
+}
+
+.tracking-step.is-active {
+  border-color: rgba(242, 7, 16, 0.72);
+}
+
+@media (max-width: 1100px) {
+  .admin-shell,
+  .tracking-layout,
+  .admin-content-grid,
+  .tracking-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-list-panel,
+  .tracking-lookup-card {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-toolbar,
+  .admin-panel-heading,
+  .admin-detail-header,
+  .tracking-result-header {
+    align-items: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .admin-status-grid,
+  .tracking-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-order-link,
+  .admin-item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-total-box {
+    min-width: 0;
+    text-align: left;
+  }
+}
+
+.auth-page .site-header,
+.admin-page .site-header,
+.tracking-page .site-header {
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(90deg, rgba(242, 7, 16, 0.08), transparent 42%),
+    rgba(3, 3, 3, 0.92);
+  box-shadow: none;
+}
+
+.auth-page .brand-copy strong,
+.admin-page .brand-copy strong,
+.tracking-page .brand-copy strong,
+.auth-page .nav-link,
+.admin-page .nav-link,
+.tracking-page .nav-link {
+  color: #f8f8f8;
+}
+
+.auth-page .brand-copy span,
+.admin-page .brand-copy span,
+.tracking-page .brand-copy span {
+  color: #b9bcc2;
+}
+
+.auth-page .nav-link:hover,
+.admin-page .nav-link:hover,
+.tracking-page .nav-link:hover {
+  border-color: rgba(242, 7, 16, 0.58);
+  background: rgba(242, 7, 16, 0.12);
+  color: #fff;
 }

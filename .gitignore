@@ -8,7 +8,9 @@ Thumbs.db
 .env.*
 .env.example
 .next/
+supabase/.temp/
 out/
 dist/
 coverage/
 test-results/
+.codemap
