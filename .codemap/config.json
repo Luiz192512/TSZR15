@@ -1,0 +1,10 @@
+{
+  "only": ["js", "mjs", "json", "css", "md", "sql"],
+  "exclude": [
+    ".next",
+    "node_modules",
+    "public/brand/*.png",
+    "package-lock.json"
+  ],
+  "depth": 4
+}

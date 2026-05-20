@@ -15,6 +15,30 @@ import {
 
 const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
 const cartStorageKey = "tszr15-cart";
+const brandLogoSrc = "/brand/logo-tszr15-store.png";
+const heroBoardSrc = "/brand/tszr15-product-board.png";
+
+const heroFeatures = [
+  ["Qualidade", "premium"],
+  ["Performance", "de verdade"],
+  ["Design", "exclusivo"],
+  ["Envio", "para todo Brasil"]
+];
+
+const assuranceItems = [
+  ["Produtos", "testados"],
+  ["Garantia", "e seguranca"],
+  ["Compra", "100% segura"]
+];
+
+const featuredProductIds = [
+  "escapamento-sc-project-completo",
+  "kit-suporte-slider",
+  "kit-manete-manopla-pesinho",
+  "bolha-esportiva",
+  "farol-led-drl-predator-eye",
+  "protetor-de-radiador-aluminio"
+];
 
 const emptyCustomer = {
   address: "",
@@ -91,6 +115,17 @@ function getInitialCustomer(initialCustomer) {
 
 function getProductHref(product) {
   return `/produto/${product.slug}`;
+}
+
+function getFeaturedProducts(products) {
+  const productsById = new Map(products.map((product) => [product.id, product]));
+  const selectedProducts = featuredProductIds
+    .map((productId) => productsById.get(productId))
+    .filter(Boolean);
+  const selectedIds = new Set(selectedProducts.map((product) => product.id));
+  const fallbackProducts = products.filter((product) => !selectedIds.has(product.id));
+
+  return [...selectedProducts, ...fallbackProducts].slice(0, 8);
 }
 
 function readStoredCart() {
@@ -182,6 +217,12 @@ function ProductVisual({ product, size = "card" }) {
 
   return (
     <div className={`product-image product-image-${size} ${familyClass}`}>
+      <img
+        alt=""
+        aria-hidden="true"
+        className="product-image-logo"
+        src={brandLogoSrc}
+      />
       <span>{categoryLabel}</span>
       <strong>{getProductCode(product)}</strong>
     </div>
@@ -194,10 +235,10 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
   return (
     <header className={`store-header ${showSearch ? "" : "store-header-compact"}`}>
       <Link className="store-brand" href="/">
-        <span className="store-logo">TZ</span>
+        <img className="store-logo-image" src={brandLogoSrc} alt="TSZ Store" />
         <span>
           <strong>TSZR15</strong>
-          <small>Compra assistida R15</small>
+          <small>Performance parts R15</small>
         </span>
       </Link>
 
@@ -207,7 +248,7 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
           <input
             id="catalog-search"
             onChange={(event) => onSearchChange?.(event.target.value)}
-            placeholder='Slider, adesivo, escape...'
+            placeholder="Escapamentos, sliders, manetes..."
             value={query}
           />
         </label>
@@ -216,6 +257,8 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
       <nav className="store-nav" aria-label="Navegacao principal">
         <Link href="/">Inicio</Link>
         <Link href="/catalogo">Produtos</Link>
+        <Link href="/#lancamentos">Lancamentos</Link>
+        <Link href="/#sobre">Sobre nos</Link>
         <Link className="cart-nav-link" href="/pedido">
           Carrinho
           <span>{cartCount}</span>
@@ -285,11 +328,92 @@ function ProductCard({ product }) {
   );
 }
 
+function FeaturedProductCarousel({ products }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeProduct = products[activeIndex] ?? products[0];
+
+  if (!activeProduct) {
+    return null;
+  }
+
+  function goToPrevious() {
+    setActiveIndex((currentIndex) =>
+      currentIndex === 0 ? products.length - 1 : currentIndex - 1
+    );
+  }
+
+  function goToNext() {
+    setActiveIndex((currentIndex) =>
+      currentIndex === products.length - 1 ? 0 : currentIndex + 1
+    );
+  }
+
+  return (
+    <div className="featured-carousel">
+      <div className="featured-carousel-head">
+        <div>
+          <p className="section-label">Principais produtos</p>
+          <h2>
+            Tudo o que sua <span>R15</span> precisa.
+          </h2>
+        </div>
+        <div className="carousel-controls" aria-label="Controles do carrossel">
+          <button aria-label="Produto anterior" onClick={goToPrevious} type="button">
+            {"<"}
+          </button>
+          <button aria-label="Proximo produto" onClick={goToNext} type="button">
+            {">"}
+          </button>
+        </div>
+      </div>
+
+      <div className="featured-carousel-window">
+        <div
+          className="featured-carousel-track"
+          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+        >
+          {products.map((product) => (
+            <article className="featured-slide" key={product.id}>
+              <ProductVisual product={product} size="feature" />
+              <div className="featured-slide-copy">
+                <span>{getProductFamilyLabel(product.productFamily)}</span>
+                <h3>{product.name}</h3>
+                <p>{getProductSummary(product)}</p>
+                <div className="featured-slide-footer">
+                  <strong>{formatCurrency(product.priceCents)}</strong>
+                  <Link className="button button-primary" href={getProductHref(product)}>
+                    Ver detalhes
+                  </Link>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div className="featured-thumbs" aria-label="Produtos em destaque">
+        {products.map((product, index) => (
+          <button
+            className={index === activeIndex ? "is-active" : ""}
+            key={product.id}
+            onClick={() => setActiveIndex(index)}
+            type="button"
+          >
+            <span>{getProductCode(product)}</span>
+            <strong>{product.name}</strong>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function CatalogHub({ categories, currentUser, products }) {
   const [activeCategory, setActiveCategory] = useState("all");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = normalizeSearch(deferredQuery);
+  const featuredProducts = useMemo(() => getFeaturedProducts(products), [products]);
 
   const visibleProducts = products.filter((product) => {
     const matchesCategory =
@@ -308,14 +432,94 @@ export function CatalogHub({ categories, currentUser, products }) {
     <>
       <StoreHeader currentUser={currentUser} onSearchChange={setSearchValue} query={query} />
 
-      <section className="hub-intro">
+      <section className="brand-hero">
+        <div className="brand-hero-copy">
+          <div className="hero-brand-row">
+            <img className="hero-logo" src={brandLogoSrc} alt="TSZ Store" />
+            <p className="hero-kicker">Performance parts for Yamaha R15</p>
+          </div>
+          <h1>
+            Sua R15 <span>em outro nivel</span>
+          </h1>
+          <p className="hero-lead">
+            Pecas e acessorios selecionados para quem exige visual agressivo,
+            acabamento premium e atendimento direto no WhatsApp.
+          </p>
+          <div className="hero-actions">
+            <a className="button button-primary" href="#produtos">
+              Ver produtos
+            </a>
+            <a className="button button-ghost" href="#lancamentos">
+              Conferir lancamentos
+            </a>
+          </div>
+        </div>
+
+        <div className="brand-hero-media">
+          <div className="hero-media-frame">
+            <img src={heroBoardSrc} alt="Yamaha R15 preta em arte promocional TSZ Store" />
+          </div>
+          <div className="assurance-stack">
+            {assuranceItems.map(([title, label]) => (
+              <div className="assurance-card" key={title}>
+                <span aria-hidden="true" />
+                <strong>{title}</strong>
+                <em>{label}</em>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="hero-feature-row" aria-label="Diferenciais TSZR15">
+          {heroFeatures.map(([title, label]) => (
+            <div className="hero-feature" key={title}>
+              <span aria-hidden="true" />
+              <strong>{title}</strong>
+              <em>{label}</em>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="product-band" id="lancamentos">
+        <div className="product-band-copy">
+          <p className="section-label">Estetica + performance + exclusividade</p>
+          <h2>Selecao principal TSZR15.</h2>
+          <p>
+            Escapamentos, sliders, manetes, pedaleiras, bolhas e iluminacao em
+            uma vitrine feita para montar o conjunto certo sem sair do foco R15.
+          </p>
+        </div>
+        <FeaturedProductCarousel products={featuredProducts} />
+      </section>
+
+      <section className="brand-proof-strip" id="sobre" aria-label="Diferenciais da loja">
         <div>
-          <p className="section-label">Catalogo R15</p>
-          <h1>Escolha o produto no card e monte os detalhes na pagina dele.</h1>
+          <strong>Especialistas em Yamaha R15</strong>
+          <span>catalogo focado no modelo certo</span>
+        </div>
+        <div>
+          <strong>Pecas selecionadas</strong>
+          <span>compra assistida com validacao interna</span>
+        </div>
+        <div>
+          <strong>Atendimento especializado</strong>
+          <span>fechamento direto pelo WhatsApp</span>
+        </div>
+        <div>
+          <strong>Pagamento seguro</strong>
+          <span>pedido revisado antes do envio</span>
+        </div>
+      </section>
+
+      <section className="hub-intro" id="produtos">
+        <div>
+          <p className="section-label">Produtos selecionados</p>
+          <h1>Catalogo R15 com compra assistida TSZR15.</h1>
         </div>
         <p>
-          A home fica como vitrine: imagem, preco e explicacao curta. Cor, variacao, quantidade e
-          carrinho ficam no fluxo do produto e do pedido.
+          Consulte disponibilidade, escolha a variacao no produto e finalize o
+          pedido pelo carrinho com atendimento direto.
         </p>
       </section>
 

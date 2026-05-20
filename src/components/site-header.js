@@ -4,10 +4,14 @@ export function SiteHeader({ user } = {}) {
   return (
     <header className="site-header">
       <Link className="brand-mark" href="/">
-        <span className="brand-badge">R15</span>
+        <img
+          alt="TSZ Store"
+          className="brand-logo-image"
+          src="/brand/logo-tszr15-store.png"
+        />
         <span className="brand-copy">
           <strong>TSZR15</strong>
-          <span>Loja R15 com compra assistida</span>
+          <span>Performance parts R15</span>
         </span>
       </Link>
 
