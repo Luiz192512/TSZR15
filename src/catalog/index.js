@@ -15,10 +15,10 @@ export {
   technicalFamilies
 };
 
-export function getStorefrontMenu() {
+export function getStorefrontMenu(products = catalogProducts) {
   return storefrontCategories.map((category) => ({
     ...category,
-    productCount: catalogProducts.filter((product) =>
+    productCount: products.filter((product) =>
       product.storefrontCategoryIds.includes(category.id)
     ).length
   }));

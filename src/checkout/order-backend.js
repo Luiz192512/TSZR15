@@ -3,6 +3,7 @@ import {
   ASSISTED_PURCHASE_CONSENT_TEXT,
   ASSISTED_PURCHASE_CONSENT_VERSION
 } from "../customer/customer-data.js";
+import { validateCustomerFieldFormats } from "../customer/field-validation.js";
 import {
   buildWhatsAppOrderMessage,
   calculateCartTotals,
@@ -31,8 +32,8 @@ function cleanString(value, maxLength = 500) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
 
-function getCatalogProduct(productId) {
-  return catalogProducts.find(
+function getCatalogProduct(productId, products = catalogProducts) {
+  return products.find(
     (product) => product.id === productId || product.slug === productId
   );
 }
@@ -47,7 +48,7 @@ function normalizeQuantity(value) {
   return quantity;
 }
 
-function normalizeCartItems(cartItems) {
+function normalizeCartItems(cartItems, products = catalogProducts) {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     throw new CheckoutValidationError("Adicione pelo menos um item ao pedido.");
   }
@@ -57,7 +58,7 @@ function normalizeCartItems(cartItems) {
 
   for (const item of cartItems) {
     const productId = cleanString(item?.id || item?.productId || item?.slug, 120);
-    const product = getCatalogProduct(productId);
+    const product = getCatalogProduct(productId, products);
     const quantity = normalizeQuantity(item?.quantity);
 
     if (!product) {
@@ -142,6 +143,15 @@ function validateCustomer(customer, hasDataConsent) {
     errors.push("Informe o endereco de entrega.");
   }
 
+  errors.push(
+    ...validateCustomerFieldFormats({
+      cep: customer.cep,
+      phone: customer.phone,
+      taxId: customer.taxId,
+      whatsapp: customer.whatsapp
+    })
+  );
+
   if (!hasDataConsent) {
     errors.push("Confirme o consentimento de compra assistida.");
   }
@@ -185,8 +195,8 @@ function buildConsentSnapshot(hasDataConsent) {
   };
 }
 
-export function buildCheckoutOrderDraft(payload, { storeName = "TSZR15" } = {}) {
-  const cartItems = normalizeCartItems(payload?.cartItems);
+export function buildCheckoutOrderDraft(payload, { products = catalogProducts, storeName = "TSZR15" } = {}) {
+  const cartItems = normalizeCartItems(payload?.cartItems, products);
   const customer = normalizeCustomer(payload?.customer);
   const hasDataConsent = payload?.hasDataConsent === true;
 

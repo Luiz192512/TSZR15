@@ -6,9 +6,15 @@ import {
   catalogProducts,
   getPublicCatalogProducts,
   getStorefrontMenu,
+  storefrontCategories,
   rejectedCatalogProducts,
   validateCatalog
 } from "../src/catalog/index.js";
+import {
+  buildCatalogCategoryRows,
+  buildCatalogProductCategoryRows,
+  buildCatalogProductRows
+} from "../src/catalog/supabase-rows.js";
 import { buildCheckoutOrderDraft, CheckoutValidationError } from "../src/checkout/order-backend.js";
 import {
   buildWhatsAppCheckoutUrl,
@@ -20,6 +26,16 @@ import {
   buildAddressLine,
   buildCustomerSnapshot
 } from "../src/customer/customer-data.js";
+import {
+  isValidCep,
+  isValidPhone,
+  isValidState,
+  isValidTaxId,
+  sanitizeCep,
+  sanitizePhone,
+  sanitizeState,
+  sanitizeTaxId
+} from "../src/customer/field-validation.js";
 import { getStatusLabel, operationalStatuses } from "../src/orders/status.js";
 
 test("storefront menu keeps the five approved labels", () => {
@@ -54,6 +70,28 @@ test("public catalog hides internal purchase metadata", () => {
     assert.equal("internalPurchaseSource" in product, false);
     assert.equal("internalPurchaseCandidates" in product, false);
     assert.equal("supplierSource" in product, false);
+  }
+});
+
+test("Supabase catalog seed rows cover every published product", () => {
+  const categoryRows = buildCatalogCategoryRows();
+  const productRows = buildCatalogProductRows();
+  const relationRows = buildCatalogProductCategoryRows();
+
+  assert.equal(categoryRows.length, storefrontCategories.length);
+  assert.equal(productRows.length, catalogProducts.length);
+  assert.equal(new Set(productRows.map((product) => product.id)).size, catalogProducts.length);
+  assert.equal(
+    relationRows.length,
+    catalogProducts.reduce((total, product) => total + product.storefrontCategoryIds.length, 0)
+  );
+
+  for (const product of productRows) {
+    assert.ok(product.storefront_category_ids.length > 0);
+    assert.ok(product.variations.length > 0);
+    assert.equal(product.currency, "BRL");
+    assert.equal(product.checkout_channel, "whatsapp-business");
+    assert.equal(product.is_published, true);
   }
 });
 
@@ -197,6 +235,55 @@ test("backend checkout draft rejects missing assisted-purchase consent", () => {
       }),
     CheckoutValidationError
   );
+});
+
+test("customer field validation rejects letters in numeric document and contact fields", () => {
+  assert.equal(sanitizeTaxId("abc123.456.789-00xyz"), "123.456.789-00");
+  assert.equal(sanitizePhone("(11) abc 98888-7777"), "(11)  98888-7777");
+  assert.equal(sanitizeCep("01abc001-000"), "01001-000");
+  assert.equal(sanitizeState("s1p"), "SP");
+
+  assert.equal(isValidTaxId("123.456.789-00"), true);
+  assert.equal(isValidTaxId("abc123"), false);
+  assert.equal(isValidPhone("(11) 98888-7777"), true);
+  assert.equal(isValidPhone("telefone"), false);
+  assert.equal(isValidCep("01001-000"), true);
+  assert.equal(isValidCep("cep-abc"), false);
+  assert.equal(isValidState("SP"), true);
+  assert.equal(isValidState("12"), false);
+});
+
+test("backend checkout draft rejects invalid customer field formats", () => {
+  let error;
+
+  try {
+    buildCheckoutOrderDraft({
+        cartItems: [
+          {
+            id: "slider-esportivo-em-aluminio-somente-slider",
+            quantity: 1,
+            variation: "Preto"
+          }
+        ],
+        customer: {
+          address: "Rua Teste, 123 - Sao Paulo/SP",
+          cep: "cep-abc",
+          name: "Cliente Teste",
+          taxId: "abc123",
+          whatsapp: "telefone"
+        },
+        hasDataConsent: true,
+        paymentMethodId: "pix",
+        shippingOptionId: "combinar"
+      });
+  } catch (caughtError) {
+    error = caughtError;
+  }
+
+  assert.ok(error instanceof CheckoutValidationError);
+  assert.ok(error.details.some((detail) => detail.includes("CPF/CNPJ")));
+  assert.ok(error.details.some((detail) => detail.includes("WhatsApp")));
+  assert.ok(error.details.some((detail) => detail.includes("CEP")));
 });
 
 test("customer snapshot builds complete checkout data from account records", () => {
