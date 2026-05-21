@@ -7,6 +7,7 @@ import {
   CheckoutValidationError,
   persistCheckoutOrder
 } from "@/src/checkout/order-backend.js";
+import { getSupabaseCatalogProducts } from "@/src/catalog/supabase-catalog.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -48,7 +49,8 @@ export async function POST(request) {
   let draft;
 
   try {
-    draft = buildCheckoutOrderDraft(payload, { storeName });
+    const catalog = await getSupabaseCatalogProducts();
+    draft = buildCheckoutOrderDraft(payload, { products: catalog.products, storeName });
   } catch (error) {
     if (error instanceof CheckoutValidationError) {
       return errorResponse(error.message, 400, error.details);

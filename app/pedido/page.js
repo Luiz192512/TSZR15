@@ -1,5 +1,5 @@
 import { CartCheckout } from "@/src/components/catalog/catalog-experience.js";
-import { catalogProducts, getPublicCatalogProducts } from "@/src/catalog/index.js";
+import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -9,6 +9,7 @@ export const metadata = {
 };
 
 export default async function CartPage() {
+  const catalog = await getPublicCatalogProductsForStorefront();
   const supabase = await createServerSupabaseClient();
   const customerSnapshot = await getCurrentCustomerSnapshot(supabase);
 
@@ -18,7 +19,7 @@ export default async function CartPage() {
         currentUser={customerSnapshot.user}
         initialCustomer={customerSnapshot.customer}
         isSupabaseConfigured={customerSnapshot.supabaseConfigured}
-        products={getPublicCatalogProducts(catalogProducts)}
+        products={catalog.products}
       />
     </main>
   );

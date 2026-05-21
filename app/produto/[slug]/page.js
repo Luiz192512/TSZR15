@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { ProductDetails } from "@/src/components/catalog/catalog-experience.js";
 import { catalogProducts, getPublicCatalogProducts } from "@/src/catalog/index.js";
+import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -15,7 +16,8 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const product = publicProducts.find((item) => item.slug === slug);
+  const catalog = await getPublicCatalogProductsForStorefront();
+  const product = catalog.products.find((item) => item.slug === slug);
 
   if (!product) {
     return {
@@ -31,7 +33,8 @@ export async function generateMetadata({ params }) {
 
 export default async function ProductPage({ params }) {
   const { slug } = await params;
-  const product = publicProducts.find((item) => item.slug === slug);
+  const catalog = await getPublicCatalogProductsForStorefront();
+  const product = catalog.products.find((item) => item.slug === slug);
 
   if (!product) {
     notFound();
@@ -39,7 +42,7 @@ export default async function ProductPage({ params }) {
 
   const supabase = await createServerSupabaseClient();
   const customerSnapshot = await getCurrentCustomerSnapshot(supabase);
-  const relatedProducts = publicProducts
+  const relatedProducts = catalog.products
     .filter(
       (item) =>
         item.id !== product.id &&

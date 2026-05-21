@@ -1,12 +1,12 @@
-import {
-  catalogProducts,
-  getPublicCatalogProducts,
-  getStorefrontMenu
-} from "@/src/catalog/index.js";
+import { getStorefrontMenu } from "@/src/catalog/index.js";
+import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 
-export function GET() {
+export async function GET() {
+  const catalog = await getPublicCatalogProductsForStorefront();
+
   return Response.json({
-    categories: getStorefrontMenu(),
-    products: getPublicCatalogProducts(catalogProducts)
+    categories: getStorefrontMenu(catalog.products),
+    products: catalog.products,
+    source: catalog.source
   });
 }
