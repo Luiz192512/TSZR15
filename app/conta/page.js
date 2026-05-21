@@ -3,7 +3,14 @@ import { redirect } from "next/navigation";
 import { saveAccountAction, signOutAction } from "@/app/auth/actions.js";
 import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
 import { SiteHeader } from "@/src/components/site-header.js";
+import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
+import {
+  cepPattern,
+  phonePattern,
+  statePattern,
+  taxIdPattern
+} from "@/src/customer/field-validation.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 function getStatusMessage(params) {
@@ -79,7 +86,14 @@ export default async function AccountPage({ searchParams }) {
             </label>
             <label>
               <span>CPF/CNPJ</span>
-              <input defaultValue={profile.tax_id ?? ""} name="taxId" />
+              <SanitizedInput
+                defaultValue={profile.tax_id ?? ""}
+                inputMode="numeric"
+                name="taxId"
+                pattern={taxIdPattern}
+                sanitizer="taxId"
+                title="Use somente numeros, pontos, barra e hifen."
+              />
             </label>
             <label>
               <span>Email</span>
@@ -87,15 +101,38 @@ export default async function AccountPage({ searchParams }) {
             </label>
             <label>
               <span>WhatsApp</span>
-              <input defaultValue={profile.whatsapp ?? ""} name="whatsapp" required />
+              <SanitizedInput
+                defaultValue={profile.whatsapp ?? ""}
+                inputMode="tel"
+                name="whatsapp"
+                pattern={phonePattern}
+                required
+                sanitizer="phone"
+                title="Use somente numeros e pontuacao de telefone."
+              />
             </label>
             <label>
               <span>Telefone opcional</span>
-              <input defaultValue={profile.phone ?? ""} name="phone" />
+              <SanitizedInput
+                defaultValue={profile.phone ?? ""}
+                inputMode="tel"
+                name="phone"
+                pattern={phonePattern}
+                sanitizer="phone"
+                title="Use somente numeros e pontuacao de telefone."
+              />
             </label>
             <label>
               <span>CEP</span>
-              <input defaultValue={address.cep ?? ""} name="cep" required />
+              <SanitizedInput
+                defaultValue={address.cep ?? ""}
+                inputMode="numeric"
+                name="cep"
+                pattern={cepPattern}
+                required
+                sanitizer="cep"
+                title="Use 8 numeros, com ou sem hifen."
+              />
             </label>
             <label>
               <span>Rua</span>
@@ -115,7 +152,15 @@ export default async function AccountPage({ searchParams }) {
             </label>
             <label>
               <span>UF</span>
-              <input defaultValue={address.state ?? ""} maxLength={2} name="state" required />
+              <SanitizedInput
+                defaultValue={address.state ?? ""}
+                maxLength={2}
+                name="state"
+                pattern={statePattern}
+                required
+                sanitizer="state"
+                title="Use a sigla do estado com 2 letras."
+              />
             </label>
             <label>
               <span>Complemento</span>

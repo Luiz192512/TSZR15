@@ -6,6 +6,15 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
 import {
+  cepPattern,
+  phonePattern,
+  sanitizeCep,
+  sanitizePhone,
+  sanitizeTaxId,
+  taxIdPattern,
+  validateCustomerFieldFormats
+} from "@/src/customer/field-validation.js";
+import {
   buildWhatsAppOrderMessage,
   calculateCartTotals,
   formatCurrency,
@@ -727,10 +736,24 @@ export function CartCheckout({
     () => calculateCartTotals(cartItems, shippingOptionId),
     [cartItems, shippingOptionId]
   );
+  const customerFieldErrors = useMemo(
+    () =>
+      validateCustomerFieldFormats({
+        cep: customer.cep,
+        phone: customer.phone,
+        taxId: customer.taxId,
+        whatsapp: customer.whatsapp
+      }),
+    [customer.cep, customer.phone, customer.taxId, customer.whatsapp]
+  );
   const hasRequiredCustomerData = Boolean(
     customer.name && (customer.whatsapp || customer.phone) && customer.cep && customer.address
   );
-  const canCheckout = cartItems.length > 0 && hasDataConsent && hasRequiredCustomerData;
+  const canCheckout =
+    cartItems.length > 0 &&
+    hasDataConsent &&
+    hasRequiredCustomerData &&
+    customerFieldErrors.length === 0;
   const whatsappMessage = useMemo(
     () =>
       buildWhatsAppOrderMessage({
@@ -762,6 +785,10 @@ export function CartCheckout({
 
   async function submitCheckout() {
     if (!canCheckout || isSubmittingCheckout) {
+      if (customerFieldErrors.length > 0) {
+        setCheckoutFeedback(customerFieldErrors[0]);
+      }
+
       return;
     }
 
@@ -912,8 +939,11 @@ export function CartCheckout({
             <label>
               <span>CPF/CNPJ</span>
               <input
-                onChange={(event) => updateCustomer("taxId", event.target.value)}
+                inputMode="numeric"
+                onChange={(event) => updateCustomer("taxId", sanitizeTaxId(event.target.value))}
+                pattern={taxIdPattern}
                 placeholder="Opcional quando nao exigido"
+                title="Use somente numeros, pontos, barra e hifen."
                 value={customer.taxId}
               />
             </label>
@@ -929,24 +959,33 @@ export function CartCheckout({
             <label>
               <span>WhatsApp</span>
               <input
-                onChange={(event) => updateCustomer("whatsapp", event.target.value)}
+                inputMode="tel"
+                onChange={(event) => updateCustomer("whatsapp", sanitizePhone(event.target.value))}
+                pattern={phonePattern}
                 placeholder="(00) 00000-0000"
+                title="Use somente numeros e pontuacao de telefone."
                 value={customer.whatsapp}
               />
             </label>
             <label>
               <span>Telefone opcional</span>
               <input
-                onChange={(event) => updateCustomer("phone", event.target.value)}
+                inputMode="tel"
+                onChange={(event) => updateCustomer("phone", sanitizePhone(event.target.value))}
+                pattern={phonePattern}
                 placeholder="Telefone alternativo"
+                title="Use somente numeros e pontuacao de telefone."
                 value={customer.phone}
               />
             </label>
             <label>
               <span>CEP</span>
               <input
-                onChange={(event) => updateCustomer("cep", event.target.value)}
+                inputMode="numeric"
+                onChange={(event) => updateCustomer("cep", sanitizeCep(event.target.value))}
+                pattern={cepPattern}
                 placeholder="00000-000"
+                title="Use 8 numeros, com ou sem hifen."
                 value={customer.cep}
               />
             </label>
@@ -1018,6 +1057,8 @@ export function CartCheckout({
               ? "Adicione pelo menos um item para liberar o envio."
               : !hasRequiredCustomerData
                 ? "Preencha nome, WhatsApp, CEP e endereco para enviar."
+                : customerFieldErrors.length > 0
+                  ? customerFieldErrors[0]
                 : hasDataConsent
                   ? "Pedido pronto para enviar ao atendimento."
                   : "Confirme o aceite de dados para liberar o envio."}

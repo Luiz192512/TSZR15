@@ -7,6 +7,7 @@ import {
   ASSISTED_PURCHASE_CONSENT_TEXT,
   ASSISTED_PURCHASE_CONSENT_VERSION
 } from "@/src/customer/customer-data.js";
+import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
 import { startAdminSession } from "@/src/admin/admin-auth.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -68,6 +69,18 @@ function validateRequiredProfile(formData) {
 
   if (formData.get("dataConsent") !== "on") {
     return "Confirme o consentimento de uso dos dados para compra assistida.";
+  }
+
+  const [formatError] = validateCustomerFieldFormats({
+    cep: formValue(formData, "cep"),
+    phone: formValue(formData, "phone"),
+    state: formValue(formData, "state"),
+    taxId: formValue(formData, "taxId"),
+    whatsapp: formValue(formData, "whatsapp")
+  });
+
+  if (formatError) {
+    return formatError;
   }
 
   return null;
