@@ -38,7 +38,7 @@ export default async function SignInPage({ searchParams }) {
           <input name="next" type="hidden" value={nextPath} />
 
           <label>
-            <span>Email</span>
+            <span>E-mail</span>
             <input autoComplete="username" inputMode="email" name="email" placeholder="voce@email.com" required type="text" />
           </label>
 

@@ -61,33 +61,33 @@ const emptyCustomer = {
 };
 
 const familyLabels = {
-  aero_front: "Aerodinamica",
+  aero_front: "Aerodinâmica",
   adesivo_detalhe: "Adesivo detalhe",
   adesivo_full: "Adesivo completo",
   cockpit: "Cockpit",
   controles: "Controles",
   escapamento: "Escapamento",
-  iluminacao: "Iluminacao",
-  manutencao: "Manutencao",
-  protecao: "Protecao",
+  iluminacao: "Iluminação",
+  manutencao: "Manutenção",
+  protecao: "Proteção",
   retrovisor: "Retrovisor",
   slider: "Slider",
   tanque: "Tanque"
 };
 
 const familySummaries = {
-  aero_front: "Peca de visual e aerodinamica para montar a frente ou acabamento da R15.",
+  aero_front: "Peça de visual e aerodinâmica para montar a frente ou acabamento da R15.",
   adesivo_detalhe: "Adesivo de detalhe para personalizar a R15 sem trocar a carenagem.",
   adesivo_full: "Kit visual completo para mudar a identidade da moto com acabamento combinado.",
-  cockpit: "Item de cockpit para melhorar acabamento, uso diario ou protecao da area do piloto.",
+  cockpit: "Item de cockpit para melhorar acabamento, uso diário ou proteção da área do piloto.",
   controles: "Comando ou acabamento de pilotagem para deixar a R15 mais ajustada ao uso.",
-  escapamento: "Opcao de escape ou admissao para montar o conjunto conforme disponibilidade.",
-  iluminacao: "Iluminacao e sinalizacao para atualizar o visual e a seguranca da moto.",
-  manutencao: "Item de reposicao, limpeza ou cuidado para manter a R15 em dia.",
-  protecao: "Protecao para reduzir dano em uso urbano, queda leve ou desgaste de peca.",
+  escapamento: "Opção de escape ou admissão para montar o conjunto conforme disponibilidade.",
+  iluminacao: "Iluminação e sinalização para atualizar o visual e a segurança da moto.",
+  manutencao: "Item de reposição, limpeza ou cuidado para manter a R15 em dia.",
+  protecao: "Proteção para reduzir dano em uso urbano, queda leve ou desgaste de peça.",
   retrovisor: "Retrovisor ou acabamento lateral para visual esportivo e uso no dia a dia.",
   slider: "Slider e suporte para proteger pontos expostos da Yamaha R15.",
-  tanque: "Protecao ou acabamento para tanque com opcoes de cor e textura."
+  tanque: "Proteção ou acabamento para tanque com opções de cor e textura."
 };
 
 function normalizeSearch(value) {
@@ -451,7 +451,7 @@ export function CatalogHub({ categories, currentUser, products }) {
             Sua R15 <span>em outro nivel</span>
           </h1>
           <p className="hero-lead">
-            Pecas e acessorios selecionados para quem exige visual agressivo,
+            Peças e acessórios selecionados para quem exige visual agressivo,
             acabamento premium e atendimento direto no WhatsApp.
           </p>
           <div className="hero-actions">
@@ -459,7 +459,7 @@ export function CatalogHub({ categories, currentUser, products }) {
               Ver produtos
             </a>
             <a className="button button-ghost" href="#lancamentos">
-              Conferir lancamentos
+              Conferir lançamentos
             </a>
           </div>
         </div>
@@ -492,10 +492,10 @@ export function CatalogHub({ categories, currentUser, products }) {
 
       <section className="product-band" id="lancamentos">
         <div className="product-band-copy">
-          <p className="section-label">Estetica + performance + exclusividade</p>
-          <h2>Selecao principal TSZR15.</h2>
+          <p className="section-label">Estética + performance + exclusividade</p>
+          <h2>Seleção principal TSZR15.</h2>
           <p>
-            Escapamentos, sliders, manetes, pedaleiras, bolhas e iluminacao em
+            Escapamentos, sliders, manetes, pedaleiras, bolhas e iluminação em
             uma vitrine feita para montar o conjunto certo sem sair do foco R15.
           </p>
         </div>
@@ -505,11 +505,11 @@ export function CatalogHub({ categories, currentUser, products }) {
       <section className="brand-proof-strip" id="sobre" aria-label="Diferenciais da loja">
         <div>
           <strong>Especialistas em Yamaha R15</strong>
-          <span>catalogo focado no modelo certo</span>
+          <span>catálogo focado no modelo certo</span>
         </div>
         <div>
-          <strong>Pecas selecionadas</strong>
-          <span>compra assistida com validacao interna</span>
+          <strong>Peças selecionadas</strong>
+          <span>compra assistida com validação interna</span>
         </div>
         <div>
           <strong>Atendimento especializado</strong>
@@ -524,10 +524,10 @@ export function CatalogHub({ categories, currentUser, products }) {
       <section className="hub-intro" id="produtos">
         <div>
           <p className="section-label">Produtos selecionados</p>
-          <h1>Catalogo R15 com compra assistida TSZR15.</h1>
+          <h1>Catálogo R15 com compra assistida TSZR15.</h1>
         </div>
         <p>
-          Consulte disponibilidade, escolha a variacao no produto e finalize o
+          Consulte disponibilidade, escolha a variação no produto e finalize o
           pedido pelo carrinho com atendimento direto.
         </p>
       </section>
@@ -542,7 +542,7 @@ export function CatalogHub({ categories, currentUser, products }) {
       {visibleProducts.length === 0 ? (
         <div className="empty-state">
           <p className="empty-copy">
-            Nenhum produto encontrado com esse filtro. Tente outro termo ou abra todos.
+            Nenhum produto encontrado com esse filtro. Tente outro têrmo ou abra todos.
           </p>
         </div>
       ) : (
@@ -599,7 +599,7 @@ export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
           <div className="detail-assist-box">
             <strong>Compra assistida</strong>
             <span>
-              Voce compra com a TSZR15. A operacao interna valida disponibilidade e entrega antes
+              Você compra com a TSZR15. A operação interna válida disponibilidade e entrega antes
               de fechar o atendimento.
             </span>
           </div>
@@ -623,7 +623,7 @@ export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
           <strong className="detail-price">{formatCurrency(product.priceCents)}</strong>
 
           <div className="option-group">
-            <span>Cor / variacao</span>
+            <span>Cor / variação</span>
             <div className="variation-grid" role="list">
               {product.variations.map((variation) => (
                 <button
@@ -658,8 +658,8 @@ export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
               <dd>Yamaha R15</dd>
             </div>
             <div>
-              <dt>Prazo de confirmacao</dt>
-              <dd>Ate {product.leadTimeDays} dias uteis</dd>
+              <dt>Prazo de confirmação</dt>
+              <dd>Até {product.leadTimeDays} dias úteis</dd>
             </div>
             <div>
               <dt>Disponibilidade</dt>
@@ -865,7 +865,7 @@ export function CartCheckout({
             <p className="empty-copy">Carregando carrinho...</p>
           ) : cartItems.length === 0 ? (
             <div className="empty-cart">
-              <p>Seu carrinho ainda esta vazio.</p>
+              <p>Seu carrinho ainda esta vázio.</p>
               <Link className="button button-primary" href="/">
                 Ver produtos
               </Link>
@@ -923,7 +923,7 @@ export function CartCheckout({
           ) : (
             <div className="account-nudge is-signed">
               <strong>Dados da sua conta carregados</strong>
-              <span>Voce pode editar qualquer campo antes de enviar ao atendimento.</span>
+              <span>Você pode editar qualquer campo antes de enviar ao atendimento.</span>
             </div>
           )}
 
@@ -951,7 +951,7 @@ export function CartCheckout({
               <span>Email</span>
               <input
                 onChange={(event) => updateCustomer("email", event.target.value)}
-                placeholder="voce@email.com"
+                placeholder="você@email.com"
                 type="email"
                 value={customer.email}
               />
@@ -963,7 +963,7 @@ export function CartCheckout({
                 onChange={(event) => updateCustomer("whatsapp", sanitizePhone(event.target.value))}
                 pattern={phonePattern}
                 placeholder="(00) 00000-0000"
-                title="Use somente numeros e pontuacao de telefone."
+                title="Use somente numeros e pontuação de telefone."
                 value={customer.whatsapp}
               />
             </label>
@@ -974,7 +974,7 @@ export function CartCheckout({
                 onChange={(event) => updateCustomer("phone", sanitizePhone(event.target.value))}
                 pattern={phonePattern}
                 placeholder="Telefone alternativo"
-                title="Use somente numeros e pontuacao de telefone."
+                title="Use somente numeros e pontuação de telefone."
                 value={customer.phone}
               />
             </label>
@@ -990,7 +990,7 @@ export function CartCheckout({
               />
             </label>
             <label className="span-all">
-              <span>Endereco completo</span>
+              <span>Endereço completo</span>
               <input
                 onChange={(event) => updateCustomer("address", event.target.value)}
                 placeholder="Rua, numero, bairro, cidade/UF"
@@ -1027,7 +1027,7 @@ export function CartCheckout({
               <span>Observacoes</span>
               <textarea
                 onChange={(event) => updateCustomer("notes", event.target.value)}
-                placeholder="Cor, urgencia, duvida ou combinacao especial"
+                placeholder="Cor, urgencia, duvida ou combinação especial"
                 value={customer.notes}
               />
             </label>
@@ -1056,7 +1056,7 @@ export function CartCheckout({
             {cartItems.length === 0
               ? "Adicione pelo menos um item para liberar o envio."
               : !hasRequiredCustomerData
-                ? "Preencha nome, WhatsApp, CEP e endereco para enviar."
+                ? "Preencha nome, WhatsApp, CEP e endereço para enviar."
                 : customerFieldErrors.length > 0
                   ? customerFieldErrors[0]
                 : hasDataConsent
