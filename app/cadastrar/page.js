@@ -30,7 +30,7 @@ export default async function SignUpPage({ searchParams }) {
           <h1>Salve seus dados para fechar pedidos TSZR15.</h1>
           <p className="helper-text">
             O cadastro guarda seus dados de compra e entrega. A origem interna do pedido continua
-            restrita a operacao TSZR15.
+            restrita a operação TSZR15.
           </p>
 
           {message ? <p className="form-alert">{message}</p> : null}
