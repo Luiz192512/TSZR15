@@ -116,7 +116,7 @@ npx supabase db push`}
           </>
         ) : (
           <p>
-            Configure `TSZR15_ADMIN_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`
+            Configure `TSZR15_ADMIN_TOKEN`, a URL do Supabase e uma chave privilegiada do Supabase
             no ambiente do servidor.
           </p>
         )}

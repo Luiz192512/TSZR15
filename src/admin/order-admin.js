@@ -188,7 +188,7 @@ export async function updateAdminOrderOperation(formData) {
   const { isConfigured, supabase } = getAdminSupabaseStatus();
 
   if (!isConfigured) {
-    throw new Error("Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.");
+    throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
   }
 
   const orderId = cleanString(formData.get("orderId"), 80);
