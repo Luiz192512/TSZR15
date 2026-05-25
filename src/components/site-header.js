@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ProfileLink } from "@/src/components/profile-link.js";
+
 export function SiteHeader({ user } = {}) {
   return (
     <header className="site-header">
@@ -29,9 +31,7 @@ export function SiteHeader({ user } = {}) {
           Rastreio
         </Link>
         {user ? (
-          <Link className="nav-link nav-link-auth" href="/conta">
-            Minha conta
-          </Link>
+          <ProfileLink user={user} />
         ) : (
           <Link className="nav-link nav-link-auth" href="/entrar">
             Entrar

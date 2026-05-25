@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { signInAction } from "@/app/auth/actions.js";
+import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -9,7 +11,7 @@ function getMessage(params) {
     return "Cadastro criado. Confirme o email, se o Supabase exigir, e entre para concluir seus dados.";
   }
 
-  return params?.error ? decodeURIComponent(params.error) : "";
+  return typeof params?.error === "string" ? params.error : "";
 }
 
 export default async function SignInPage({ searchParams }) {
@@ -18,8 +20,12 @@ export default async function SignInPage({ searchParams }) {
   const {
     data: { user }
   } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
-  const nextPath = params?.next ?? "/conta";
+  const nextPath = getSafeAuthRedirectPath(params?.next, "/conta");
   const message = getMessage(params);
+
+  if (user && nextPath !== "/admin") {
+    redirect(nextPath);
+  }
 
   return (
     <main className="page-shell auth-page">
@@ -38,8 +44,8 @@ export default async function SignInPage({ searchParams }) {
           <input name="next" type="hidden" value={nextPath} />
 
           <label>
-            <span>E-mail</span>
-            <input autoComplete="username" inputMode="email" name="email" placeholder="voce@email.com" required type="text" />
+            <span>E-mail ou admin</span>
+            <input autoComplete="username" name="email" placeholder="voce@email.com ou admin" required type="text" />
           </label>
 
           <label>

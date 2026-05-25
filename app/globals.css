@@ -170,6 +170,42 @@ button {
   overflow-wrap: anywhere;
 }
 
+.profile-link {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.profile-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+}
+
+.profile-link-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
 .button,
 .pill-button {
   padding: 10px 14px;
@@ -2104,6 +2140,32 @@ body::before {
   color: #d9dce2;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.store-nav > a.profile-link,
+.nav-links > a.profile-link {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 0;
+  clip-path: none;
+}
+
+.store-nav > a.profile-link:hover,
+.nav-links > a.profile-link:hover {
+  border-color: rgba(242, 7, 16, 0.72);
+  background: rgba(242, 7, 16, 0.13);
+}
+
+.profile-link-icon {
+  background:
+    linear-gradient(135deg, var(--red), #7f0005),
+    var(--red);
+  box-shadow: 0 9px 18px rgba(242, 7, 16, 0.27);
 }
 
 .store-nav > a:not(.button):hover,
