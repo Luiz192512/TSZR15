@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
@@ -9,14 +10,24 @@ import {
 } from "@/src/customer/customer-data.js";
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
 import { startAdminSession } from "@/src/admin/admin-auth.js";
+import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 function formValue(formData, key) {
   return String(formData.get(key) ?? "").trim();
 }
 
-function redirectWithError(path, message) {
-  redirect(`${path}?error=${encodeURIComponent(message)}`);
+function redirectWithError(path, message, nextPath = "") {
+  const params = new URLSearchParams({
+    error: message
+  });
+  const safeNextPath = nextPath ? getSafeAuthRedirectPath(nextPath) : "";
+
+  if (safeNextPath) {
+    params.set("next", safeNextPath);
+  }
+
+  redirect(`${path}?${params.toString()}`);
 }
 
 function collectProfilePayload(formData, user) {
@@ -104,13 +115,13 @@ async function insertConsent(supabase, userId) {
 export async function signInAction(formData) {
   const email = formValue(formData, "email");
   const password = formValue(formData, "password");
-  const nextPath = formValue(formData, "next") || "/conta";
+  const nextPath = getSafeAuthRedirectPath(formValue(formData, "next"), "/conta");
 
   if (email.toLowerCase() === "admin") {
     const isValidAdmin = await startAdminSession(password);
 
     if (!isValidAdmin) {
-      redirectWithError("/entrar", "Senha administrativa invalida ou token nao configurado.");
+      redirectWithError("/entrar", "Senha administrativa invalida ou token nao configurado.", "/admin");
     }
 
     redirect("/admin");
@@ -119,15 +130,16 @@ export async function signInAction(formData) {
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
-    redirectWithError("/entrar", "Configure as variaveis do Supabase antes de entrar.");
+    redirectWithError("/entrar", "Configure as variaveis do Supabase antes de entrar.", nextPath);
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirectWithError("/entrar", error.message);
+    redirectWithError("/entrar", error.message, nextPath);
   }
 
+  revalidatePath("/", "layout");
   redirect(nextPath);
 }
 
@@ -194,6 +206,7 @@ export async function signUpAction(formData) {
       redirectWithError("/cadastrar", consentError.message);
     }
 
+    revalidatePath("/", "layout");
     redirect("/conta?status=cadastrado");
   }
 
@@ -249,6 +262,7 @@ export async function saveAccountAction(formData) {
     redirectWithError("/conta", consentError.message);
   }
 
+  revalidatePath("/", "layout");
   redirect("/conta?status=salvo");
 }
 
@@ -259,5 +273,6 @@ export async function signOutAction() {
     await supabase.auth.signOut();
   }
 
+  revalidatePath("/", "layout");
   redirect("/");
 }

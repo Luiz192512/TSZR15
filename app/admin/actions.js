@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -17,7 +18,27 @@ function redirectWithError(path, message) {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
 }
 
+async function isSameOriginAdminRequest() {
+  const headerStore = await headers();
+  const origin = headerStore.get("origin");
+  const host = headerStore.get("host");
+
+  if (!origin || !host) {
+    return true;
+  }
+
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export async function adminSignOutAction() {
+  if (!(await isSameOriginAdminRequest())) {
+    redirect("/entrar?next=/admin");
+  }
+
   await clearAdminSession();
   redirect("/entrar?next=/admin");
 }
@@ -27,6 +48,10 @@ export async function updateAdminOrderAction(formData) {
 
   if (!(await isAdminSessionValid())) {
     redirectWithError("/admin", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin", "Requisicao administrativa rejeitada.");
   }
 
   try {

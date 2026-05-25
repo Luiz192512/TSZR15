@@ -21,6 +21,7 @@ import {
   paymentMethods,
   shippingOptions
 } from "@/src/checkout/whatsapp.js";
+import { ProfileLink } from "@/src/components/profile-link.js";
 
 const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
 const cartStorageKey = "tszr15-cart";
@@ -273,9 +274,7 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
           <span>{cartCount}</span>
         </Link>
         {currentUser ? (
-          <Link className="button button-secondary" href="/conta">
-            Minha conta
-          </Link>
+          <ProfileLink className="store-profile-link" user={currentUser} />
         ) : (
           <Link className="button button-secondary" href="/entrar">
             Entrar

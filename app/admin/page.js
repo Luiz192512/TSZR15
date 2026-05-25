@@ -24,6 +24,8 @@ export const metadata = {
   },
   title: "Admin | TSZR15"
 };
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function formatCurrency(cents, currency = "BRL") {
   return new Intl.NumberFormat("pt-BR", {
@@ -70,7 +72,7 @@ function getMessage(params) {
     return "Pedido atualizado.";
   }
 
-  return params?.error ? decodeURIComponent(params.error) : "";
+  return typeof params?.error === "string" ? params.error : "";
 }
 
 function StatusSelect({ items, name, value }) {
@@ -413,7 +415,7 @@ export default async function AdminPage({ searchParams }) {
   const message = getMessage(params);
 
   if (!isAdminTokenConfigured()) {
-    return <AdminSetup message={message} />;
+    redirect("/entrar?next=/admin");
   }
 
   if (!(await isAdminSessionValid())) {

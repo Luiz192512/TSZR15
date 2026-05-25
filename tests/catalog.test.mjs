@@ -26,6 +26,15 @@ import {
   buildAddressLine,
   buildCustomerSnapshot
 } from "../src/customer/customer-data.js";
+import { getSafeAuthRedirectPath } from "../src/auth/redirects.js";
+import { getUserDisplayName, getUserInitials } from "../src/auth/user-display.js";
+import {
+  createAdminSessionValue,
+  isAdminPasswordValid,
+  isAdminSessionValueFreshShape,
+  isAdminSessionValueValid
+} from "../src/admin/admin-session.js";
+import { isAdminSessionValueValidAtEdge } from "../src/admin/admin-session-edge.js";
 import {
   isValidCep,
   isValidPhone,
@@ -311,6 +320,62 @@ test("customer snapshot builds complete checkout data from account records", () 
   assert.equal(customer.email, "cliente@tszr15.com");
   assert.equal(customer.whatsapp, "(41) 99999-9999");
   assert.match(ASSISTED_PURCHASE_CONSENT_TEXT, /Autorizo a TSZR15/);
+});
+
+test("auth redirects only accept internal site paths", () => {
+  assert.equal(getSafeAuthRedirectPath("/conta"), "/conta");
+  assert.equal(getSafeAuthRedirectPath("/admin?pedido=TSZ-1"), "/admin?pedido=TSZ-1");
+  assert.equal(getSafeAuthRedirectPath("https://evil.example"), "/conta");
+  assert.equal(getSafeAuthRedirectPath("//evil.example"), "/conta");
+  assert.equal(getSafeAuthRedirectPath("/entrar?next=/admin"), "/conta");
+});
+
+test("profile display helpers derive compact account initials", () => {
+  const user = {
+    email: "cliente.teste@example.com",
+    user_metadata: {
+      full_name: "Cliente TSZR15"
+    }
+  };
+
+  assert.equal(getUserDisplayName(user), "Cliente TSZR15");
+  assert.equal(getUserInitials(user), "CT");
+  assert.equal(getUserInitials({ email: "cliente.teste@example.com" }), "CT");
+});
+
+test("admin session values are signed, expiring and token-bound", async () => {
+  const now = Date.UTC(2026, 4, 25, 12, 0, 0);
+  const token = "admin-token-com-mais-de-12";
+  const sessionValue = createAdminSessionValue({ now, token });
+
+  assert.equal(isAdminPasswordValid(token, token), true);
+  assert.equal(isAdminPasswordValid("token-errado", token), false);
+  assert.equal(isAdminSessionValueFreshShape(sessionValue, { now: now + 1000 }), true);
+  assert.equal(isAdminSessionValueValid(sessionValue, { now: now + 1000, token }), true);
+  assert.equal(
+    await isAdminSessionValueValidAtEdge(sessionValue, { now: now + 1000, token }),
+    true
+  );
+  assert.equal(
+    isAdminSessionValueValid(sessionValue, {
+      now: now + 9 * 60 * 60 * 1000,
+      token
+    }),
+    false
+  );
+  assert.equal(
+    isAdminSessionValueValid(sessionValue, {
+      now: now + 1000,
+      token: "outro-token-com-mais-de-12"
+    }),
+    false
+  );
+  assert.equal(isAdminSessionValueValid("sha256-antigo-nao-assinado", { now, token }), false);
+  assert.equal(
+    await isAdminSessionValueValidAtEdge("sha256-antigo-nao-assinado", { now, token }),
+    false
+  );
+  assert.equal(isAdminSessionValueFreshShape("sha256-antigo-nao-assinado", { now }), false);
 });
 
 test("catalog validation reports no implementation issues", () => {
