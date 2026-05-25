@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
+import {
+  fetchCepAddress,
+  formatCepAddressLine,
+  getCepDigits
+} from "@/src/customer/cep-lookup.js";
 import {
   cepPattern,
   phonePattern,
@@ -714,8 +719,12 @@ export function CartCheckout({
   const [shippingOptionId, setShippingOptionId] = useState("combinar");
   const [hasDataConsent, setHasDataConsent] = useState(Boolean(currentUser));
   const [checkoutFeedback, setCheckoutFeedback] = useState("");
+  const [cepLookup, setCepLookup] = useState({ message: "", status: "idle" });
+  const [cepWasEdited, setCepWasEdited] = useState(false);
+  const [autoFilledAddressLine, setAutoFilledAddressLine] = useState("");
   const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
   const [customer, setCustomer] = useState(() => getInitialCustomer(initialCustomer));
+  const initialCustomerHadAddress = useRef(Boolean(initialCustomer?.address));
   const isAuthenticated = Boolean(currentUser);
 
   useEffect(() => {
@@ -731,6 +740,66 @@ export function CartCheckout({
     }
   }, [cartItems, hasLoadedCart]);
 
+  useEffect(() => {
+    const cepDigits = getCepDigits(customer.cep);
+
+    if (cepDigits.length !== 8) {
+      setCepLookup({ message: "", status: "idle" });
+      return;
+    }
+
+    if (!cepWasEdited && initialCustomerHadAddress.current) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    setCepLookup({ message: "Buscando endereco pelo CEP...", status: "loading" });
+
+    fetchCepAddress(customer.cep, { signal: controller.signal })
+      .then((address) => {
+        if (!address) {
+          setAutoFilledAddressLine("");
+          setCepLookup({
+            message: "CEP nao encontrado. Confira o numero ou preencha o endereco manualmente.",
+            status: "error"
+          });
+          return;
+        }
+
+        const addressLine = formatCepAddressLine(address);
+
+        setCustomer((currentCustomer) => {
+          if (getCepDigits(currentCustomer.cep) !== cepDigits) {
+            return currentCustomer;
+          }
+
+          return {
+            ...currentCustomer,
+            address: addressLine || currentCustomer.address
+          };
+        });
+        setAutoFilledAddressLine(addressLine);
+        setCepLookup({
+          message: "Endereco preenchido pelo CEP. Complete com numero e complemento.",
+          status: "success"
+        });
+      })
+      .catch((error) => {
+        if (error?.name === "AbortError") {
+          return;
+        }
+
+        setAutoFilledAddressLine("");
+        setCepLookup({
+          message: "Nao foi possivel consultar o CEP agora. Preencha o endereco manualmente.",
+          status: "error"
+        });
+      });
+
+    return () => controller.abort();
+  }, [cepWasEdited, customer.cep]);
+
   const totals = useMemo(
     () => calculateCartTotals(cartItems, shippingOptionId),
     [cartItems, shippingOptionId]
@@ -745,8 +814,15 @@ export function CartCheckout({
       }),
     [customer.cep, customer.phone, customer.taxId, customer.whatsapp]
   );
+  const hasAutoFilledAddressPendingEdit = Boolean(
+    autoFilledAddressLine && customer.address.trim() === autoFilledAddressLine.trim()
+  );
   const hasRequiredCustomerData = Boolean(
-    customer.name && (customer.whatsapp || customer.phone) && customer.cep && customer.address
+    customer.name &&
+      (customer.whatsapp || customer.phone) &&
+      customer.cep &&
+      customer.address &&
+      !hasAutoFilledAddressPendingEdit
   );
   const canCheckout =
     cartItems.length > 0 &&
@@ -780,6 +856,24 @@ export function CartCheckout({
       ...currentCustomer,
       [field]: value
     }));
+  }
+
+  function updateCep(value) {
+    const cep = sanitizeCep(value);
+
+    setCepWasEdited(true);
+    setCustomer((currentCustomer) => {
+      const shouldClearAddress =
+        autoFilledAddressLine &&
+        currentCustomer.address.trim() === autoFilledAddressLine.trim();
+
+      return {
+        ...currentCustomer,
+        address: shouldClearAddress ? "" : currentCustomer.address,
+        cep
+      };
+    });
+    setAutoFilledAddressLine("");
   }
 
   async function submitCheckout() {
@@ -981,13 +1075,22 @@ export function CartCheckout({
               <span>CEP</span>
               <input
                 inputMode="numeric"
-                onChange={(event) => updateCustomer("cep", sanitizeCep(event.target.value))}
+                onChange={(event) => updateCep(event.target.value)}
                 pattern={cepPattern}
                 placeholder="00000-000"
                 title="Use 8 numeros, com ou sem hifen."
                 value={customer.cep}
               />
             </label>
+            {cepLookup.message ? (
+              <p
+                aria-live="polite"
+                className="checkout-note span-all"
+                role={cepLookup.status === "error" ? "alert" : "status"}
+              >
+                {cepLookup.message}
+              </p>
+            ) : null}
             <label className="span-all">
               <span>Endereço completo</span>
               <input
@@ -1054,6 +1157,8 @@ export function CartCheckout({
           <p className="checkout-note">
             {cartItems.length === 0
               ? "Adicione pelo menos um item para liberar o envio."
+              : hasAutoFilledAddressPendingEdit
+                ? "Complete o endereco com numero antes de enviar."
               : !hasRequiredCustomerData
                 ? "Preencha nome, WhatsApp, CEP e endereço para enviar."
                 : customerFieldErrors.length > 0

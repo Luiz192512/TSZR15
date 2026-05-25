@@ -14,8 +14,8 @@ const sanitizers = {
   taxId: sanitizeTaxId
 };
 
-export function SanitizedInput({ sanitizer, onInput, ...props }) {
-  function handleInput(event) {
+export function SanitizedInput({ sanitizer, onChange, onInput, ...props }) {
+  function sanitizeCurrentValue(event) {
     const sanitize = sanitizers[sanitizer];
 
     if (sanitize) {
@@ -25,9 +25,18 @@ export function SanitizedInput({ sanitizer, onInput, ...props }) {
         event.currentTarget.value = sanitizedValue;
       }
     }
+  }
+
+  function handleChange(event) {
+    sanitizeCurrentValue(event);
+    onChange?.(event);
+  }
+
+  function handleInput(event) {
+    sanitizeCurrentValue(event);
 
     onInput?.(event);
   }
 
-  return <input {...props} onInput={handleInput} />;
+  return <input {...props} onChange={handleChange} onInput={handleInput} />;
 }

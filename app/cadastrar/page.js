@@ -3,13 +3,9 @@ import Link from "next/link";
 import { signUpAction } from "@/app/auth/actions.js";
 import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
 import { SiteHeader } from "@/src/components/site-header.js";
+import { CepAddressFields } from "@/src/components/form/cep-address-fields.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
-import {
-  cepPattern,
-  phonePattern,
-  statePattern,
-  taxIdPattern
-} from "@/src/customer/field-validation.js";
+import { phonePattern, taxIdPattern } from "@/src/customer/field-validation.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 export default async function SignUpPage({ searchParams }) {
@@ -82,54 +78,7 @@ export default async function SignUpPage({ searchParams }) {
                 title="Use somente numeros e pontuacao de telefone."
               />
             </label>
-            <label>
-              <span>CEP</span>
-              <SanitizedInput
-                autoComplete="postal-code"
-                inputMode="numeric"
-                name="cep"
-                pattern={cepPattern}
-                required
-                sanitizer="cep"
-                title="Use 8 numeros, com ou sem hifen."
-              />
-            </label>
-            <label>
-              <span>Rua</span>
-              <input autoComplete="address-line1" name="street" required />
-            </label>
-            <label>
-              <span>Numero</span>
-              <input name="number" required />
-            </label>
-            <label>
-              <span>Bairro</span>
-              <input name="district" required />
-            </label>
-            <label>
-              <span>Cidade</span>
-              <input autoComplete="address-level2" name="city" required />
-            </label>
-            <label>
-              <span>UF</span>
-              <SanitizedInput
-                autoComplete="address-level1"
-                maxLength={2}
-                name="state"
-                pattern={statePattern}
-                required
-                sanitizer="state"
-                title="Use a sigla do estado com 2 letras."
-              />
-            </label>
-            <label>
-              <span>Complemento</span>
-              <input autoComplete="address-line2" name="complement" />
-            </label>
-            <label>
-              <span>Ponto de referencia</span>
-              <input name="referencePoint" />
-            </label>
+            <CepAddressFields />
           </div>
 
           <label className="consent-box account-consent">
