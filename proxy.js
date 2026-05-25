@@ -6,6 +6,10 @@ import {
   getAdminSessionCookieOptions,
   isAdminSessionValueValidAtEdge
 } from "./src/admin/admin-session-edge.js";
+import {
+  getSupabasePublishableKey,
+  getSupabaseUrl
+} from "./src/lib/supabase/config.js";
 
 function isAdminPath(pathname) {
   return pathname === "/admin" || pathname.startsWith("/admin/");
@@ -33,10 +37,8 @@ function redirectToAdminLogin(request) {
 }
 
 export async function proxy(request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabasePublishableKey();
   const isAdminRequest = isAdminPath(request.nextUrl.pathname);
 
   let response = NextResponse.next({ request });

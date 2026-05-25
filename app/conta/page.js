@@ -39,7 +39,8 @@ export default async function AccountPage({ searchParams }) {
           <h1>Configure o Supabase para ativar contas de cliente.</h1>
           <p>
             Preencha `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-            no `.env.local`, aplique a migracao SQL e reinicie o servidor.
+            ou sincronize as variaveis da integracao Supabase/Vercel no ambiente do servidor.
+            Depois aplique a migracao SQL e reinicie o servidor.
           </p>
         </section>
       </main>

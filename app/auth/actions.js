@@ -11,6 +11,7 @@ import {
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
 import { startAdminSession } from "@/src/admin/admin-auth.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
+import { getSupabaseConfigStatus } from "@/src/lib/supabase/config.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 function formValue(formData, key) {
@@ -130,7 +131,9 @@ export async function signInAction(formData) {
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
-    redirectWithError("/entrar", "Configure as variaveis do Supabase antes de entrar.", nextPath);
+    const status = getSupabaseConfigStatus();
+    const missing = status.missing.length ? ` Faltando: ${status.missing.join("; ")}.` : "";
+    redirectWithError("/entrar", `Configure as variaveis do Supabase antes de entrar.${missing}`, nextPath);
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });

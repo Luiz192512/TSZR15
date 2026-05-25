@@ -194,11 +194,11 @@ async function main() {
     return;
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error("Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env.local.");
+    throw new Error("Configure NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_URL, alem de SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_SECRET_KEY no .env.local.");
   }
 
   if (getJwtRole(serviceRoleKey) === "anon") {
