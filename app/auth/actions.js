@@ -61,6 +61,15 @@ function collectAddressPayload(formData, user) {
   };
 }
 
+function collectSignUpMetadata(formData) {
+  return {
+    full_name: formValue(formData, "fullName"),
+    phone: formValue(formData, "phone"),
+    tax_id: formValue(formData, "taxId"),
+    whatsapp: formValue(formData, "whatsapp")
+  };
+}
+
 function validateRequiredProfile(formData) {
   const requiredFields = [
     ["fullName", "Informe o nome completo."],
@@ -180,6 +189,44 @@ async function persistSignUpCustomerData({ formData, hasSession, supabase, user 
   return { error: null };
 }
 
+async function createConfirmedCustomerAccount({ email, formData, password, supabase }) {
+  const adminSupabase = createServiceRoleSupabaseClient();
+
+  if (!adminSupabase) {
+    return { handled: false };
+  }
+
+  const { data, error } = await adminSupabase.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    password,
+    user_metadata: collectSignUpMetadata(formData)
+  });
+
+  if (error) {
+    return { handled: true, error };
+  }
+
+  const { error: persistenceError } = await persistSignUpCustomerData({
+    formData,
+    hasSession: true,
+    supabase: adminSupabase,
+    user: data.user
+  });
+
+  if (persistenceError) {
+    return { handled: true, error: persistenceError };
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (signInError) {
+    return { handled: true, error: signInError };
+  }
+
+  return { handled: true, error: null };
+}
+
 export async function signInAction(formData) {
   const email = formValue(formData, "email");
   const password = formValue(formData, "password");
@@ -233,16 +280,27 @@ export async function signUpAction(formData) {
     redirectWithError("/cadastrar", "Use uma senha com pelo menos 6 caracteres.");
   }
 
+  const confirmedAccount = await createConfirmedCustomerAccount({
+    email,
+    formData,
+    password,
+    supabase
+  });
+
+  if (confirmedAccount.handled) {
+    if (confirmedAccount.error) {
+      redirectWithError("/cadastrar", confirmedAccount.error.message);
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/conta?status=cadastrado");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: {
-        full_name: formValue(formData, "fullName"),
-        phone: formValue(formData, "phone"),
-        tax_id: formValue(formData, "taxId"),
-        whatsapp: formValue(formData, "whatsapp")
-      }
+      data: collectSignUpMetadata(formData)
     }
   });
 
