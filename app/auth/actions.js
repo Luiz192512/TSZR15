@@ -11,6 +11,7 @@ import {
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
 import { startAdminSession } from "@/src/admin/admin-auth.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
+import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { getSupabaseConfigStatus } from "@/src/lib/supabase/config.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -113,6 +114,72 @@ async function insertConsent(supabase, userId) {
   });
 }
 
+function isPersistableSignUpUser(user) {
+  if (!user?.id) {
+    return false;
+  }
+
+  return !Array.isArray(user.identities) || user.identities.length > 0;
+}
+
+async function upsertDefaultAddress(supabase, addressPayload) {
+  const { data: existingAddress, error: lookupError } = await supabase
+    .from("customer_addresses")
+    .select("id")
+    .eq("user_id", addressPayload.user_id)
+    .eq("is_default", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { error: lookupError };
+  }
+
+  if (existingAddress?.id) {
+    return supabase.from("customer_addresses").update(addressPayload).eq("id", existingAddress.id);
+  }
+
+  return supabase.from("customer_addresses").insert(addressPayload);
+}
+
+async function persistSignUpCustomerData({ formData, hasSession, supabase, user }) {
+  const persistenceSupabase = createServiceRoleSupabaseClient() ?? (hasSession ? supabase : null);
+
+  if (!persistenceSupabase) {
+    return {
+      error: new Error(
+        "Configure SUPABASE_SERVICE_ROLE_KEY para salvar dados de cadastro quando a confirmacao de email esta ativa."
+      )
+    };
+  }
+
+  const profilePayload = collectProfilePayload(formData, user);
+  const addressPayload = collectAddressPayload(formData, user);
+
+  const { error: profileError } = await persistenceSupabase
+    .from("customer_profiles")
+    .upsert(profilePayload, { onConflict: "user_id" });
+
+  if (profileError) {
+    return { error: profileError };
+  }
+
+  const { error: addressError } = await upsertDefaultAddress(persistenceSupabase, addressPayload);
+
+  if (addressError) {
+    return { error: addressError };
+  }
+
+  const { error: consentError } = await insertConsent(persistenceSupabase, user.id);
+
+  if (consentError) {
+    return { error: consentError };
+  }
+
+  return { error: null };
+}
+
 export async function signInAction(formData) {
   const email = formValue(formData, "email");
   const password = formValue(formData, "password");
@@ -183,32 +250,20 @@ export async function signUpAction(formData) {
     redirectWithError("/cadastrar", error.message);
   }
 
+  if (isPersistableSignUpUser(data.user)) {
+    const { error: persistenceError } = await persistSignUpCustomerData({
+      formData,
+      hasSession: Boolean(data.session),
+      supabase,
+      user: data.user
+    });
+
+    if (persistenceError) {
+      redirectWithError("/cadastrar", persistenceError.message);
+    }
+  }
+
   if (data.session && data.user) {
-    const profilePayload = collectProfilePayload(formData, data.user);
-    const addressPayload = collectAddressPayload(formData, data.user);
-
-    const { error: profileError } = await supabase
-      .from("customer_profiles")
-      .upsert(profilePayload, { onConflict: "user_id" });
-
-    if (profileError) {
-      redirectWithError("/cadastrar", profileError.message);
-    }
-
-    const { error: addressError } = await supabase
-      .from("customer_addresses")
-      .insert(addressPayload);
-
-    if (addressError) {
-      redirectWithError("/cadastrar", addressError.message);
-    }
-
-    const { error: consentError } = await insertConsent(supabase, data.user.id);
-
-    if (consentError) {
-      redirectWithError("/cadastrar", consentError.message);
-    }
-
     revalidatePath("/", "layout");
     redirect("/conta?status=cadastrado");
   }
