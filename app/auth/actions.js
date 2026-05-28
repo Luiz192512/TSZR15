@@ -11,6 +11,11 @@ import {
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
 import { startAdminSession } from "@/src/admin/admin-auth.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
+import {
+  buildPasswordResetRedirectUrl,
+  getSiteOriginFromHeaders
+} from "@/src/auth/password-reset.js";
+import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { getSupabaseConfigStatus } from "@/src/lib/supabase/config.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -27,6 +32,14 @@ function redirectWithError(path, message, nextPath = "") {
   if (safeNextPath) {
     params.set("next", safeNextPath);
   }
+
+  redirect(`${path}?${params.toString()}`);
+}
+
+function redirectWithStatus(path, status) {
+  const params = new URLSearchParams({
+    status
+  });
 
   redirect(`${path}?${params.toString()}`);
 }
@@ -57,6 +70,15 @@ function collectAddressPayload(formData, user) {
     state: formValue(formData, "state").toUpperCase(),
     street: formValue(formData, "street"),
     user_id: user.id
+  };
+}
+
+function collectSignUpMetadata(formData) {
+  return {
+    full_name: formValue(formData, "fullName"),
+    phone: formValue(formData, "phone"),
+    tax_id: formValue(formData, "taxId"),
+    whatsapp: formValue(formData, "whatsapp")
   };
 }
 
@@ -113,6 +135,110 @@ async function insertConsent(supabase, userId) {
   });
 }
 
+function isPersistableSignUpUser(user) {
+  if (!user?.id) {
+    return false;
+  }
+
+  return !Array.isArray(user.identities) || user.identities.length > 0;
+}
+
+async function upsertDefaultAddress(supabase, addressPayload) {
+  const { data: existingAddress, error: lookupError } = await supabase
+    .from("customer_addresses")
+    .select("id")
+    .eq("user_id", addressPayload.user_id)
+    .eq("is_default", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { error: lookupError };
+  }
+
+  if (existingAddress?.id) {
+    return supabase.from("customer_addresses").update(addressPayload).eq("id", existingAddress.id);
+  }
+
+  return supabase.from("customer_addresses").insert(addressPayload);
+}
+
+async function persistSignUpCustomerData({ formData, hasSession, supabase, user }) {
+  const persistenceSupabase = createServiceRoleSupabaseClient() ?? (hasSession ? supabase : null);
+
+  if (!persistenceSupabase) {
+    return {
+      error: new Error(
+        "Configure SUPABASE_SERVICE_ROLE_KEY para salvar dados de cadastro quando a confirmacao de email esta ativa."
+      )
+    };
+  }
+
+  const profilePayload = collectProfilePayload(formData, user);
+  const addressPayload = collectAddressPayload(formData, user);
+
+  const { error: profileError } = await persistenceSupabase
+    .from("customer_profiles")
+    .upsert(profilePayload, { onConflict: "user_id" });
+
+  if (profileError) {
+    return { error: profileError };
+  }
+
+  const { error: addressError } = await upsertDefaultAddress(persistenceSupabase, addressPayload);
+
+  if (addressError) {
+    return { error: addressError };
+  }
+
+  const { error: consentError } = await insertConsent(persistenceSupabase, user.id);
+
+  if (consentError) {
+    return { error: consentError };
+  }
+
+  return { error: null };
+}
+
+async function createConfirmedCustomerAccount({ email, formData, password, supabase }) {
+  const adminSupabase = createServiceRoleSupabaseClient();
+
+  if (!adminSupabase) {
+    return { handled: false };
+  }
+
+  const { data, error } = await adminSupabase.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    password,
+    user_metadata: collectSignUpMetadata(formData)
+  });
+
+  if (error) {
+    return { handled: true, error };
+  }
+
+  const { error: persistenceError } = await persistSignUpCustomerData({
+    formData,
+    hasSession: true,
+    supabase: adminSupabase,
+    user: data.user
+  });
+
+  if (persistenceError) {
+    return { handled: true, error: persistenceError };
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (signInError) {
+    return { handled: true, error: signInError };
+  }
+
+  return { handled: true, error: null };
+}
+
 export async function signInAction(formData) {
   const email = formValue(formData, "email");
   const password = formValue(formData, "password");
@@ -166,16 +292,27 @@ export async function signUpAction(formData) {
     redirectWithError("/cadastrar", "Use uma senha com pelo menos 6 caracteres.");
   }
 
+  const confirmedAccount = await createConfirmedCustomerAccount({
+    email,
+    formData,
+    password,
+    supabase
+  });
+
+  if (confirmedAccount.handled) {
+    if (confirmedAccount.error) {
+      redirectWithError("/cadastrar", confirmedAccount.error.message);
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/conta?status=cadastrado");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: {
-        full_name: formValue(formData, "fullName"),
-        phone: formValue(formData, "phone"),
-        tax_id: formValue(formData, "taxId"),
-        whatsapp: formValue(formData, "whatsapp")
-      }
+      data: collectSignUpMetadata(formData)
     }
   });
 
@@ -183,32 +320,20 @@ export async function signUpAction(formData) {
     redirectWithError("/cadastrar", error.message);
   }
 
+  if (isPersistableSignUpUser(data.user)) {
+    const { error: persistenceError } = await persistSignUpCustomerData({
+      formData,
+      hasSession: Boolean(data.session),
+      supabase,
+      user: data.user
+    });
+
+    if (persistenceError) {
+      redirectWithError("/cadastrar", persistenceError.message);
+    }
+  }
+
   if (data.session && data.user) {
-    const profilePayload = collectProfilePayload(formData, data.user);
-    const addressPayload = collectAddressPayload(formData, data.user);
-
-    const { error: profileError } = await supabase
-      .from("customer_profiles")
-      .upsert(profilePayload, { onConflict: "user_id" });
-
-    if (profileError) {
-      redirectWithError("/cadastrar", profileError.message);
-    }
-
-    const { error: addressError } = await supabase
-      .from("customer_addresses")
-      .insert(addressPayload);
-
-    if (addressError) {
-      redirectWithError("/cadastrar", addressError.message);
-    }
-
-    const { error: consentError } = await insertConsent(supabase, data.user.id);
-
-    if (consentError) {
-      redirectWithError("/cadastrar", consentError.message);
-    }
-
     revalidatePath("/", "layout");
     redirect("/conta?status=cadastrado");
   }
@@ -267,6 +392,75 @@ export async function saveAccountAction(formData) {
 
   revalidatePath("/", "layout");
   redirect("/conta?status=salvo");
+}
+
+export async function requestPasswordResetAction(formData) {
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    redirectWithError("/recuperar-senha", "Configure as variaveis do Supabase antes de recuperar senha.");
+  }
+
+  const email = formValue(formData, "email").toLowerCase();
+
+  if (!email) {
+    redirectWithError("/recuperar-senha", "Informe o email da conta.");
+  }
+
+  const headerStore = await headers();
+  const redirectTo = buildPasswordResetRedirectUrl(getSiteOriginFromHeaders(headerStore));
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo
+  });
+
+  if (error) {
+    redirectWithError("/recuperar-senha", error.message);
+  }
+
+  redirectWithStatus("/recuperar-senha", "enviado");
+}
+
+export async function updatePasswordAction(formData) {
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    redirectWithError("/trocar-senha", "Configure as variaveis do Supabase antes de trocar senha.");
+  }
+
+  const password = formValue(formData, "password");
+  const passwordConfirmation = formValue(formData, "passwordConfirmation");
+
+  if (password.length < 6) {
+    redirectWithError("/trocar-senha", "Use uma senha com pelo menos 6 caracteres.");
+  }
+
+  if (password !== passwordConfirmation) {
+    redirectWithError("/trocar-senha", "As senhas informadas nao conferem.");
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirectWithError(
+      "/recuperar-senha",
+      "Abra o link de recuperacao enviado por email antes de definir uma nova senha."
+    );
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password
+  });
+
+  if (error) {
+    redirectWithError("/trocar-senha", error.message);
+  }
+
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirectWithStatus("/entrar", "senha-alterada");
 }
 
 export async function signOutAction() {

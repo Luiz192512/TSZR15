@@ -1231,6 +1231,36 @@ button {
   box-shadow: 0 0 0 3px rgba(11, 127, 120, 0.13);
 }
 
+.password-input-shell {
+  position: relative;
+  display: block;
+}
+
+.auth-card .password-input-shell input,
+.form-grid .password-input-shell input {
+  padding-right: 92px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--blue);
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  transform: translateY(-50%);
+}
+
+.password-toggle:focus-visible {
+  outline: 3px solid rgba(11, 127, 120, 0.24);
+  outline-offset: 2px;
+}
+
 .auth-switch {
   margin: 0;
   color: var(--muted);
@@ -2819,6 +2849,12 @@ body::before {
   border-color: var(--line);
   border-radius: 0;
   background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.password-toggle {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 

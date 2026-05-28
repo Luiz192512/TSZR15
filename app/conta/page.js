@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { saveAccountAction, signOutAction } from "@/app/auth/actions.js";
@@ -69,6 +70,10 @@ export default async function AccountPage({ searchParams }) {
               Sair
             </button>
           </form>
+
+          <Link className="button button-secondary" href="/trocar-senha">
+            Trocar senha
+          </Link>
         </div>
 
         <form action={saveAccountAction} className="auth-card account-form-card">
