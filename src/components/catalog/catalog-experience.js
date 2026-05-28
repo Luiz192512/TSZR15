@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
-import { formatCategoryLabels } from "@/src/catalog/index.js";
+import { formatCategoryLabels, groupProductsByCategory } from "@/src/catalog/index.js";
 import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
 import {
   fetchCepAddress,
@@ -31,7 +31,8 @@ import { ProfileLink } from "@/src/components/profile-link.js";
 const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
 const cartStorageKey = "tszr15-cart";
 const brandLogoSrc = "/brand/logo-tszr15-store.png";
-const heroBoardSrc = "/brand/tszr15-product-board.png";
+const heroBoardSrc =
+  "https://mckthvbwddxipghumrpw.supabase.co/storage/v1/object/public/brand-assets/tszr15-hero-r15-dark.png";
 
 const heroFeatures = [
   ["Qualidade", "premium"],
@@ -132,6 +133,12 @@ function getProductHref(product) {
   return `/produto/${product.slug}`;
 }
 
+function getProductImages(product) {
+  return Array.isArray(product.imageUrls)
+    ? product.imageUrls.filter((imageUrl) => typeof imageUrl === "string" && imageUrl.trim())
+    : [];
+}
+
 function getFeaturedProducts(products) {
   const productsById = new Map(products.map((product) => [product.id, product]));
   const selectedProducts = featuredProductIds
@@ -229,18 +236,44 @@ function useCartCount() {
 function ProductVisual({ product, size = "card" }) {
   const categoryLabel = formatCategoryLabels(product.storefrontCategoryIds)[0] ?? "R15";
   const familyClass = `family-${product.productFamily}`;
+  const [coverImage] = getProductImages(product);
 
   return (
-    <div className={`product-image product-image-${size} ${familyClass}`}>
-      <img
-        alt=""
-        aria-hidden="true"
-        className="product-image-logo"
-        src={brandLogoSrc}
-      />
-      <span>{categoryLabel}</span>
-      <strong>{getProductCode(product)}</strong>
+    <div
+      className={`product-image product-image-${size} ${familyClass} ${
+        coverImage ? "has-product-photo" : ""
+      }`}
+    >
+      {coverImage ? (
+        <img className="product-photo" src={coverImage} alt={product.name} />
+      ) : (
+        <>
+          <img
+            alt=""
+            aria-hidden="true"
+            className="product-image-logo"
+            src={brandLogoSrc}
+          />
+          <span>{categoryLabel}</span>
+          <strong>{getProductCode(product)}</strong>
+        </>
+      )}
     </div>
+  );
+}
+
+function ChevronIcon({ direction }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+      <path
+        d={direction === "left" ? "M15 18l-6-6 6-6" : "M9 6l6 6-6 6"}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.4"
+      />
+    </svg>
   );
 }
 
@@ -271,7 +304,7 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
 
       <nav className="store-nav" aria-label="Navegacao principal">
         <Link href="/">Inicio</Link>
-        <Link href="/catalogo">Produtos</Link>
+        <Link href="/catalogo#produtos">Produtos</Link>
         <Link href="/#lancamentos">Lancamentos</Link>
         <Link href="/#sobre">Sobre nos</Link>
         <Link className="cart-nav-link" href="/pedido">
@@ -372,10 +405,10 @@ function FeaturedProductCarousel({ products }) {
         </div>
         <div className="carousel-controls" aria-label="Controles do carrossel">
           <button aria-label="Produto anterior" onClick={goToPrevious} type="button">
-            {"<"}
+            <ChevronIcon direction="left" />
           </button>
           <button aria-label="Proximo produto" onClick={goToNext} type="button">
-            {">"}
+            <ChevronIcon direction="right" />
           </button>
         </div>
       </div>
@@ -421,6 +454,59 @@ function FeaturedProductCarousel({ products }) {
   );
 }
 
+function CategoryProductCarousel({ category }) {
+  const trackRef = useRef(null);
+
+  function scrollByPage(direction) {
+    const track = trackRef.current;
+
+    if (!track) {
+      return;
+    }
+
+    track.scrollBy({
+      left: direction * Math.max(track.clientWidth - 80, 260),
+      behavior: "smooth"
+    });
+  }
+
+  return (
+    <section className="category-carousel-section" aria-labelledby={`category-${category.id}`}>
+      <div className="category-carousel-heading">
+        <div>
+          <p className="section-label">Categoria</p>
+          <h2 id={`category-${category.id}`}>{category.label}</h2>
+        </div>
+        <div className="category-carousel-actions">
+          <span>{category.products.length} itens</span>
+          <div className="carousel-controls" aria-label={`Controles de ${category.label}`}>
+            <button
+              aria-label={`Ver itens anteriores de ${category.label}`}
+              onClick={() => scrollByPage(-1)}
+              type="button"
+            >
+              <ChevronIcon direction="left" />
+            </button>
+            <button
+              aria-label={`Ver proximos itens de ${category.label}`}
+              onClick={() => scrollByPage(1)}
+              type="button"
+            >
+              <ChevronIcon direction="right" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="category-carousel-track" ref={trackRef}>
+        {category.products.map((product) => (
+          <ProductCard key={`${category.id}-${product.id}`} product={product} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function CatalogHub({ categories, currentUser, products }) {
   const [activeCategory, setActiveCategory] = useState("all");
   const [query, setQuery] = useState("");
@@ -428,14 +514,18 @@ export function CatalogHub({ categories, currentUser, products }) {
   const normalizedQuery = normalizeSearch(deferredQuery);
   const featuredProducts = useMemo(() => getFeaturedProducts(products), [products]);
 
-  const visibleProducts = products.filter((product) => {
-    const matchesCategory =
-      activeCategory === "all" || product.storefrontCategoryIds.includes(activeCategory);
+  const matchingProducts = products.filter((product) => {
     const searchable = normalizeSearch(`${product.name} ${product.productFamily}`);
     const matchesQuery = normalizedQuery.length === 0 || searchable.includes(normalizedQuery);
 
-    return matchesCategory && matchesQuery;
+    return matchesQuery;
   });
+  const visibleProducts = matchingProducts.filter(
+    (product) => activeCategory === "all" || product.storefrontCategoryIds.includes(activeCategory)
+  );
+  const visibleCategories = groupProductsByCategory(visibleProducts).filter(
+    (category) => category.products.length > 0
+  );
 
   function setSearchValue(value) {
     startTransition(() => setQuery(value));
@@ -550,13 +640,69 @@ export function CatalogHub({ categories, currentUser, products }) {
           </p>
         </div>
       ) : (
-        <section className="product-grid" aria-label="Produtos TSZR15">
-          {visibleProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+        <div className="category-carousel-list" aria-label="Produtos TSZR15 por categoria">
+          {visibleCategories.map((category) => (
+            <CategoryProductCarousel category={category} key={category.id} />
           ))}
-        </section>
+        </div>
       )}
     </>
+  );
+}
+
+function ProductImageCarousel({ product }) {
+  const images = getProductImages(product);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeImage = images[activeIndex];
+
+  if (!activeImage) {
+    return <ProductVisual product={product} size="detail" />;
+  }
+
+  function goToPrevious() {
+    setActiveIndex((currentIndex) =>
+      currentIndex === 0 ? images.length - 1 : currentIndex - 1
+    );
+  }
+
+  function goToNext() {
+    setActiveIndex((currentIndex) =>
+      currentIndex === images.length - 1 ? 0 : currentIndex + 1
+    );
+  }
+
+  return (
+    <div className="product-photo-carousel">
+      <div className="product-photo-main">
+        <img src={activeImage} alt={product.name} />
+        {images.length > 1 ? (
+          <div className="product-photo-controls" aria-label="Controles das imagens do produto">
+            <button aria-label="Imagem anterior" onClick={goToPrevious} type="button">
+              <ChevronIcon direction="left" />
+            </button>
+            <button aria-label="Proxima imagem" onClick={goToNext} type="button">
+              <ChevronIcon direction="right" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {images.length > 1 ? (
+        <div className="product-photo-thumbs" aria-label="Miniaturas do produto">
+          {images.map((imageUrl, index) => (
+            <button
+              aria-label={`Ver imagem ${index + 1}`}
+              className={index === activeIndex ? "is-active" : ""}
+              key={imageUrl}
+              onClick={() => setActiveIndex(index)}
+              type="button"
+            >
+              <img src={imageUrl} alt="" />
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -599,7 +745,7 @@ export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
 
       <section className="product-detail-layout">
         <div className="product-detail-media">
-          <ProductVisual product={product} size="detail" />
+          <ProductImageCarousel product={product} />
           <div className="detail-assist-box">
             <strong>Compra assistida</strong>
             <span>

@@ -9,7 +9,7 @@ import {
   ASSISTED_PURCHASE_CONSENT_VERSION
 } from "@/src/customer/customer-data.js";
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
-import { startAdminSession } from "@/src/admin/admin-auth.js";
+import { isAdminTokenConfigured, startAdminSession } from "@/src/admin/admin-auth.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
 
 import {
@@ -247,10 +247,18 @@ export async function signInAction(formData) {
   const nextPath = getSafeAuthRedirectPath(formValue(formData, "next"), "/conta");
 
   if (email.toLowerCase() === "admin") {
+    if (!isAdminTokenConfigured()) {
+      redirectWithError(
+        "/entrar",
+        "Token administrativo ausente no servidor. Configure TSZR15_ADMIN_TOKEN no ambiente de producao.",
+        "/admin"
+      );
+    }
+
     const isValidAdmin = await startAdminSession(password);
 
     if (!isValidAdmin) {
-      redirectWithError("/entrar", "Senha administrativa invalida ou token nao configurado.", "/admin");
+      redirectWithError("/entrar", "Senha administrativa invalida.", "/admin");
     }
 
     redirect("/admin");

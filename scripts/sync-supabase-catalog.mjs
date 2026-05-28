@@ -104,7 +104,7 @@ function buildSeedSql({ categoryRows, productRows, relationRows }) {
   const productValues = productRows
     .map(
       (product) =>
-        `(${sqlString(product.id)}, ${sqlString(product.slug)}, ${sqlString(product.name)}, ${sqlTextArray(product.storefront_category_ids)}, ${sqlString(product.product_family)}, ${sqlTextArray(product.bike_model_scope)}, ${product.price_cents}, ${sqlString(product.currency)}, ${sqlTextArray(product.variations)}, ${sqlString(product.availability)}, ${product.lead_time_days}, ${sqlString(product.shipping_class)}, ${sqlString(product.checkout_channel)}, ${sqlJsonb(product.internal_purchase_source)}, ${sqlString(product.notes)}, ${product.is_published})`
+        `(${sqlString(product.id)}, ${sqlString(product.slug)}, ${sqlString(product.name)}, ${sqlTextArray(product.storefront_category_ids)}, ${sqlString(product.product_family)}, ${sqlTextArray(product.bike_model_scope)}, ${product.price_cents}, ${sqlString(product.currency)}, ${sqlTextArray(product.variations)}, ${sqlString(product.availability)}, ${product.lead_time_days}, ${sqlString(product.shipping_class)}, ${sqlTextArray(product.image_urls)}, ${sqlString(product.checkout_channel)}, ${sqlJsonb(product.internal_purchase_source)}, ${sqlString(product.notes)}, ${product.is_published})`
     )
     .join(",\n");
   const relationValues = relationRows
@@ -127,7 +127,7 @@ on conflict (id) do update set
 insert into public.catalog_products (
   id, slug, name, storefront_category_ids, product_family, bike_model_scope,
   price_cents, currency, variations, availability, lead_time_days, shipping_class,
-  checkout_channel, internal_purchase_source, notes, is_published
+  image_urls, checkout_channel, internal_purchase_source, notes, is_published
 ) values
 ${productValues}
 on conflict (id) do update set
@@ -142,6 +142,7 @@ on conflict (id) do update set
   availability = excluded.availability,
   lead_time_days = excluded.lead_time_days,
   shipping_class = excluded.shipping_class,
+  image_urls = excluded.image_urls,
   checkout_channel = excluded.checkout_channel,
   internal_purchase_source = excluded.internal_purchase_source,
   notes = excluded.notes,

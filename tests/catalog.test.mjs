@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   blockedMotorcycleKeywords,
   catalogProducts,
+  groupProductsByCategory,
   getPublicCatalogProducts,
   getStorefrontMenu,
   storefrontCategories,
@@ -33,6 +34,7 @@ import {
 } from "../src/customer/cep-lookup.js";
 import { getSafeAuthRedirectPath } from "../src/auth/redirects.js";
 import {
+  CANONICAL_SITE_ORIGIN,
   buildPasswordResetRedirectUrl,
   getConfiguredSiteOrigin,
   getSiteOriginFromHeaders
@@ -48,7 +50,10 @@ import {
   isAdminSessionValueFreshShape,
   isAdminSessionValueValid
 } from "../src/admin/admin-session.js";
-import { isAdminSessionValueValidAtEdge } from "../src/admin/admin-session-edge.js";
+import {
+  isAdminSessionValueFreshShapeAtEdge,
+  isAdminSessionValueValidAtEdge
+} from "../src/admin/admin-session-edge.js";
 import {
   isValidCep,
   isValidPhone,
@@ -147,10 +152,38 @@ test("Supabase catalog seed rows cover every published product", () => {
   for (const product of productRows) {
     assert.ok(product.storefront_category_ids.length > 0);
     assert.ok(product.variations.length > 0);
+    assert.ok(Array.isArray(product.image_urls));
     assert.equal(product.currency, "BRL");
     assert.equal(product.checkout_channel, "whatsapp-business");
     assert.equal(product.is_published, true);
   }
+});
+
+test("catalog products can carry image URL arrays through Supabase rows", () => {
+  const [sampleProduct] = catalogProducts;
+  const [row] = buildCatalogProductRows([
+    {
+      ...sampleProduct,
+      imageUrls: [
+        "https://cdn.example.com/r15/frente-1.jpg",
+        "/brand/tszr15-hero-r15-dark.png"
+      ]
+    }
+  ]);
+
+  assert.deepEqual(row.image_urls, [
+    "https://cdn.example.com/r15/frente-1.jpg",
+    "/brand/tszr15-hero-r15-dark.png"
+  ]);
+});
+
+test("catalog grouping creates carousel-ready category sections", () => {
+  const groups = groupProductsByCategory(catalogProducts);
+  const firstGroup = groups.find((group) => group.id === "suporte-sliders");
+
+  assert.equal(groups.length, storefrontCategories.length);
+  assert.ok(firstGroup.products.length > 0);
+  assert.ok(firstGroup.products.every((product) => product.storefrontCategoryIds.includes(firstGroup.id)));
 });
 
 test("published catalog excludes vestuario and unsupported motorcycles", () => {
@@ -418,7 +451,7 @@ test("password reset callback URL stays on the configured site origin", () => {
   );
 });
 
-test("password reset origin falls back to forwarded request headers", () => {
+test("password reset origin falls back to the canonical production domain", () => {
   const headers = new Map([
     ["x-forwarded-host", "preview.tszr15.com"],
     ["x-forwarded-proto", "https"]
@@ -431,7 +464,12 @@ test("password reset origin falls back to forwarded request headers", () => {
       VERCEL_URL: undefined
     },
     () => {
-      assert.equal(getSiteOriginFromHeaders(headers), "https://preview.tszr15.com");
+      assert.equal(getConfiguredSiteOrigin(), CANONICAL_SITE_ORIGIN);
+      assert.equal(getSiteOriginFromHeaders(headers), CANONICAL_SITE_ORIGIN);
+      assert.equal(
+        buildPasswordResetRedirectUrl(getSiteOriginFromHeaders(headers)),
+        "https://www.tszr15-store.com.br/auth/callback?next=%2Ftrocar-senha"
+      );
     }
   );
 });
@@ -504,6 +542,7 @@ test("admin session values are signed, expiring and token-bound", async () => {
     await isAdminSessionValueValidAtEdge(sessionValue, { now: now + 1000, token }),
     true
   );
+  assert.equal(isAdminSessionValueFreshShapeAtEdge(sessionValue, { now: now + 1000 }), true);
   assert.equal(
     isAdminSessionValueValid(sessionValue, {
       now: now + 9 * 60 * 60 * 1000,

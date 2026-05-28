@@ -49,6 +49,7 @@ function buildProduct({
   availability = "sob-consulta",
   leadTimeDays = 2,
   shippingClass = "medium",
+  imageUrls = [],
   notes = ""
 }) {
   return {
@@ -64,6 +65,7 @@ function buildProduct({
     availability,
     leadTimeDays,
     shippingClass,
+    imageUrls,
     checkoutChannel: "whatsapp-business",
     internalPurchaseSource: {
       importMode: "manual-curated",

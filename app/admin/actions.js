@@ -8,6 +8,10 @@ import {
   clearAdminSession,
   isAdminSessionValid
 } from "@/src/admin/admin-auth.js";
+import {
+  archiveAdminCatalogProduct,
+  upsertAdminCatalogProduct
+} from "@/src/admin/catalog-admin.js";
 import { updateAdminOrderOperation } from "@/src/admin/order-admin.js";
 
 function formValue(formData, key) {
@@ -15,7 +19,8 @@ function formValue(formData, key) {
 }
 
 function redirectWithError(path, message) {
-  redirect(`${path}?error=${encodeURIComponent(message)}`);
+  const separator = path.includes("?") ? "&" : "?";
+  redirect(`${path}${separator}error=${encodeURIComponent(message)}`);
 }
 
 async function isSameOriginAdminRequest() {
@@ -54,12 +59,71 @@ export async function updateAdminOrderAction(formData) {
     redirectWithError("/admin", "Requisicao administrativa rejeitada.");
   }
 
+  let result;
+
   try {
-    const result = await updateAdminOrderOperation(formData);
+    result = await updateAdminOrderOperation(formData);
     revalidatePath("/admin");
-    redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=salvo`);
   } catch (error) {
     const path = orderNumber ? `/admin?pedido=${encodeURIComponent(orderNumber)}` : "/admin";
     redirectWithError(path, error.message);
   }
+
+  redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=salvo`);
+}
+
+function revalidateCatalogPaths(...slugs) {
+  revalidatePath("/");
+  revalidatePath("/catalogo");
+  revalidatePath("/api/catalog");
+  revalidatePath("/admin");
+  revalidatePath("/produto/[slug]", "page");
+
+  for (const slug of slugs.filter(Boolean)) {
+    revalidatePath(`/produto/${slug}`);
+  }
+}
+
+export async function upsertAdminProductAction(formData) {
+  const previousSlug = formValue(formData, "previousSlug");
+
+  if (!(await isAdminSessionValid())) {
+    redirectWithError("/admin?tab=produtos", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin?tab=produtos", "Requisicao administrativa rejeitada.");
+  }
+
+  let result;
+
+  try {
+    result = await upsertAdminCatalogProduct(formData);
+    revalidateCatalogPaths(previousSlug, result.slug);
+  } catch (error) {
+    redirectWithError("/admin?tab=produtos", error.message);
+  }
+
+  redirect(`/admin?tab=produtos&produto=${encodeURIComponent(result.id)}&status=produto-salvo`);
+}
+
+export async function archiveAdminProductAction(formData) {
+  if (!(await isAdminSessionValid())) {
+    redirectWithError("/admin?tab=produtos", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin?tab=produtos", "Requisicao administrativa rejeitada.");
+  }
+
+  let result;
+
+  try {
+    result = await archiveAdminCatalogProduct(formData);
+    revalidateCatalogPaths(result.slug);
+  } catch (error) {
+    redirectWithError("/admin?tab=produtos", error.message);
+  }
+
+  redirect("/admin?tab=produtos&status=produto-arquivado");
 }

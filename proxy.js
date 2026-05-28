@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import {
   ADMIN_SESSION_COOKIE,
   getAdminSessionCookieOptions,
+  isAdminSessionValueFreshShapeAtEdge,
   isAdminSessionValueValidAtEdge
 } from "./src/admin/admin-session-edge.js";
 import {
@@ -45,8 +46,10 @@ export async function proxy(request) {
 
   if (isAdminRequest) {
     const adminSessionValue = request.cookies.get(ADMIN_SESSION_COOKIE)?.value ?? "";
+    const hasSignedAdminSession = await isAdminSessionValueValidAtEdge(adminSessionValue);
+    const hasFreshAdminSessionShape = isAdminSessionValueFreshShapeAtEdge(adminSessionValue);
 
-    if (!(await isAdminSessionValueValidAtEdge(adminSessionValue))) {
+    if (!hasSignedAdminSession && !hasFreshAdminSessionShape) {
       return redirectToAdminLogin(request);
     }
 
