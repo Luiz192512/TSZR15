@@ -2,6 +2,8 @@
 
 import { useId, useState } from "react";
 
+import styles from "./password-input.module.css";
+
 export function PasswordInput({
   className,
   hideLabel = "Ocultar senha",
@@ -12,16 +14,17 @@ export function PasswordInput({
   const generatedId = useId();
   const inputId = props.id ?? generatedId;
   const [isVisible, setIsVisible] = useState(false);
+  const labelClassName = [className, styles.label].filter(Boolean).join(" ");
 
   return (
-    <label className={className} htmlFor={inputId}>
+    <label className={labelClassName} htmlFor={inputId}>
       <span>{label}</span>
-      <span className="password-input-shell">
+      <span className={styles.shell}>
         <input {...props} id={inputId} type={isVisible ? "text" : "password"} />
         <button
           aria-label={isVisible ? hideLabel : showLabel}
           aria-pressed={isVisible}
-          className="password-toggle"
+          className={styles.toggle}
           onClick={() => setIsVisible((current) => !current)}
           type="button"
         >
