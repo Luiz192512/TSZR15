@@ -11,6 +11,12 @@ import {
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
 import { startAdminSession } from "@/src/admin/admin-auth.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
+
+import {
+  buildPasswordResetRedirectUrl,
+  getSiteOriginFromHeaders
+} from "@/src/auth/password-reset.js";
+
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { getSupabaseConfigStatus } from "@/src/lib/supabase/config.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
@@ -28,6 +34,14 @@ function redirectWithError(path, message, nextPath = "") {
   if (safeNextPath) {
     params.set("next", safeNextPath);
   }
+
+  redirect(`${path}?${params.toString()}`);
+}
+
+function redirectWithStatus(path, status) {
+  const params = new URLSearchParams({
+    status
+  });
 
   redirect(`${path}?${params.toString()}`);
 }
@@ -380,6 +394,75 @@ export async function saveAccountAction(formData) {
 
   revalidatePath("/", "layout");
   redirect("/conta?status=salvo");
+}
+
+export async function requestPasswordResetAction(formData) {
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    redirectWithError("/recuperar-senha", "Configure as variaveis do Supabase antes de recuperar senha.");
+  }
+
+  const email = formValue(formData, "email").toLowerCase();
+
+  if (!email) {
+    redirectWithError("/recuperar-senha", "Informe o email da conta.");
+  }
+
+  const headerStore = await headers();
+  const redirectTo = buildPasswordResetRedirectUrl(getSiteOriginFromHeaders(headerStore));
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo
+  });
+
+  if (error) {
+    redirectWithError("/recuperar-senha", error.message);
+  }
+
+  redirectWithStatus("/recuperar-senha", "enviado");
+}
+
+export async function updatePasswordAction(formData) {
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    redirectWithError("/trocar-senha", "Configure as variaveis do Supabase antes de trocar senha.");
+  }
+
+  const password = formValue(formData, "password");
+  const passwordConfirmation = formValue(formData, "passwordConfirmation");
+
+  if (password.length < 6) {
+    redirectWithError("/trocar-senha", "Use uma senha com pelo menos 6 caracteres.");
+  }
+
+  if (password !== passwordConfirmation) {
+    redirectWithError("/trocar-senha", "As senhas informadas nao conferem.");
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirectWithError(
+      "/recuperar-senha",
+      "Abra o link de recuperacao enviado por email antes de definir uma nova senha."
+    );
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password
+  });
+
+  if (error) {
+    redirectWithError("/trocar-senha", error.message);
+  }
+
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirectWithStatus("/entrar", "senha-alterada");
 }
 
 export async function signOutAction() {

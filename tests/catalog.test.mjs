@@ -26,8 +26,22 @@ import {
   buildAddressLine,
   buildCustomerSnapshot
 } from "../src/customer/customer-data.js";
+import {
+  formatCepAddressLine,
+  getCepDigits,
+  normalizeViaCepAddress
+} from "../src/customer/cep-lookup.js";
 import { getSafeAuthRedirectPath } from "../src/auth/redirects.js";
+import {
+  buildPasswordResetRedirectUrl,
+  getConfiguredSiteOrigin,
+  getSiteOriginFromHeaders
+} from "../src/auth/password-reset.js";
 import { getUserDisplayName, getUserInitials } from "../src/auth/user-display.js";
+import {
+  getPublicSupabaseConfig,
+  getSupabaseConfigStatus
+} from "../src/lib/supabase/config.js";
 import {
   createAdminSessionValue,
   isAdminPasswordValid,
@@ -46,6 +60,41 @@ import {
   sanitizeTaxId
 } from "../src/customer/field-validation.js";
 import { getStatusLabel, operationalStatuses } from "../src/orders/status.js";
+
+const supabaseEnvKeys = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_ANON_KEY"
+];
+
+function withEnv(overrides, callback) {
+  const previousValues = new Map(
+    Object.keys(overrides).map((key) => [key, process.env[key]])
+  );
+
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    return callback();
+  } finally {
+    for (const [key, value] of previousValues.entries()) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
 
 test("storefront menu keeps the five approved labels", () => {
   const labels = getStorefrontMenu().map((category) => category.label);
@@ -262,6 +311,27 @@ test("customer field validation rejects letters in numeric document and contact 
   assert.equal(isValidState("12"), false);
 });
 
+test("CEP lookup helpers normalize ViaCEP payloads", () => {
+  const address = normalizeViaCepAddress({
+    bairro: "Centro",
+    cep: "01001-000",
+    localidade: "Sao Paulo",
+    logradouro: "Rua Teste",
+    uf: "sp"
+  });
+
+  assert.deepEqual(address, {
+    cep: "01001-000",
+    city: "Sao Paulo",
+    district: "Centro",
+    state: "SP",
+    street: "Rua Teste"
+  });
+  assert.equal(getCepDigits("01abc001-000"), "01001000");
+  assert.equal(formatCepAddressLine(address), "Rua Teste - Centro - Sao Paulo/SP");
+  assert.equal(normalizeViaCepAddress({ erro: true }), null);
+});
+
 test("backend checkout draft rejects invalid customer field formats", () => {
   let error;
 
@@ -325,9 +395,45 @@ test("customer snapshot builds complete checkout data from account records", () 
 test("auth redirects only accept internal site paths", () => {
   assert.equal(getSafeAuthRedirectPath("/conta"), "/conta");
   assert.equal(getSafeAuthRedirectPath("/admin?pedido=TSZ-1"), "/admin?pedido=TSZ-1");
+  assert.equal(getSafeAuthRedirectPath("/trocar-senha"), "/trocar-senha");
   assert.equal(getSafeAuthRedirectPath("https://evil.example"), "/conta");
   assert.equal(getSafeAuthRedirectPath("//evil.example"), "/conta");
   assert.equal(getSafeAuthRedirectPath("/entrar?next=/admin"), "/conta");
+});
+
+test("password reset callback URL stays on the configured site origin", () => {
+  withEnv(
+    {
+      NEXT_PUBLIC_SITE_URL: "https://loja.tszr15.com/",
+      SITE_URL: undefined,
+      VERCEL_URL: undefined
+    },
+    () => {
+      assert.equal(getConfiguredSiteOrigin(), "https://loja.tszr15.com");
+      assert.equal(
+        buildPasswordResetRedirectUrl(getConfiguredSiteOrigin()),
+        "https://loja.tszr15.com/auth/callback?next=%2Ftrocar-senha"
+      );
+    }
+  );
+});
+
+test("password reset origin falls back to forwarded request headers", () => {
+  const headers = new Map([
+    ["x-forwarded-host", "preview.tszr15.com"],
+    ["x-forwarded-proto", "https"]
+  ]);
+
+  withEnv(
+    {
+      NEXT_PUBLIC_SITE_URL: undefined,
+      SITE_URL: undefined,
+      VERCEL_URL: undefined
+    },
+    () => {
+      assert.equal(getSiteOriginFromHeaders(headers), "https://preview.tszr15.com");
+    }
+  );
 });
 
 test("profile display helpers derive compact account initials", () => {
@@ -341,6 +447,48 @@ test("profile display helpers derive compact account initials", () => {
   assert.equal(getUserDisplayName(user), "Cliente TSZR15");
   assert.equal(getUserInitials(user), "CT");
   assert.equal(getUserInitials({ email: "cliente.teste@example.com" }), "CT");
+});
+
+test("Supabase config accepts public and hosted integration env names", () => {
+  const emptyEnv = Object.fromEntries(supabaseEnvKeys.map((key) => [key, undefined]));
+
+  withEnv(emptyEnv, () => {
+    assert.equal(getPublicSupabaseConfig().isConfigured, false);
+    assert.deepEqual(getSupabaseConfigStatus().missing, [
+      "NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_PUBLISHABLE_KEY ou SUPABASE_ANON_KEY"
+    ]);
+  });
+
+  withEnv(
+    {
+      ...emptyEnv,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_public",
+      NEXT_PUBLIC_SUPABASE_URL: "https://public-ref.supabase.co"
+    },
+    () => {
+      const config = getPublicSupabaseConfig();
+
+      assert.equal(config.isConfigured, true);
+      assert.equal(config.projectRef, "public-ref");
+      assert.equal(config.publishableKey, "sb_publishable_public");
+    }
+  );
+
+  withEnv(
+    {
+      ...emptyEnv,
+      SUPABASE_ANON_KEY: "anon-server-key",
+      SUPABASE_URL: "https://server-ref.supabase.co"
+    },
+    () => {
+      const config = getPublicSupabaseConfig();
+
+      assert.equal(config.isConfigured, true);
+      assert.equal(config.projectRef, "server-ref");
+      assert.equal(config.publishableKey, "anon-server-key");
+    }
+  );
 });
 
 test("admin session values are signed, expiring and token-bound", async () => {

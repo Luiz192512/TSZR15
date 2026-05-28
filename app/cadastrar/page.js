@@ -4,6 +4,7 @@ import { signUpAction } from "@/app/auth/actions.js";
 import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { CepAddressFields } from "@/src/components/form/cep-address-fields.js";
+import { PasswordInput } from "@/src/components/form/password-input.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
 import { phonePattern, taxIdPattern } from "@/src/customer/field-validation.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
@@ -51,10 +52,7 @@ export default async function SignUpPage({ searchParams }) {
               <span>Email</span>
               <input autoComplete="email" name="email" required type="email" />
             </label>
-            <label>
-              <span>Senha</span>
-              <input autoComplete="new-password" minLength={6} name="password" required type="password" />
-            </label>
+            <PasswordInput autoComplete="new-password" label="Senha" minLength={6} name="password" required />
             <label>
               <span>WhatsApp</span>
               <SanitizedInput
