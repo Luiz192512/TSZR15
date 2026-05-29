@@ -1,5 +1,7 @@
 import "./globals.css";
 
+import { AuthHashBridge } from "@/src/auth/auth-hash-bridge.js";
+
 export const metadata = {
   title: "TSZR15 | Loja R15 com conta de cliente",
   description:
@@ -12,7 +14,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html data-scroll-behavior="smooth" lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <AuthHashBridge />
+        {children}
+      </body>
     </html>
   );
 }

@@ -21,8 +21,11 @@ export function SiteHeader({ user } = {}) {
         <Link className="nav-link" href="/">
           Inicio
         </Link>
-        <Link className="nav-link" href="/catalogo">
+        <Link className="nav-link" href="/catalogo#produtos">
           Produtos
+        </Link>
+        <Link className="nav-link" href="/#sobre">
+          Sobre nos
         </Link>
         <Link className="nav-link" href="/pedido">
           Carrinho

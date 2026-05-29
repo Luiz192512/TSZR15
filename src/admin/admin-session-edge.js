@@ -92,6 +92,12 @@ export async function isAdminSessionValueValidAtEdge(
   return constantTimeEqual(parsed.signature, expectedSignature);
 }
 
+export function isAdminSessionValueFreshShapeAtEdge(sessionValue, { now = Date.now() } = {}) {
+  const parsed = parseAdminSessionValue(sessionValue);
+
+  return Boolean(parsed && parsed.expiresAt > now);
+}
+
 export function getAdminSessionCookieOptions({ maxAge = ADMIN_SESSION_MAX_AGE_SECONDS } = {}) {
   return {
     httpOnly: true,

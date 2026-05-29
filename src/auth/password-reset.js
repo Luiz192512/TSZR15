@@ -2,6 +2,7 @@ const SITE_ORIGIN_ENV_KEYS = [
   "NEXT_PUBLIC_SITE_URL",
   "SITE_URL"
 ];
+export const CANONICAL_SITE_ORIGIN = "https://www.tszr15-store.com.br";
 
 function normalizeOrigin(value) {
   const rawValue = String(value ?? "").trim().replace(/\/+$/, "");
@@ -34,7 +35,7 @@ export function getConfiguredSiteOrigin() {
     return configuredOrigin;
   }
 
-  return normalizeOrigin(process.env.VERCEL_URL);
+  return normalizeOrigin(process.env.VERCEL_URL) || CANONICAL_SITE_ORIGIN;
 }
 
 export function getSiteOriginFromHeaders(headerStore) {

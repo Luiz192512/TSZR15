@@ -25,6 +25,7 @@ function toCatalogProduct(row) {
     availability: row.availability,
     leadTimeDays: row.lead_time_days,
     shippingClass: row.shipping_class,
+    imageUrls: row.image_urls ?? [],
     checkoutChannel: row.checkout_channel,
     internalPurchaseSource: row.internal_purchase_source ?? {},
     notes: row.notes ?? ""

@@ -24,6 +24,7 @@ export function buildCatalogProductRows(products = catalogProducts) {
     availability: product.availability,
     lead_time_days: product.leadTimeDays,
     shipping_class: product.shippingClass,
+    image_urls: product.imageUrls ?? [],
     checkout_channel: product.checkoutChannel,
     internal_purchase_source: product.internalPurchaseSource,
     notes: product.notes ?? "",

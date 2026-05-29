@@ -3092,7 +3092,7 @@ body::before {
   height: 100%;
   min-height: inherit;
   object-fit: cover;
-  object-position: 66% center;
+  object-position: 72% center;
   filter: saturate(1.08) contrast(1.06);
 }
 
@@ -3187,6 +3187,12 @@ body::before {
   clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
 }
 
+.carousel-controls button svg,
+.product-photo-controls button svg {
+  width: 22px;
+  height: 22px;
+}
+
 .featured-carousel-window {
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -3219,6 +3225,145 @@ body::before {
 
 .product-image-feature strong {
   font-size: clamp(3.3rem, 7vw, 7.2rem);
+}
+
+.product-image.has-product-photo {
+  padding: 0;
+  background: #050505;
+}
+
+.product-image.has-product-photo::after {
+  display: none;
+}
+
+.product-photo,
+.product-photo-main img,
+.product-photo-thumbs img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-image.has-product-photo .product-photo {
+  min-height: inherit;
+}
+
+.category-carousel-list {
+  display: grid;
+  gap: clamp(22px, 4vw, 42px);
+}
+
+.category-carousel-section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.category-carousel-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.category-carousel-heading h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.45rem, 2.5vw, 2.6rem);
+  font-style: italic;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.category-carousel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.category-carousel-track {
+  display: grid;
+  grid-auto-columns: minmax(270px, 322px);
+  grid-auto-flow: column;
+  gap: 16px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 3px 4px 16px;
+  scroll-padding-left: 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.category-carousel-track .hub-product-card {
+  width: 100%;
+  scroll-snap-align: start;
+}
+
+.product-photo-carousel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.product-photo-main {
+  position: relative;
+  min-height: 570px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: #050505;
+  overflow: hidden;
+  box-shadow: var(--shadow-tight);
+}
+
+.product-photo-main img {
+  min-height: inherit;
+}
+
+.product-photo-controls {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.product-photo-controls button,
+.product-photo-thumbs button {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(242, 7, 16, 0.58);
+  background: rgba(0, 0, 0, 0.68);
+  color: #fff;
+}
+
+.product-photo-controls button {
+  width: 48px;
+  min-height: 44px;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+.product-photo-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+  gap: 8px;
+}
+
+.product-photo-thumbs button {
+  min-height: 76px;
+  padding: 0;
+  opacity: 0.68;
+  overflow: hidden;
+}
+
+.product-photo-thumbs button.is-active {
+  border-color: var(--red);
+  opacity: 1;
 }
 
 .featured-slide-copy {
@@ -3475,6 +3620,32 @@ body::before {
   margin: 0 0 16px;
 }
 
+.admin-tab-bar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.admin-tab-bar a {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
+  display: inline-grid;
+  place-items: center;
+  padding: 9px 16px;
+  font-size: 0.88rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.admin-tab-bar a.is-active,
+.admin-tab-bar a:hover {
+  border-color: rgba(242, 7, 16, 0.72);
+  background: rgba(242, 7, 16, 0.13);
+}
+
 .admin-shell {
   grid-template-columns: minmax(280px, 0.34fr) minmax(0, 1fr);
   align-items: start;
@@ -3523,6 +3694,7 @@ body::before {
 }
 
 .admin-order-list,
+.admin-product-list,
 .admin-item-list,
 .tracking-event-list {
   display: grid;
@@ -3531,6 +3703,7 @@ body::before {
 }
 
 .admin-order-link,
+.admin-product-link,
 .admin-item-row,
 .tracking-event-row,
 .admin-definition-list div,
@@ -3555,14 +3728,25 @@ body::before {
     transform 160ms ease;
 }
 
+.admin-product-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
 .admin-order-link:hover,
-.admin-order-link.is-active {
+.admin-order-link.is-active,
+.admin-product-link:hover,
+.admin-product-link.is-active {
   border-color: rgba(242, 7, 16, 0.72);
   background: rgba(242, 7, 16, 0.12);
   transform: translateY(-1px);
 }
 
 .admin-order-link span,
+.admin-product-link span,
 .admin-item-row span {
   display: grid;
   gap: 4px;
@@ -3572,6 +3756,9 @@ body::before {
 .admin-order-link strong,
 .admin-order-link em,
 .admin-order-link small,
+.admin-product-link strong,
+.admin-product-link em,
+.admin-product-link small,
 .admin-item-row strong,
 .admin-item-row em {
   overflow-wrap: anywhere;
@@ -3579,6 +3766,8 @@ body::before {
 
 .admin-order-link em,
 .admin-order-link small,
+.admin-product-link em,
+.admin-product-link small,
 .admin-item-row em,
 .tracking-event-row span,
 .admin-definition-list dt,
@@ -3670,6 +3859,65 @@ body::before {
 .admin-operation-form {
   display: grid;
   gap: 16px;
+}
+
+.admin-product-panel {
+  gap: 18px;
+}
+
+.admin-checkbox-fieldset {
+  min-width: 0;
+  border: 1px solid var(--line);
+  padding: 12px;
+}
+
+.admin-checkbox-fieldset legend {
+  padding: 0 8px;
+  color: #e5e7eb;
+  font-weight: 900;
+}
+
+.admin-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.admin-checkbox-grid label,
+.admin-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #fff;
+  font-weight: 850;
+}
+
+.admin-checkbox-grid input,
+.admin-toggle-row input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--red);
+}
+
+.admin-product-actions,
+.admin-archive-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-archive-form {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.admin-archive-form p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .admin-operation-form textarea,
@@ -3781,6 +4029,7 @@ body::before {
   }
 
   .admin-order-link,
+  .admin-product-link,
   .admin-item-row {
     grid-template-columns: 1fr;
   }
@@ -3788,6 +4037,27 @@ body::before {
   .admin-total-box {
     min-width: 0;
     text-align: left;
+  }
+}
+
+@media (max-width: 760px) {
+  .category-carousel-heading,
+  .category-carousel-actions {
+    align-items: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .category-carousel-actions {
+    gap: 10px;
+  }
+
+  .category-carousel-track {
+    grid-auto-columns: minmax(236px, 82vw);
+  }
+
+  .product-photo-main {
+    min-height: 380px;
   }
 }
 

@@ -3,10 +3,14 @@ import { redirect } from "next/navigation";
 
 import {
   adminSignOutAction,
+  archiveAdminProductAction,
+  upsertAdminProductAction,
   updateAdminOrderAction
 } from "@/app/admin/actions.js";
 import { isAdminSessionValid, isAdminTokenConfigured } from "@/src/admin/admin-auth.js";
+import { getAdminCatalogState } from "@/src/admin/catalog-admin.js";
 import { getAdminDashboardState } from "@/src/admin/order-admin.js";
+import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { getPublicSupabaseConfig } from "@/src/lib/supabase/config.js";
 import {
   getStatusLabel,
@@ -67,9 +71,29 @@ function dateTimeToInput(value) {
   return date.toISOString().slice(0, 16);
 }
 
+function arrayToTextarea(values) {
+  return Array.isArray(values) ? values.join("\n") : "";
+}
+
+function productPriceToInput(cents) {
+  return centsToInput(cents) || "";
+}
+
+function getActiveAdminTab(params) {
+  return params?.tab === "produtos" ? "produtos" : "pedidos";
+}
+
 function getMessage(params) {
   if (params?.status === "salvo") {
     return "Pedido atualizado.";
+  }
+
+  if (params?.status === "produto-salvo") {
+    return "Produto salvo no catalogo.";
+  }
+
+  if (params?.status === "produto-arquivado") {
+    return "Produto arquivado da vitrine.";
   }
 
   return typeof params?.error === "string" ? params.error : "";
@@ -84,6 +108,22 @@ function StatusSelect({ items, name, value }) {
         </option>
       ))}
     </select>
+  );
+}
+
+function AdminTabs({ activeTab }) {
+  return (
+    <nav className="admin-tab-bar" aria-label="Secoes do painel admin">
+      <Link className={activeTab === "pedidos" ? "is-active" : ""} href="/admin">
+        Pedidos
+      </Link>
+      <Link
+        className={activeTab === "produtos" ? "is-active" : ""}
+        href="/admin?tab=produtos"
+      >
+        Produtos
+      </Link>
+    </nav>
   );
 }
 
@@ -410,9 +450,209 @@ function OrderDetail({ selected }) {
   );
 }
 
+function ProductList({ products, selectedProductId }) {
+  return (
+    <aside className="admin-list-panel">
+      <div className="admin-panel-heading">
+        <p className="section-label">Catalogo</p>
+        <strong>{products.length} produtos</strong>
+      </div>
+
+      <div className="admin-product-list">
+        <Link
+          className={`admin-product-link ${!selectedProductId ? "is-active" : ""}`}
+          href="/admin?tab=produtos"
+        >
+          <span>
+            <strong>Novo produto</strong>
+            <em>Criar SKU no Supabase</em>
+          </span>
+        </Link>
+
+        {products.map((product) => (
+          <Link
+            className={`admin-product-link ${
+              selectedProductId === product.id ? "is-active" : ""
+            }`}
+            href={`/admin?tab=produtos&produto=${encodeURIComponent(product.id)}`}
+            key={product.id}
+          >
+            <span>
+              <strong>{product.name}</strong>
+              <em>{formatCategoryLabels(product.storefrontCategoryIds).join(", ")}</em>
+            </span>
+            <small>{product.isPublished ? "Publicado" : "Arquivado"}</small>
+          </Link>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function ProductForm({ categories, families, product }) {
+  const selectedCategoryIds = new Set(
+    product?.storefrontCategoryIds?.length
+      ? product.storefrontCategoryIds
+      : [categories[0]?.id].filter(Boolean)
+  );
+  const selectedFamily = product?.productFamily ?? families[0] ?? "slider";
+
+  return (
+    <form action={upsertAdminProductAction} className="admin-operation-form admin-product-form">
+      <input name="productId" type="hidden" value={product?.id ?? ""} />
+      <input name="previousSlug" type="hidden" value={product?.slug ?? ""} />
+
+      <div className="admin-form-block">
+        <h2>{product ? "Editar produto" : "Novo produto"}</h2>
+        <div className="form-grid">
+          <label>
+            <span>Nome</span>
+            <input defaultValue={product?.name ?? ""} name="name" required />
+          </label>
+          <label>
+            <span>Slug / ID</span>
+            <input
+              defaultValue={product?.slug ?? ""}
+              name="slug"
+              placeholder="ex: slider-r15-preto"
+            />
+          </label>
+          <label>
+            <span>Familia tecnica</span>
+            <select defaultValue={selectedFamily} name="productFamily">
+              {families.map((family) => (
+                <option key={family} value={family}>
+                  {family}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Preco</span>
+            <input
+              defaultValue={productPriceToInput(product?.priceCents)}
+              inputMode="decimal"
+              name="price"
+              placeholder="199,90"
+              required
+            />
+          </label>
+          <label>
+            <span>Disponibilidade</span>
+            <input
+              defaultValue={product?.availability ?? "sob-consulta"}
+              name="availability"
+            />
+          </label>
+          <label>
+            <span>Prazo em dias uteis</span>
+            <input
+              defaultValue={product?.leadTimeDays ?? 2}
+              min="0"
+              name="leadTimeDays"
+              type="number"
+            />
+          </label>
+          <label>
+            <span>Frete</span>
+            <input defaultValue={product?.shippingClass ?? "medium"} name="shippingClass" />
+          </label>
+          <label>
+            <span>Escopo tecnico</span>
+            <input
+              defaultValue={arrayToTextarea(product?.bikeModelScope) || "yamaha-r15"}
+              name="bikeModelScope"
+            />
+          </label>
+          <fieldset className="span-all admin-checkbox-fieldset">
+            <legend>Categorias</legend>
+            <div className="admin-checkbox-grid">
+              {categories.map((category) => (
+                <label key={category.id}>
+                  <input
+                    defaultChecked={selectedCategoryIds.has(category.id)}
+                    name="categoryIds"
+                    type="checkbox"
+                    value={category.id}
+                  />
+                  <span>{category.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <label className="span-all">
+            <span>Variacoes</span>
+            <textarea
+              defaultValue={arrayToTextarea(product?.variations) || "Padrao"}
+              name="variations"
+              rows={3}
+            />
+          </label>
+          <label className="span-all">
+            <span>URLs de imagens</span>
+            <textarea
+              defaultValue={arrayToTextarea(product?.imageUrls)}
+              name="imageUrls"
+              placeholder="https://exemplo.com/imagem-1.jpg"
+              rows={4}
+            />
+          </label>
+          <label className="span-all">
+            <span>Notas</span>
+            <textarea defaultValue={product?.notes ?? ""} name="notes" rows={4} />
+          </label>
+          <label className="admin-toggle-row span-all">
+            <input defaultChecked={product?.isPublished ?? true} name="isPublished" type="checkbox" />
+            <span>Publicado na vitrine</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="admin-product-actions">
+        <button className="button button-primary" type="submit">
+          Salvar produto
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AdminProducts({ selectedProductId, state }) {
+  const selectedProduct = state.products.find((product) => product.id === selectedProductId);
+
+  return (
+    <section className="admin-shell admin-products-shell">
+      <ProductList products={state.products} selectedProductId={selectedProductId} />
+
+      <div className="admin-detail-panel admin-product-panel">
+        <ProductForm
+          categories={state.categories}
+          families={state.families}
+          product={selectedProduct}
+        />
+
+        {selectedProduct ? (
+          <form action={archiveAdminProductAction} className="admin-archive-form">
+            <input name="productId" type="hidden" value={selectedProduct.id} />
+            <input name="slug" type="hidden" value={selectedProduct.slug} />
+            <button className="button button-secondary" type="submit">
+              Arquivar produto
+            </button>
+            <p>
+              Arquivar equivale a excluir da vitrine: o produto fica com
+              <code>is_published=false</code> e nao quebra historico de pedidos.
+            </p>
+          </form>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export default async function AdminPage({ searchParams }) {
   const params = await searchParams;
   const message = getMessage(params);
+  const activeTab = getActiveAdminTab(params);
 
   if (!isAdminTokenConfigured()) {
     redirect("/entrar?next=/admin");
@@ -425,7 +665,10 @@ export default async function AdminPage({ searchParams }) {
   let state;
 
   try {
-    state = await getAdminDashboardState({ selectedOrderNumber: params?.pedido });
+    state =
+      activeTab === "produtos"
+        ? await getAdminCatalogState()
+        : await getAdminDashboardState({ selectedOrderNumber: params?.pedido });
   } catch (error) {
     return (
       <AdminSetup
@@ -455,15 +698,21 @@ export default async function AdminPage({ searchParams }) {
         </form>
       </section>
 
+      <AdminTabs activeTab={activeTab} />
+
       {message ? <p className="form-alert admin-message">{message}</p> : null}
 
-      <section className="admin-shell">
-        <OrdersList
-          orders={state.orders}
-          selectedOrderNumber={state.selected?.order?.order_number ?? ""}
-        />
-        <OrderDetail selected={state.selected} />
-      </section>
+      {activeTab === "produtos" ? (
+        <AdminProducts selectedProductId={params?.produto ?? ""} state={state} />
+      ) : (
+        <section className="admin-shell">
+          <OrdersList
+            orders={state.orders}
+            selectedOrderNumber={state.selected?.order?.order_number ?? ""}
+          />
+          <OrderDetail selected={state.selected} />
+        </section>
+      )}
     </main>
   );
 }
