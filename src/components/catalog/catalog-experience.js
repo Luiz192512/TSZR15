@@ -34,19 +34,6 @@ const brandLogoSrc = "/brand/logo-tszr15-store.png";
 const heroBoardSrc =
   "https://mckthvbwddxipghumrpw.supabase.co/storage/v1/object/public/brand-assets/tszr15-hero-r15-dark.png";
 
-const heroFeatures = [
-  ["Qualidade", "premium"],
-  ["Performance", "de verdade"],
-  ["Design", "exclusivo"],
-  ["Envio", "para todo Brasil"]
-];
-
-const assuranceItems = [
-  ["Produtos", "testados"],
-  ["Garantia", "e seguranca"],
-  ["Compra", "100% segura"]
-];
-
 const featuredProductIds = [
   "escapamento-sc-project-completo",
   "kit-suporte-slider",
@@ -279,16 +266,44 @@ function ChevronIcon({ direction }) {
 
 function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = true }) {
   const cartCount = useCartCount();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  function closeMenu() {
+    setIsMenuOpen(false);
+  }
 
   return (
-    <header className={`store-header ${showSearch ? "" : "store-header-compact"}`}>
-      <Link className="store-brand" href="/">
-        <img className="store-logo-image" src={brandLogoSrc} alt="TSZ Store" />
-        <span>
-          <strong>TSZR15</strong>
-          <small>Performance parts R15</small>
-        </span>
-      </Link>
+    <header
+      className={`store-header ${showSearch ? "" : "store-header-compact"} ${
+        isMenuOpen ? "is-menu-open" : ""
+      }`}
+    >
+      <div className="store-header-top">
+        <Link className="store-brand" href="/" onClick={closeMenu}>
+          <img className="store-logo-image" src={brandLogoSrc} alt="TSZ Store" />
+          <span>
+            <strong>TSZR15</strong>
+            <small>Performance parts R15</small>
+          </span>
+        </Link>
+
+        <div className="mobile-nav-actions">
+          <Link className="cart-nav-link mobile-cart-link" href="/pedido" onClick={closeMenu}>
+            Carrinho
+            <span>{cartCount}</span>
+          </Link>
+          <button
+            aria-controls="store-mobile-menu"
+            aria-expanded={isMenuOpen}
+            className="mobile-menu-button"
+            onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
+            type="button"
+          >
+            Menu
+            <span aria-hidden="true" className="mobile-menu-icon" />
+          </button>
+        </div>
+      </div>
 
       {showSearch ? (
         <label className="store-search" htmlFor="catalog-search">
@@ -302,19 +317,24 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
         </label>
       ) : null}
 
-      <nav className="store-nav" aria-label="Navegacao principal">
-        <Link href="/">Inicio</Link>
-        <Link href="/catalogo#produtos">Produtos</Link>
-        <Link href="/#lancamentos">Lancamentos</Link>
-        <Link href="/#sobre">Sobre nos</Link>
-        <Link className="cart-nav-link" href="/pedido">
+      <nav className="store-nav" id="store-mobile-menu" aria-label="Navegacao principal">
+        <Link href="/" onClick={closeMenu}>Inicio</Link>
+        <Link href="/catalogo#produtos" onClick={closeMenu}>Produtos</Link>
+        <Link href="/#lancamentos" onClick={closeMenu}>Lancamentos</Link>
+        <Link href="/#sobre" onClick={closeMenu}>Sobre nos</Link>
+        <Link className="cart-nav-link" href="/pedido" onClick={closeMenu}>
           Carrinho
           <span>{cartCount}</span>
         </Link>
         {currentUser ? (
-          <ProfileLink className="store-profile-link" user={currentUser} />
+          <>
+            <ProfileLink className="store-profile-link desktop-account-link" user={currentUser} />
+            <Link className="mobile-nav-link" href="/conta" onClick={closeMenu}>
+              Conta
+            </Link>
+          </>
         ) : (
-          <Link className="button button-secondary" href="/entrar">
+          <Link className="button button-secondary" href="/entrar" onClick={closeMenu}>
             Entrar
           </Link>
         )}
@@ -562,25 +582,6 @@ export function CatalogHub({ categories, currentUser, products }) {
           <div className="hero-media-frame">
             <img src={heroBoardSrc} alt="Yamaha R15 preta em arte promocional TSZ Store" />
           </div>
-          <div className="assurance-stack">
-            {assuranceItems.map(([title, label]) => (
-              <div className="assurance-card" key={title}>
-                <span aria-hidden="true" />
-                <strong>{title}</strong>
-                <em>{label}</em>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="hero-feature-row" aria-label="Diferenciais TSZR15">
-          {heroFeatures.map(([title, label]) => (
-            <div className="hero-feature" key={title}>
-              <span aria-hidden="true" />
-              <strong>{title}</strong>
-              <em>{label}</em>
-            </div>
-          ))}
         </div>
       </section>
 

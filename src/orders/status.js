@@ -45,6 +45,18 @@ export const supplierSourceStatuses = [
   { id: "cancelado", label: "Cancelado" }
 ];
 
+export const internalOrderStatuses = [
+  { id: "pendente", label: "Pendente" },
+  { id: "confirmado", label: "Confirmado" },
+  { id: "recusado", label: "Recusado" }
+];
+
+export const internalOrderDecisionStatuses = internalOrderStatuses.filter(
+  (status) => status.id !== "pendente"
+);
+
+export const internalOrderPendingAfterMs = 24 * 60 * 60 * 1000;
+
 export const customerTrackingSteps = [
   { id: "enviado_whatsapp_business", label: "Pedido recebido" },
   { id: "aguardando_atendimento", label: "Em atendimento" },
@@ -72,4 +84,22 @@ export function formatStatusLabel(status) {
 
 export function isKnownStatus(status, statuses) {
   return statuses.some((item) => item.id === status);
+}
+
+export function getEffectiveInternalOrderStatus(order, now = new Date()) {
+  const storedStatus = String(order?.internal_order_status ?? "").trim();
+
+  if (storedStatus) {
+    return storedStatus;
+  }
+
+  const createdAt = new Date(order?.created_at ?? "");
+
+  if (Number.isNaN(createdAt.getTime())) {
+    return "";
+  }
+
+  return now.getTime() - createdAt.getTime() >= internalOrderPendingAfterMs
+    ? "pendente"
+    : "";
 }

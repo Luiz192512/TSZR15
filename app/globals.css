@@ -231,6 +231,18 @@ button {
   color: var(--blue);
 }
 
+.button-success {
+  border-color: rgba(25, 190, 93, 0.62);
+  background: rgba(25, 190, 93, 0.16);
+  color: #7dffad;
+}
+
+.button-danger {
+  border-color: rgba(255, 70, 70, 0.62);
+  background: rgba(255, 70, 70, 0.13);
+  color: #ff7c7c;
+}
+
 .button.is-disabled {
   pointer-events: none;
   opacity: 0.45;
@@ -2996,9 +3008,7 @@ body::before {
 /* Organized hero + featured product carousel */
 .brand-hero {
   grid-template-columns: minmax(0, 0.88fr) minmax(420px, 1.12fr);
-  grid-template-areas:
-    "copy media"
-    "features features";
+  grid-template-areas: "copy media";
   gap: clamp(18px, 3vw, 38px);
   min-height: auto;
   padding: clamp(26px, 4vw, 54px);
@@ -3463,8 +3473,7 @@ body::before {
     grid-template-columns: 1fr;
     grid-template-areas:
       "copy"
-      "media"
-      "features";
+      "media";
   }
 
   .brand-hero-media {
@@ -3745,6 +3754,24 @@ body::before {
   transform: translateY(-1px);
 }
 
+.admin-order-link.internal-order-confirmado,
+.admin-status-grid div.internal-order-confirmado {
+  border-color: rgba(25, 190, 93, 0.68);
+  background: rgba(25, 190, 93, 0.12);
+}
+
+.admin-order-link.internal-order-recusado,
+.admin-status-grid div.internal-order-recusado {
+  border-color: rgba(255, 70, 70, 0.68);
+  background: rgba(255, 70, 70, 0.12);
+}
+
+.admin-order-link.internal-order-pendente,
+.admin-status-grid div.internal-order-pendente {
+  border-color: rgba(255, 199, 68, 0.68);
+  background: rgba(255, 199, 68, 0.12);
+}
+
 .admin-order-link span,
 .admin-product-link span,
 .admin-item-row span {
@@ -3816,9 +3843,91 @@ body::before {
   overflow-wrap: anywhere;
 }
 
+.admin-order-link .internal-order-badge,
+.internal-order-badge {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid currentColor;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.admin-order-link .internal-order-badge span,
+.internal-order-badge span {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.internal-order-badge.is-confirmado {
+  color: #64ff9c;
+}
+
+.internal-order-badge.is-recusado {
+  color: #ff6868;
+}
+
+.internal-order-badge.is-pendente {
+  color: #ffd25c;
+}
+
 .admin-content-grid,
 .tracking-content-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-internal-decision {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.055);
+  padding: 16px;
+}
+
+.admin-internal-decision h2,
+.admin-internal-decision p {
+  margin: 0;
+}
+
+.admin-internal-decision h2 {
+  font-size: 1.05rem;
+}
+
+.admin-internal-decision p:not(.section-label) {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.admin-internal-decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-internal-decision-actions form {
+  min-width: 0;
+}
+
+.admin-internal-decision-actions .button {
+  min-height: 42px;
+}
+
+.admin-internal-decision-actions .button span {
+  margin-right: 4px;
 }
 
 .admin-section,
@@ -4028,6 +4137,21 @@ body::before {
     grid-template-columns: 1fr;
   }
 
+  .admin-internal-decision,
+  .admin-internal-decision-actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-internal-decision-actions {
+    justify-content: stretch;
+  }
+
+  .admin-internal-decision-actions .button {
+    width: 100%;
+  }
+
   .admin-order-link,
   .admin-product-link,
   .admin-item-row {
@@ -4093,4 +4217,367 @@ body::before {
   border-color: rgba(242, 7, 16, 0.58);
   background: rgba(242, 7, 16, 0.12);
   color: #fff;
+}
+
+/* Compact hero proof rail and mobile navigation */
+.store-header-top,
+.site-header-top {
+  display: contents;
+}
+
+.mobile-nav-actions,
+.mobile-nav-panel,
+.mobile-nav-link {
+  display: none;
+}
+
+.mobile-menu-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid rgba(242, 7, 16, 0.58);
+  background: rgba(242, 7, 16, 0.12);
+  color: #fff;
+  padding: 0 12px;
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mobile-menu-icon {
+  display: block;
+  width: 18px;
+  height: 12px;
+  background:
+    linear-gradient(#fff, #fff) 0 0 / 100% 2px no-repeat,
+    linear-gradient(#fff, #fff) 0 5px / 100% 2px no-repeat,
+    linear-gradient(#fff, #fff) 0 10px / 100% 2px no-repeat;
+}
+
+.mobile-nav-details {
+  position: relative;
+}
+
+.mobile-nav-details > summary {
+  list-style: none;
+}
+
+.mobile-nav-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.brand-hero-media {
+  align-content: start;
+  gap: 12px;
+}
+
+.hero-media-frame {
+  min-height: clamp(390px, 42vw, 560px);
+}
+
+.hero-media-frame::after {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.52), transparent 24%),
+    linear-gradient(180deg, transparent 72%, rgba(0, 0, 0, 0.58));
+}
+
+.assurance-stack {
+  position: static;
+  inset: auto;
+  width: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  padding: 0;
+}
+
+.assurance-card,
+.hero-feature {
+  min-height: 64px;
+  clip-path: none;
+  border-color: rgba(255, 255, 255, 0.13);
+  background:
+    linear-gradient(90deg, rgba(242, 7, 16, 0.12), transparent 42%),
+    rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(12px);
+}
+
+.assurance-card {
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.hero-feature {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.assurance-card span,
+.hero-feature span {
+  width: 8px;
+  height: 32px;
+  border: 0;
+  background: var(--red);
+  transform: skewX(-14deg);
+}
+
+.assurance-card strong,
+.assurance-card em,
+.hero-feature strong,
+.hero-feature em {
+  grid-column: 2;
+}
+
+@media (max-width: 900px) {
+  .page-shell {
+    overflow: visible;
+  }
+
+  .store-header,
+  .store-header-compact,
+  .site-header {
+    position: sticky !important;
+    top: 0;
+    z-index: 80;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    align-items: stretch;
+    min-height: auto;
+    margin-bottom: 0;
+    overflow: visible;
+    padding: 8px 10px 10px;
+  }
+
+  .store-header-top,
+  .site-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .store-brand,
+  .brand-mark {
+    gap: 8px;
+    padding: 0;
+  }
+
+  .store-brand span:last-child,
+  .brand-copy {
+    display: none;
+  }
+
+  .store-logo-image,
+  .brand-logo-image {
+    width: 126px;
+    height: 48px;
+  }
+
+  .mobile-nav-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .mobile-cart-link {
+    min-height: 42px;
+    gap: 7px;
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.055);
+    color: #fff;
+    padding: 0 10px;
+    font-size: 0.78rem;
+  }
+
+  .store-search {
+    order: 2;
+    grid-template-columns: 1fr;
+    min-height: 44px;
+    width: 100%;
+    clip-path: none;
+    padding: 0 12px;
+  }
+
+  .store-search span {
+    display: none;
+  }
+
+  .store-search input {
+    font-size: 0.95rem;
+  }
+
+  .store-nav,
+  .nav-links {
+    display: none;
+  }
+
+  .store-header.is-menu-open .store-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    order: 3;
+    gap: 8px;
+    width: 100%;
+    padding: 4px 0 0;
+  }
+
+  .store-header.is-menu-open .store-nav > a,
+  .store-header.is-menu-open .store-nav .button,
+  .mobile-nav-panel a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.055);
+    color: #fff;
+    padding: 9px 10px;
+    font-size: 0.8rem;
+    font-weight: 950;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: normal;
+  }
+
+  .store-header.is-menu-open .store-nav > .cart-nav-link,
+  .store-header.is-menu-open .store-nav > .desktop-account-link {
+    display: none;
+  }
+
+  .store-header.is-menu-open .store-nav > .mobile-nav-link {
+    display: inline-flex;
+  }
+
+  .mobile-nav-details[open] .mobile-nav-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 90;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: min(320px, calc(100vw - 20px));
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background:
+      linear-gradient(120deg, rgba(242, 7, 16, 0.14), transparent 42%),
+      rgba(5, 5, 5, 0.98);
+    box-shadow: 0 24px 44px rgba(0, 0, 0, 0.38);
+    padding: 10px;
+  }
+
+  .brand-hero {
+    grid-template-areas:
+      "copy"
+      "media";
+    gap: 16px;
+  }
+
+  .brand-hero-media {
+    gap: 8px;
+  }
+
+  .hero-media-frame {
+    min-height: clamp(280px, 50vw, 420px);
+  }
+
+  .assurance-stack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .assurance-card,
+  .hero-feature {
+    min-height: 56px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 620px) {
+  .store-header,
+  .store-header-compact,
+  .site-header {
+    padding: 7px 8px 9px;
+  }
+
+  .store-logo-image,
+  .brand-logo-image {
+    width: 112px;
+    height: 42px;
+  }
+
+  .mobile-menu-button,
+  .mobile-cart-link {
+    min-height: 38px;
+    padding: 0 9px;
+    font-size: 0.74rem;
+  }
+
+  .mobile-cart-link {
+    max-width: 112px;
+  }
+
+  .brand-hero,
+  .product-band {
+    padding: 16px 10px;
+  }
+
+  .hero-brand-row {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .hero-kicker {
+    max-width: 100%;
+    letter-spacing: 0.16em;
+  }
+
+  .brand-hero h1 {
+    font-size: clamp(2.25rem, 11.5vw, 3.2rem);
+    line-height: 0.92;
+  }
+
+  .hero-lead {
+    width: auto;
+    max-width: 34ch;
+  }
+
+  .hero-media-frame {
+    min-height: 240px;
+    border-color: rgba(255, 255, 255, 0.12);
+    clip-path: none;
+  }
+
+  .hero-media-frame img {
+    object-position: 66% center;
+  }
+
+  .assurance-stack {
+    grid-template-columns: 1fr;
+    margin-top: 8px;
+  }
+
+  .hero-feature-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .assurance-card,
+  .hero-feature {
+    min-height: 52px;
+  }
+
+  .assurance-card span,
+  .hero-feature span {
+    height: 24px;
+  }
 }

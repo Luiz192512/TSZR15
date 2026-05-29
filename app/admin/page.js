@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   adminSignOutAction,
   archiveAdminProductAction,
+  setAdminInternalOrderStatusAction,
   upsertAdminProductAction,
   updateAdminOrderAction
 } from "@/app/admin/actions.js";
@@ -13,7 +14,9 @@ import { getAdminDashboardState } from "@/src/admin/order-admin.js";
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { getPublicSupabaseConfig } from "@/src/lib/supabase/config.js";
 import {
+  getEffectiveInternalOrderStatus,
   getStatusLabel,
+  internalOrderStatuses,
   operationalStatuses,
   paymentStatuses,
   supplierChannels,
@@ -86,6 +89,14 @@ function getActiveAdminTab(params) {
 function getMessage(params) {
   if (params?.status === "salvo") {
     return "Pedido atualizado.";
+  }
+
+  if (params?.status === "pedido-confirmado") {
+    return "Pedido interno confirmado.";
+  }
+
+  if (params?.status === "pedido-recusado") {
+    return "Pedido interno recusado.";
   }
 
   if (params?.status === "produto-salvo") {
@@ -166,6 +177,40 @@ npx supabase db push`}
   );
 }
 
+function getInternalOrderConfig(status) {
+  const configs = {
+    confirmado: {
+      icon: "✓",
+      label: getStatusLabel(status, internalOrderStatuses)
+    },
+    pendente: {
+      icon: "!",
+      label: getStatusLabel(status, internalOrderStatuses)
+    },
+    recusado: {
+      icon: "X",
+      label: getStatusLabel(status, internalOrderStatuses)
+    }
+  };
+
+  return configs[status] ?? null;
+}
+
+function InternalOrderBadge({ status }) {
+  const config = getInternalOrderConfig(status);
+
+  if (!config) {
+    return null;
+  }
+
+  return (
+    <span className={`internal-order-badge is-${status}`}>
+      <span aria-hidden="true">{config.icon}</span>
+      {config.label}
+    </span>
+  );
+}
+
 function OrdersList({ orders, selectedOrderNumber }) {
   return (
     <aside className="admin-list-panel">
@@ -178,24 +223,29 @@ function OrdersList({ orders, selectedOrderNumber }) {
         {orders.length === 0 ? (
           <p className="helper-text">Nenhum pedido salvo ainda.</p>
         ) : (
-          orders.map((order) => (
-            <Link
-              className={`admin-order-link ${
-                selectedOrderNumber === order.order_number ? "is-active" : ""
-              }`}
-              href={`/admin?pedido=${encodeURIComponent(order.order_number)}`}
-              key={order.id}
-            >
-              <span>
-                <strong>{order.order_number}</strong>
-                <em>{order.customer_name}</em>
-              </span>
-              <span>
-                {formatCurrency(order.total_cents, order.currency)}
-                <small>{getStatusLabel(order.operational_status, operationalStatuses)}</small>
-              </span>
-            </Link>
-          ))
+          orders.map((order) => {
+            const internalStatus = getEffectiveInternalOrderStatus(order);
+
+            return (
+              <Link
+                className={`admin-order-link ${
+                  selectedOrderNumber === order.order_number ? "is-active" : ""
+                } ${internalStatus ? `internal-order-${internalStatus}` : ""}`}
+                href={`/admin?pedido=${encodeURIComponent(order.order_number)}`}
+                key={order.id}
+              >
+                <span>
+                  <strong>{order.order_number}</strong>
+                  <em>{order.customer_name}</em>
+                  <InternalOrderBadge status={internalStatus} />
+                </span>
+                <span>
+                  {formatCurrency(order.total_cents, order.currency)}
+                  <small>{getStatusLabel(order.operational_status, operationalStatuses)}</small>
+                </span>
+              </Link>
+            );
+          })
         )}
       </div>
     </aside>
@@ -213,6 +263,7 @@ function OrderDetail({ selected }) {
   }
 
   const { items, order, payments, supplierPurchase, trackingEvents } = selected;
+  const internalStatus = getEffectiveInternalOrderStatus(order);
 
   return (
     <section className="admin-detail-panel">
@@ -242,6 +293,13 @@ function OrderDetail({ selected }) {
         <div>
           <span>Criado em</span>
           <strong>{formatDateTime(order.created_at)}</strong>
+        </div>
+        <div className={internalStatus ? `internal-order-${internalStatus}` : ""}>
+          <span>Pedido interno</span>
+          <strong>
+            {internalStatus ? getStatusLabel(internalStatus, internalOrderStatuses) : "Sem decisao"}
+          </strong>
+          <InternalOrderBadge status={internalStatus} />
         </div>
       </div>
 
@@ -279,6 +337,37 @@ function OrderDetail({ selected }) {
               <dd>{order.address_snapshot?.line || "Nao informado"}</dd>
             </div>
           </dl>
+        </div>
+      </div>
+
+      <div className="admin-internal-decision">
+        <div>
+          <p className="section-label">Decisao interna</p>
+          <h2>Confirmar ou recusar pedido.</h2>
+          <p>
+            Confirmar libera o pedido para operacao interna. Recusar marca o pedido como recusado
+            sem apagar historico.
+          </p>
+        </div>
+        <div className="admin-internal-decision-actions">
+          <form action={setAdminInternalOrderStatusAction}>
+            <input name="orderId" type="hidden" value={order.id} />
+            <input name="orderNumber" type="hidden" value={order.order_number} />
+            <input name="internalOrderStatus" type="hidden" value="confirmado" />
+            <button className="button button-success" type="submit">
+              <span aria-hidden="true">✓</span>
+              Confirmar pedido interno
+            </button>
+          </form>
+          <form action={setAdminInternalOrderStatusAction}>
+            <input name="orderId" type="hidden" value={order.id} />
+            <input name="orderNumber" type="hidden" value={order.order_number} />
+            <input name="internalOrderStatus" type="hidden" value="recusado" />
+            <button className="button button-danger" type="submit">
+              <span aria-hidden="true">X</span>
+              Recusar pedido interno
+            </button>
+          </form>
         </div>
       </div>
 

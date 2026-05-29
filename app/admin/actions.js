@@ -12,7 +12,10 @@ import {
   archiveAdminCatalogProduct,
   upsertAdminCatalogProduct
 } from "@/src/admin/catalog-admin.js";
-import { updateAdminOrderOperation } from "@/src/admin/order-admin.js";
+import {
+  setAdminInternalOrderStatus,
+  updateAdminOrderOperation
+} from "@/src/admin/order-admin.js";
 
 function formValue(formData, key) {
   return String(formData.get(key) ?? "").trim();
@@ -70,6 +73,32 @@ export async function updateAdminOrderAction(formData) {
   }
 
   redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=salvo`);
+}
+
+export async function setAdminInternalOrderStatusAction(formData) {
+  const orderNumber = formValue(formData, "orderNumber");
+
+  if (!(await isAdminSessionValid())) {
+    redirectWithError("/admin", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin", "Requisicao administrativa rejeitada.");
+  }
+
+  let result;
+
+  try {
+    result = await setAdminInternalOrderStatus(formData);
+    revalidatePath("/admin");
+  } catch (error) {
+    const path = orderNumber ? `/admin?pedido=${encodeURIComponent(orderNumber)}` : "/admin";
+    redirectWithError(path, error.message);
+  }
+
+  const status =
+    result.internalOrderStatus === "confirmado" ? "pedido-confirmado" : "pedido-recusado";
+  redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=${status}`);
 }
 
 function revalidateCatalogPaths(...slugs) {

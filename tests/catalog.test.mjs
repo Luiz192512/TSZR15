@@ -64,7 +64,12 @@ import {
   sanitizeState,
   sanitizeTaxId
 } from "../src/customer/field-validation.js";
-import { getStatusLabel, operationalStatuses } from "../src/orders/status.js";
+import {
+  getEffectiveInternalOrderStatus,
+  getStatusLabel,
+  internalOrderStatuses,
+  operationalStatuses
+} from "../src/orders/status.js";
 
 const supabaseEnvKeys = [
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -574,4 +579,31 @@ test("tracking status labels stay customer-readable", () => {
   assert.equal(getStatusLabel("rastreio_recebido", operationalStatuses), "Rastreio recebido");
   assert.equal(getStatusLabel("em_transito", operationalStatuses), "Em transito");
   assert.equal(getStatusLabel("status_customizado", operationalStatuses), "Status Customizado");
+});
+
+test("internal order status becomes pending only after one day without a decision", () => {
+  const now = new Date("2026-05-29T12:00:00.000Z");
+
+  assert.equal(
+    getEffectiveInternalOrderStatus(
+      { created_at: "2026-05-29T08:00:00.000Z", internal_order_status: null },
+      now
+    ),
+    ""
+  );
+  assert.equal(
+    getEffectiveInternalOrderStatus(
+      { created_at: "2026-05-28T11:59:59.000Z", internal_order_status: null },
+      now
+    ),
+    "pendente"
+  );
+  assert.equal(
+    getEffectiveInternalOrderStatus(
+      { created_at: "2026-05-20T12:00:00.000Z", internal_order_status: "confirmado" },
+      now
+    ),
+    "confirmado"
+  );
+  assert.equal(getStatusLabel("recusado", internalOrderStatuses), "Recusado");
 });
