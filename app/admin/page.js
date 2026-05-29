@@ -1037,6 +1037,11 @@ export default async function AdminPage({ searchParams }) {
               Adicionar pedido
             </Link>
           ) : null}
+          {activeTab === "produtos" ? (
+            <Link className="button button-primary" href="/admin?tab=produtos">
+              Adicionar produto
+            </Link>
+          ) : null}
           <form action={adminSignOutAction}>
             <button className="button button-secondary" type="submit">
               Sair
