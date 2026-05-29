@@ -3612,6 +3612,13 @@ body::before {
   margin: 28px 0 18px;
 }
 
+.admin-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .admin-toolbar h1,
 .tracking-lookup-card h1,
 .admin-detail-header h1,
@@ -3772,6 +3779,21 @@ body::before {
   background: rgba(255, 199, 68, 0.12);
 }
 
+.admin-status-summary .internal-order-confirmado {
+  border-color: rgba(25, 190, 93, 0.68);
+  background: rgba(25, 190, 93, 0.12);
+}
+
+.admin-status-summary .internal-order-recusado {
+  border-color: rgba(255, 70, 70, 0.68);
+  background: rgba(255, 70, 70, 0.12);
+}
+
+.admin-status-summary .internal-order-pendente {
+  border-color: rgba(255, 199, 68, 0.68);
+  background: rgba(255, 199, 68, 0.12);
+}
+
 .admin-order-link span,
 .admin-product-link span,
 .admin-item-row span {
@@ -3884,6 +3906,133 @@ body::before {
 .admin-content-grid,
 .tracking-content-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-analytics-shell,
+.admin-chart-grid,
+.admin-metric-grid,
+.admin-status-summary {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.admin-metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-metric-card,
+.admin-status-summary div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.075), transparent 42%),
+    #0d0d0d;
+  padding: 16px;
+}
+
+.admin-metric-card {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-metric-card span,
+.admin-metric-card small,
+.admin-bar-row span,
+.admin-bar-row strong,
+.admin-ranking-row small,
+.admin-status-summary span {
+  color: var(--muted);
+}
+
+.admin-metric-card strong {
+  color: #fff;
+  font-size: clamp(1.45rem, 3vw, 2.4rem);
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.admin-metric-card.is-positive strong {
+  color: #64ff9c;
+}
+
+.admin-metric-card.is-negative strong {
+  color: #ff6868;
+}
+
+.admin-chart-grid {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.admin-chart-grid .admin-section:last-child {
+  grid-column: 1 / -1;
+}
+
+.admin-bar-chart,
+.admin-ranking-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-bar-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) minmax(110px, auto);
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-bar-row div {
+  min-width: 0;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-bar-row i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), #64ff9c);
+}
+
+.admin-ranking-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 4px 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  padding: 10px;
+}
+
+.admin-ranking-row span {
+  display: inline-grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  color: #fff;
+  font-weight: 950;
+}
+
+.admin-ranking-row strong,
+.admin-ranking-row small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-status-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-status-summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-status-summary strong {
+  color: #fff;
+  font-size: 1.8rem;
 }
 
 .admin-internal-decision {
@@ -4132,9 +4281,34 @@ body::before {
     flex-direction: column;
   }
 
+  .admin-toolbar-actions {
+    justify-content: stretch;
+  }
+
+  .admin-toolbar-actions .button,
+  .admin-toolbar-actions form,
+  .admin-toolbar-actions button {
+    width: 100%;
+  }
+
   .admin-status-grid,
-  .tracking-status-grid {
+  .tracking-status-grid,
+  .admin-metric-grid,
+  .admin-chart-grid,
+  .admin-status-summary {
     grid-template-columns: 1fr;
+  }
+
+  .admin-chart-grid .admin-section:last-child {
+    grid-column: auto;
+  }
+
+  .admin-bar-row {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .admin-bar-row strong {
+    grid-column: 2;
   }
 
   .admin-internal-decision,

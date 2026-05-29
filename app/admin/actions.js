@@ -13,6 +13,7 @@ import {
   upsertAdminCatalogProduct
 } from "@/src/admin/catalog-admin.js";
 import {
+  createAdminManualOrder,
   setAdminInternalOrderStatus,
   updateAdminOrderOperation
 } from "@/src/admin/order-admin.js";
@@ -99,6 +100,27 @@ export async function setAdminInternalOrderStatusAction(formData) {
   const status =
     result.internalOrderStatus === "confirmado" ? "pedido-confirmado" : "pedido-recusado";
   redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=${status}`);
+}
+
+export async function createAdminOrderAction(formData) {
+  if (!(await isAdminSessionValid())) {
+    redirectWithError("/admin?novoPedido=1", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin?novoPedido=1", "Requisicao administrativa rejeitada.");
+  }
+
+  let result;
+
+  try {
+    result = await createAdminManualOrder(formData);
+    revalidatePath("/admin");
+  } catch (error) {
+    redirectWithError("/admin?novoPedido=1", error.message);
+  }
+
+  redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=pedido-criado`);
 }
 
 function revalidateCatalogPaths(...slugs) {
