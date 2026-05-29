@@ -34,19 +34,6 @@ const brandLogoSrc = "/brand/logo-tszr15-store.png";
 const heroBoardSrc =
   "https://mckthvbwddxipghumrpw.supabase.co/storage/v1/object/public/brand-assets/tszr15-hero-r15-dark.png";
 
-const heroFeatures = [
-  ["Qualidade", "premium"],
-  ["Performance", "de verdade"],
-  ["Design", "exclusivo"],
-  ["Envio", "para todo Brasil"]
-];
-
-const assuranceItems = [
-  ["Produtos", "testados"],
-  ["Garantia", "e seguranca"],
-  ["Compra", "100% segura"]
-];
-
 const featuredProductIds = [
   "escapamento-sc-project-completo",
   "kit-suporte-slider",
@@ -595,25 +582,6 @@ export function CatalogHub({ categories, currentUser, products }) {
           <div className="hero-media-frame">
             <img src={heroBoardSrc} alt="Yamaha R15 preta em arte promocional TSZ Store" />
           </div>
-          <div className="assurance-stack">
-            {assuranceItems.map(([title, label]) => (
-              <div className="assurance-card" key={title}>
-                <span aria-hidden="true" />
-                <strong>{title}</strong>
-                <em>{label}</em>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="hero-feature-row" aria-label="Diferenciais TSZR15">
-          {heroFeatures.map(([title, label]) => (
-            <div className="hero-feature" key={title}>
-              <span aria-hidden="true" />
-              <strong>{title}</strong>
-              <em>{label}</em>
-            </div>
-          ))}
         </div>
       </section>
 

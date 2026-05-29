@@ -2996,9 +2996,7 @@ body::before {
 /* Organized hero + featured product carousel */
 .brand-hero {
   grid-template-columns: minmax(0, 0.88fr) minmax(420px, 1.12fr);
-  grid-template-areas:
-    "copy media"
-    "features features";
+  grid-template-areas: "copy media";
   gap: clamp(18px, 3vw, 38px);
   min-height: auto;
   padding: clamp(26px, 4vw, 54px);
@@ -3463,8 +3461,7 @@ body::before {
     grid-template-columns: 1fr;
     grid-template-areas:
       "copy"
-      "media"
-      "features";
+      "media";
   }
 
   .brand-hero-media {
@@ -4354,8 +4351,7 @@ body::before {
   .brand-hero {
     grid-template-areas:
       "copy"
-      "media"
-      "features";
+      "media";
     gap: 16px;
   }
 
