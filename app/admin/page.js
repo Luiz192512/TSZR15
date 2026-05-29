@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   adminSignOutAction,
   archiveAdminProductAction,
+  createAdminOrderAction,
   setAdminInternalOrderStatusAction,
   upsertAdminProductAction,
   updateAdminOrderAction
@@ -22,6 +23,7 @@ import {
   supplierChannels,
   supplierSourceStatuses
 } from "@/src/orders/status.js";
+import { paymentMethods, shippingOptions } from "@/src/checkout/whatsapp.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 
 export const metadata = {
@@ -83,7 +85,11 @@ function productPriceToInput(cents) {
 }
 
 function getActiveAdminTab(params) {
-  return params?.tab === "produtos" ? "produtos" : "pedidos";
+  if (params?.tab === "produtos" || params?.tab === "analise") {
+    return params.tab;
+  }
+
+  return "pedidos";
 }
 
 function getMessage(params) {
@@ -97,6 +103,10 @@ function getMessage(params) {
 
   if (params?.status === "pedido-recusado") {
     return "Pedido interno recusado.";
+  }
+
+  if (params?.status === "pedido-criado") {
+    return "Pedido criado no painel admin.";
   }
 
   if (params?.status === "produto-salvo") {
@@ -133,6 +143,12 @@ function AdminTabs({ activeTab }) {
         href="/admin?tab=produtos"
       >
         Produtos
+      </Link>
+      <Link
+        className={activeTab === "analise" ? "is-active" : ""}
+        href="/admin?tab=analise"
+      >
+        Analise
       </Link>
     </nav>
   );
@@ -180,7 +196,7 @@ npx supabase db push`}
 function getInternalOrderConfig(status) {
   const configs = {
     confirmado: {
-      icon: "✓",
+      icon: "\u2713",
       label: getStatusLabel(status, internalOrderStatuses)
     },
     pendente: {
@@ -249,6 +265,107 @@ function OrdersList({ orders, selectedOrderNumber }) {
         )}
       </div>
     </aside>
+  );
+}
+
+function NewOrderForm({ products }) {
+  return (
+    <section className="admin-detail-panel">
+      <div className="admin-detail-header">
+        <div>
+          <p className="section-label">Novo pedido</p>
+          <h1>Adicionar pedido.</h1>
+          <p>Crie um pedido manual usando um produto publicado no catalogo.</p>
+        </div>
+      </div>
+
+      {products.length === 0 ? (
+        <p className="helper-text">
+          Cadastre ou publique um produto antes de criar um pedido manual.
+        </p>
+      ) : (
+        <form action={createAdminOrderAction} className="admin-operation-form">
+          <div className="admin-form-block">
+            <h2>Cliente</h2>
+            <div className="form-grid">
+              <label>
+                <span>Nome</span>
+                <input name="customerName" required />
+              </label>
+              <label>
+                <span>WhatsApp</span>
+                <input name="customerWhatsapp" placeholder="(11) 99999-9999" />
+              </label>
+              <label>
+                <span>Telefone alternativo</span>
+                <input name="customerPhone" />
+              </label>
+              <label>
+                <span>Email</span>
+                <input name="customerEmail" type="email" />
+              </label>
+              <label>
+                <span>CPF/CNPJ</span>
+                <input name="customerTaxId" />
+              </label>
+              <label>
+                <span>CEP</span>
+                <input name="customerCep" required />
+              </label>
+              <label className="span-all">
+                <span>Endereco de entrega</span>
+                <input name="customerAddress" required />
+              </label>
+              <label className="span-all">
+                <span>Observacoes do cliente</span>
+                <textarea name="customerNotes" rows={3} />
+              </label>
+            </div>
+          </div>
+
+          <div className="admin-form-block">
+            <h2>Produto e pagamento</h2>
+            <div className="form-grid">
+              <label className="span-all">
+                <span>Produto</span>
+                <select name="productId" required>
+                  <option value="">Selecione um produto</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} - {formatCurrency(product.priceCents, product.currency)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Variacao</span>
+                <input name="variation" placeholder="deixe vazio para usar a primeira variacao" />
+              </label>
+              <label>
+                <span>Quantidade</span>
+                <input defaultValue="1" min="1" name="quantity" type="number" />
+              </label>
+              <label>
+                <span>Pagamento</span>
+                <StatusSelect items={paymentMethods} name="paymentMethodId" value="pix" />
+              </label>
+              <label>
+                <span>Entrega</span>
+                <StatusSelect items={shippingOptions} name="shippingOptionId" value="combinar" />
+              </label>
+              <label className="span-all">
+                <span>Observacoes internas</span>
+                <textarea name="orderInternalNotes" rows={3} />
+              </label>
+            </div>
+          </div>
+
+          <button className="button button-primary" type="submit">
+            Criar pedido
+          </button>
+        </form>
+      )}
+    </section>
   );
 }
 
@@ -337,37 +454,6 @@ function OrderDetail({ selected }) {
               <dd>{order.address_snapshot?.line || "Nao informado"}</dd>
             </div>
           </dl>
-        </div>
-      </div>
-
-      <div className="admin-internal-decision">
-        <div>
-          <p className="section-label">Decisao interna</p>
-          <h2>Confirmar ou recusar pedido.</h2>
-          <p>
-            Confirmar libera o pedido para operacao interna. Recusar marca o pedido como recusado
-            sem apagar historico.
-          </p>
-        </div>
-        <div className="admin-internal-decision-actions">
-          <form action={setAdminInternalOrderStatusAction}>
-            <input name="orderId" type="hidden" value={order.id} />
-            <input name="orderNumber" type="hidden" value={order.order_number} />
-            <input name="internalOrderStatus" type="hidden" value="confirmado" />
-            <button className="button button-success" type="submit">
-              <span aria-hidden="true">✓</span>
-              Confirmar pedido interno
-            </button>
-          </form>
-          <form action={setAdminInternalOrderStatusAction}>
-            <input name="orderId" type="hidden" value={order.id} />
-            <input name="orderNumber" type="hidden" value={order.order_number} />
-            <input name="internalOrderStatus" type="hidden" value="recusado" />
-            <button className="button button-danger" type="submit">
-              <span aria-hidden="true">X</span>
-              Recusar pedido interno
-            </button>
-          </form>
         </div>
       </div>
 
@@ -535,6 +621,137 @@ function OrderDetail({ selected }) {
           )}
         </div>
       </div>
+
+      <div className="admin-internal-decision">
+        <div>
+          <p className="section-label">Decisao final</p>
+          <h2>Confirmar ou recusar pedido interno.</h2>
+          <p>
+            Confirmar libera o pedido para operacao interna. Recusar marca o pedido como recusado
+            sem apagar historico.
+          </p>
+        </div>
+        <div className="admin-internal-decision-actions">
+          <form action={setAdminInternalOrderStatusAction}>
+            <input name="orderId" type="hidden" value={order.id} />
+            <input name="orderNumber" type="hidden" value={order.order_number} />
+            <input name="internalOrderStatus" type="hidden" value="confirmado" />
+            <button className="button button-success" type="submit">
+              <span aria-hidden="true">{"\u2713"}</span>
+              Confirmar pedido interno
+            </button>
+          </form>
+          <form action={setAdminInternalOrderStatusAction}>
+            <input name="orderId" type="hidden" value={order.id} />
+            <input name="orderNumber" type="hidden" value={order.order_number} />
+            <input name="internalOrderStatus" type="hidden" value="recusado" />
+            <button className="button button-danger" type="submit">
+              <span aria-hidden="true">X</span>
+              Recusar pedido interno
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MetricCard({ label, value, detail, tone = "" }) {
+  return (
+    <div className={`admin-metric-card ${tone ? `is-${tone}` : ""}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {detail ? <small>{detail}</small> : null}
+    </div>
+  );
+}
+
+function AdminAnalytics({ analytics }) {
+  const statusCounts = analytics.internalStatusCounts ?? {};
+
+  return (
+    <section className="admin-analytics-shell">
+      <div className="admin-metric-grid">
+        <MetricCard
+          detail={`${analytics.activeOrderCount} pedidos ativos`}
+          label="Quantidade de vendas"
+          value={analytics.salesCount}
+        />
+        <MetricCard
+          detail={`${formatCurrency(analytics.knownCostCents)} em custos conhecidos`}
+          label="Lucro estimado"
+          tone={analytics.grossProfitCents >= 0 ? "positive" : "negative"}
+          value={formatCurrency(analytics.grossProfitCents)}
+        />
+        <MetricCard
+          detail={`${analytics.totalOrderCount} pedidos no historico`}
+          label="Receita confirmada"
+          value={formatCurrency(analytics.totalRevenueCents)}
+        />
+        <MetricCard
+          detail="media dos pedidos confirmados"
+          label="Ticket medio"
+          value={formatCurrency(analytics.averageTicketCents)}
+        />
+      </div>
+
+      <div className="admin-chart-grid">
+        <section className="admin-section">
+          <h2>Vendas dos ultimos 7 dias</h2>
+          <div className="admin-bar-chart">
+            {analytics.dailySales.map((day) => (
+              <div className="admin-bar-row" key={day.key}>
+                <span>{day.label}</span>
+                <div>
+                  <i style={{ width: `${Math.max(4, day.percentage)}%` }} />
+                </div>
+                <strong>{formatCurrency(day.totalCents)}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="admin-section">
+          <h2>Usuarios que mais compraram</h2>
+          <div className="admin-ranking-list">
+            {analytics.topCustomers.length === 0 ? (
+              <p className="helper-text">Ainda nao ha compras confirmadas para ranking.</p>
+            ) : (
+              analytics.topCustomers.map((customer, index) => (
+                <div className="admin-ranking-row" key={customer.key}>
+                  <span>{index + 1}</span>
+                  <strong>{customer.name}</strong>
+                  <small>
+                    {customer.count} pedido(s) - {formatCurrency(customer.totalCents)}
+                  </small>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="admin-section">
+          <h2>Status interno</h2>
+          <div className="admin-status-summary">
+            <div className="internal-order-confirmado">
+              <strong>{statusCounts.confirmado ?? 0}</strong>
+              <span>Confirmados</span>
+            </div>
+            <div className="internal-order-pendente">
+              <strong>{statusCounts.pendente ?? 0}</strong>
+              <span>Pendentes</span>
+            </div>
+            <div className="internal-order-recusado">
+              <strong>{statusCounts.recusado ?? 0}</strong>
+              <span>Recusados</span>
+            </div>
+            <div>
+              <strong>{statusCounts.novo ?? 0}</strong>
+              <span>Novos sem decisao</span>
+            </div>
+          </div>
+        </section>
+      </div>
     </section>
   );
 }
@@ -592,7 +809,7 @@ function ProductForm({ categories, families, product }) {
       <input name="previousSlug" type="hidden" value={product?.slug ?? ""} />
 
       <div className="admin-form-block">
-        <h2>{product ? "Editar produto" : "Novo produto"}</h2>
+        <h2>{product ? "Identificacao do produto" : "Novo produto"}</h2>
         <div className="form-grid">
           <label>
             <span>Nome</span>
@@ -616,6 +833,12 @@ function ProductForm({ categories, families, product }) {
               ))}
             </select>
           </label>
+        </div>
+      </div>
+
+      <div className="admin-form-block">
+        <h2>Preco e operacao</h2>
+        <div className="form-grid">
           <label>
             <span>Preco</span>
             <input
@@ -646,13 +869,12 @@ function ProductForm({ categories, families, product }) {
             <span>Frete</span>
             <input defaultValue={product?.shippingClass ?? "medium"} name="shippingClass" />
           </label>
-          <label>
-            <span>Escopo tecnico</span>
-            <input
-              defaultValue={arrayToTextarea(product?.bikeModelScope) || "yamaha-r15"}
-              name="bikeModelScope"
-            />
-          </label>
+        </div>
+      </div>
+
+      <div className="admin-form-block">
+        <h2>Categorias e compatibilidade</h2>
+        <div className="form-grid">
           <fieldset className="span-all admin-checkbox-fieldset">
             <legend>Categorias</legend>
             <div className="admin-checkbox-grid">
@@ -669,6 +891,19 @@ function ProductForm({ categories, families, product }) {
               ))}
             </div>
           </fieldset>
+          <label className="span-all">
+            <span>Escopo tecnico</span>
+            <input
+              defaultValue={arrayToTextarea(product?.bikeModelScope) || "yamaha-r15"}
+              name="bikeModelScope"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="admin-form-block">
+        <h2>Vitrine</h2>
+        <div className="form-grid">
           <label className="span-all">
             <span>Variacoes</span>
             <textarea
@@ -738,6 +973,22 @@ function AdminProducts({ selectedProductId, state }) {
   );
 }
 
+function AdminOrders({ showNewOrder, state }) {
+  return (
+    <section className="admin-shell">
+      <OrdersList
+        orders={state.orders}
+        selectedOrderNumber={state.selected?.order?.order_number ?? ""}
+      />
+      {showNewOrder ? (
+        <NewOrderForm products={state.products ?? []} />
+      ) : (
+        <OrderDetail selected={state.selected} />
+      )}
+    </section>
+  );
+}
+
 export default async function AdminPage({ searchParams }) {
   const params = await searchParams;
   const message = getMessage(params);
@@ -780,11 +1031,18 @@ export default async function AdminPage({ searchParams }) {
           <p className="section-label">Painel admin</p>
           <h1>Operacao manual TSZR15.</h1>
         </div>
-        <form action={adminSignOutAction}>
-          <button className="button button-secondary" type="submit">
-            Sair
-          </button>
-        </form>
+        <div className="admin-toolbar-actions">
+          {activeTab === "pedidos" ? (
+            <Link className="button button-primary" href="/admin?novoPedido=1">
+              Adicionar pedido
+            </Link>
+          ) : null}
+          <form action={adminSignOutAction}>
+            <button className="button button-secondary" type="submit">
+              Sair
+            </button>
+          </form>
+        </div>
       </section>
 
       <AdminTabs activeTab={activeTab} />
@@ -793,14 +1051,10 @@ export default async function AdminPage({ searchParams }) {
 
       {activeTab === "produtos" ? (
         <AdminProducts selectedProductId={params?.produto ?? ""} state={state} />
+      ) : activeTab === "analise" ? (
+        <AdminAnalytics analytics={state.analytics} />
       ) : (
-        <section className="admin-shell">
-          <OrdersList
-            orders={state.orders}
-            selectedOrderNumber={state.selected?.order?.order_number ?? ""}
-          />
-          <OrderDetail selected={state.selected} />
-        </section>
+        <AdminOrders showNewOrder={params?.novoPedido === "1"} state={state} />
       )}
     </main>
   );

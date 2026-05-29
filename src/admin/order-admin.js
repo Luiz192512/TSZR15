@@ -1,6 +1,9 @@
 import "server-only";
 
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
+import { buildCheckoutOrderDraft, persistCheckoutOrder } from "@/src/checkout/order-backend.js";
+import { buildAdminOrderAnalytics } from "@/src/admin/order-analytics.js";
+import { catalogProducts } from "@/src/catalog/index.js";
 import {
   internalOrderDecisionStatuses,
   internalOrderPendingAfterMs,
@@ -67,6 +70,41 @@ function hasSupplierPayload(payload) {
   });
 }
 
+function toOrderFormProduct(row) {
+  return {
+    bikeModelScope: row.bike_model_scope ?? ["yamaha-r15"],
+    checkoutChannel: row.checkout_channel ?? "whatsapp-business",
+    currency: row.currency ?? "BRL",
+    id: row.id,
+    internalPurchaseSource: row.internal_purchase_source ?? {
+      provider: "painel-admin",
+      visibility: "internal-only"
+    },
+    name: row.name,
+    priceCents: row.price_cents,
+    productFamily: row.product_family,
+    slug: row.slug,
+    storefrontCategoryIds: row.storefront_category_ids ?? [],
+    variations: row.variations ?? []
+  };
+}
+
+function getFallbackOrderProducts() {
+  return catalogProducts.map((product) => ({
+    bikeModelScope: product.bikeModelScope,
+    checkoutChannel: product.checkoutChannel,
+    currency: product.currency,
+    id: product.id,
+    internalPurchaseSource: product.internalPurchaseSource,
+    name: product.name,
+    priceCents: product.priceCents,
+    productFamily: product.productFamily,
+    slug: product.slug,
+    storefrontCategoryIds: product.storefrontCategoryIds,
+    variations: product.variations
+  }));
+}
+
 export function getAdminSupabaseStatus() {
   const supabase = createServiceRoleSupabaseClient();
 
@@ -96,6 +134,27 @@ export async function listAdminOrders({ limit = 30, supabase } = {}) {
   return data ?? [];
 }
 
+export async function listAdminOrderProducts({ supabase, limit = 160 } = {}) {
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("catalog_products")
+    .select(
+      "id, slug, name, storefront_category_ids, product_family, bike_model_scope, price_cents, currency, variations, checkout_channel, internal_purchase_source, is_published"
+    )
+    .eq("is_published", true)
+    .order("name", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data?.length ? data.map(toOrderFormProduct) : getFallbackOrderProducts();
+}
+
 export async function markStaleInternalOrdersPending({ supabase, now = new Date() } = {}) {
   if (!supabase) {
     return;
@@ -114,6 +173,38 @@ export async function markStaleInternalOrdersPending({ supabase, now = new Date(
   if (error) {
     throw new Error(error.message);
   }
+}
+
+export async function getAdminOrderAnalytics({ supabase } = {}) {
+  if (!supabase) {
+    return buildAdminOrderAnalytics();
+  }
+
+  const [{ data: orders, error: orderError }, { data: supplierPurchases, error: supplierError }] =
+    await Promise.all([
+      supabase
+        .from("orders")
+        .select(
+          "id, customer_name, customer_email, customer_whatsapp, total_cents, payment_status, operational_status, internal_order_status, created_at"
+        )
+        .order("created_at", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("supplier_purchases")
+        .select("order_id, product_cost_cents, shipping_cost_cents")
+        .limit(1000)
+    ]);
+
+  const firstError = orderError ?? supplierError;
+
+  if (firstError) {
+    throw new Error(firstError.message);
+  }
+
+  return buildAdminOrderAnalytics({
+    orders: orders ?? [],
+    supplierPurchases: supplierPurchases ?? []
+  });
 }
 
 export async function getAdminOrder({ orderId, orderNumber, supabase }) {
@@ -197,14 +288,108 @@ export async function getAdminDashboardState({ selectedOrderNumber } = {}) {
 
   await markStaleInternalOrdersPending({ supabase });
 
-  const orders = await listAdminOrders({ supabase });
+  const [orders, products, analytics] = await Promise.all([
+    listAdminOrders({ supabase }),
+    listAdminOrderProducts({ supabase }),
+    getAdminOrderAnalytics({ supabase })
+  ]);
   const selectedOrder =
     selectedOrderNumber ?? orders.find((order) => order.order_number)?.order_number ?? "";
 
   return {
+    analytics,
     isConfigured,
     orders,
+    products,
     selected: await getAdminOrder({ orderNumber: selectedOrder, supabase })
+  };
+}
+
+export async function createAdminManualOrder(formData) {
+  const { isConfigured, supabase } = getAdminSupabaseStatus();
+
+  if (!isConfigured) {
+    throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
+  }
+
+  const products = await listAdminOrderProducts({ supabase });
+  const productId = cleanString(formData.get("productId"), 160);
+  const selectedProduct = products.find(
+    (product) => product.id === productId || product.slug === productId
+  );
+
+  if (!selectedProduct) {
+    throw new Error("Selecione um produto publicado para criar o pedido.");
+  }
+
+  const draft = buildCheckoutOrderDraft(
+    {
+      cartItems: [
+        {
+          id: selectedProduct.id,
+          quantity: Number.parseInt(cleanString(formData.get("quantity"), 20), 10) || 1,
+          variation: cleanString(formData.get("variation"), 120) || selectedProduct.variations[0]
+        }
+      ],
+      customer: {
+        address: cleanString(formData.get("customerAddress"), 1000),
+        cep: cleanString(formData.get("customerCep"), 20),
+        email: cleanString(formData.get("customerEmail"), 320),
+        name: cleanString(formData.get("customerName"), 200),
+        notes: cleanString(formData.get("customerNotes"), 1000),
+        phone: cleanString(formData.get("customerPhone"), 40),
+        taxId: cleanString(formData.get("customerTaxId"), 40),
+        whatsapp: cleanString(formData.get("customerWhatsapp"), 40)
+      },
+      hasDataConsent: true,
+      paymentMethodId: cleanString(formData.get("paymentMethodId"), 80) || "pix",
+      shippingOptionId: cleanString(formData.get("shippingOptionId"), 80) || "combinar"
+    },
+    {
+      products,
+      storeName: "TSZR15"
+    }
+  );
+
+  const result = await persistCheckoutOrder({
+    draft,
+    requestContext: {
+      source: "admin_manual_order"
+    },
+    supabase,
+    user: null
+  });
+
+  if (!result.saved || !result.id) {
+    throw new Error(result.reason || "Nao foi possivel salvar o pedido.");
+  }
+
+  const internalNotes = cleanNullable(formData.get("orderInternalNotes"), 1800);
+
+  if (internalNotes) {
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        internal_notes: internalNotes
+      })
+      .eq("id", result.id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  await supabase.from("audit_logs").insert({
+    action: "admin_manual_order_created",
+    metadata: {
+      orderNumber: result.orderNumber,
+      productId: selectedProduct.id
+    },
+    order_id: result.id
+  });
+
+  return {
+    orderNumber: result.orderNumber
   };
 }
 

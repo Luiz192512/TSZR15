@@ -50,6 +50,7 @@ import {
   isAdminSessionValueFreshShape,
   isAdminSessionValueValid
 } from "../src/admin/admin-session.js";
+import { buildAdminOrderAnalytics } from "../src/admin/order-analytics.js";
 import {
   isAdminSessionValueFreshShapeAtEdge,
   isAdminSessionValueValidAtEdge
@@ -606,4 +607,62 @@ test("internal order status becomes pending only after one day without a decisio
     "confirmado"
   );
   assert.equal(getStatusLabel("recusado", internalOrderStatuses), "Recusado");
+});
+
+test("admin analytics computes sales, profit and top customers", () => {
+  const analytics = buildAdminOrderAnalytics({
+    now: new Date("2026-05-29T12:00:00.000Z"),
+    orders: [
+      {
+        id: "order-1",
+        created_at: "2026-05-29T10:00:00.000Z",
+        customer_name: "Cliente A",
+        customer_whatsapp: "5511999999999",
+        internal_order_status: "confirmado",
+        operational_status: "enviado_whatsapp_business",
+        payment_status: "aguardando_pagamento",
+        total_cents: 20000
+      },
+      {
+        id: "order-2",
+        created_at: "2026-05-28T10:00:00.000Z",
+        customer_name: "Cliente B",
+        customer_whatsapp: "5511888888888",
+        internal_order_status: "recusado",
+        operational_status: "enviado_whatsapp_business",
+        payment_status: "pagamento_confirmado",
+        total_cents: 90000
+      },
+      {
+        id: "order-3",
+        created_at: "2026-05-29T09:00:00.000Z",
+        customer_name: "Cliente A",
+        customer_whatsapp: "5511999999999",
+        internal_order_status: null,
+        operational_status: "enviado_whatsapp_business",
+        payment_status: "pagamento_confirmado",
+        total_cents: 30000
+      }
+    ],
+    supplierPurchases: [
+      {
+        order_id: "order-1",
+        product_cost_cents: 8000,
+        shipping_cost_cents: 2000
+      },
+      {
+        order_id: "order-3",
+        product_cost_cents: 10000,
+        shipping_cost_cents: 3000
+      }
+    ]
+  });
+
+  assert.equal(analytics.salesCount, 2);
+  assert.equal(analytics.totalRevenueCents, 50000);
+  assert.equal(analytics.knownCostCents, 23000);
+  assert.equal(analytics.grossProfitCents, 27000);
+  assert.equal(analytics.topCustomers[0].name, "Cliente A");
+  assert.equal(analytics.topCustomers[0].count, 2);
+  assert.equal(analytics.internalStatusCounts.recusado, 1);
 });
