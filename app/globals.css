@@ -4212,6 +4212,10 @@ body::before {
 }
 
 @media (max-width: 900px) {
+  .page-shell {
+    overflow: visible;
+  }
+
   .store-header,
   .store-header-compact,
   .site-header {
