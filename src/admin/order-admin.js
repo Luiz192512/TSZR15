@@ -3,6 +3,7 @@ import "server-only";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { buildCheckoutOrderDraft, persistCheckoutOrder } from "@/src/checkout/order-backend.js";
 import { buildAdminOrderAnalytics } from "@/src/admin/order-analytics.js";
+import { catalogProducts } from "@/src/catalog/index.js";
 import {
   internalOrderDecisionStatuses,
   internalOrderPendingAfterMs,
@@ -88,6 +89,22 @@ function toOrderFormProduct(row) {
   };
 }
 
+function getFallbackOrderProducts() {
+  return catalogProducts.map((product) => ({
+    bikeModelScope: product.bikeModelScope,
+    checkoutChannel: product.checkoutChannel,
+    currency: product.currency,
+    id: product.id,
+    internalPurchaseSource: product.internalPurchaseSource,
+    name: product.name,
+    priceCents: product.priceCents,
+    productFamily: product.productFamily,
+    slug: product.slug,
+    storefrontCategoryIds: product.storefrontCategoryIds,
+    variations: product.variations
+  }));
+}
+
 export function getAdminSupabaseStatus() {
   const supabase = createServiceRoleSupabaseClient();
 
@@ -135,7 +152,7 @@ export async function listAdminOrderProducts({ supabase, limit = 160 } = {}) {
     throw new Error(error.message);
   }
 
-  return (data ?? []).map(toOrderFormProduct);
+  return data?.length ? data.map(toOrderFormProduct) : getFallbackOrderProducts();
 }
 
 export async function markStaleInternalOrdersPending({ supabase, now = new Date() } = {}) {
