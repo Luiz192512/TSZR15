@@ -231,6 +231,18 @@ button {
   color: var(--blue);
 }
 
+.button-success {
+  border-color: rgba(25, 190, 93, 0.62);
+  background: rgba(25, 190, 93, 0.16);
+  color: #7dffad;
+}
+
+.button-danger {
+  border-color: rgba(255, 70, 70, 0.62);
+  background: rgba(255, 70, 70, 0.13);
+  color: #ff7c7c;
+}
+
 .button.is-disabled {
   pointer-events: none;
   opacity: 0.45;
@@ -3742,6 +3754,24 @@ body::before {
   transform: translateY(-1px);
 }
 
+.admin-order-link.internal-order-confirmado,
+.admin-status-grid div.internal-order-confirmado {
+  border-color: rgba(25, 190, 93, 0.68);
+  background: rgba(25, 190, 93, 0.12);
+}
+
+.admin-order-link.internal-order-recusado,
+.admin-status-grid div.internal-order-recusado {
+  border-color: rgba(255, 70, 70, 0.68);
+  background: rgba(255, 70, 70, 0.12);
+}
+
+.admin-order-link.internal-order-pendente,
+.admin-status-grid div.internal-order-pendente {
+  border-color: rgba(255, 199, 68, 0.68);
+  background: rgba(255, 199, 68, 0.12);
+}
+
 .admin-order-link span,
 .admin-product-link span,
 .admin-item-row span {
@@ -3813,9 +3843,91 @@ body::before {
   overflow-wrap: anywhere;
 }
 
+.admin-order-link .internal-order-badge,
+.internal-order-badge {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid currentColor;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.admin-order-link .internal-order-badge span,
+.internal-order-badge span {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.internal-order-badge.is-confirmado {
+  color: #64ff9c;
+}
+
+.internal-order-badge.is-recusado {
+  color: #ff6868;
+}
+
+.internal-order-badge.is-pendente {
+  color: #ffd25c;
+}
+
 .admin-content-grid,
 .tracking-content-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-internal-decision {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.055);
+  padding: 16px;
+}
+
+.admin-internal-decision h2,
+.admin-internal-decision p {
+  margin: 0;
+}
+
+.admin-internal-decision h2 {
+  font-size: 1.05rem;
+}
+
+.admin-internal-decision p:not(.section-label) {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.admin-internal-decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-internal-decision-actions form {
+  min-width: 0;
+}
+
+.admin-internal-decision-actions .button {
+  min-height: 42px;
+}
+
+.admin-internal-decision-actions .button span {
+  margin-right: 4px;
 }
 
 .admin-section,
@@ -4023,6 +4135,21 @@ body::before {
   .admin-status-grid,
   .tracking-status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-internal-decision,
+  .admin-internal-decision-actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-internal-decision-actions {
+    justify-content: stretch;
+  }
+
+  .admin-internal-decision-actions .button {
+    width: 100%;
   }
 
   .admin-order-link,

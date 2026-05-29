@@ -2,6 +2,8 @@ import "server-only";
 
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import {
+  internalOrderDecisionStatuses,
+  internalOrderPendingAfterMs,
   isKnownStatus,
   operationalStatuses,
   paymentStatuses,
@@ -82,7 +84,7 @@ export async function listAdminOrders({ limit = 30, supabase } = {}) {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, order_number, customer_name, customer_whatsapp, total_cents, currency, payment_status, operational_status, assigned_operator, created_at, updated_at"
+      "id, order_number, customer_name, customer_whatsapp, total_cents, currency, payment_status, operational_status, internal_order_status, internal_order_status_updated_at, assigned_operator, created_at, updated_at"
     )
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -92,6 +94,26 @@ export async function listAdminOrders({ limit = 30, supabase } = {}) {
   }
 
   return data ?? [];
+}
+
+export async function markStaleInternalOrdersPending({ supabase, now = new Date() } = {}) {
+  if (!supabase) {
+    return;
+  }
+
+  const cutoff = new Date(now.getTime() - internalOrderPendingAfterMs).toISOString();
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      internal_order_status: "pendente",
+      internal_order_status_updated_at: now.toISOString()
+    })
+    .is("internal_order_status", null)
+    .lte("created_at", cutoff);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 export async function getAdminOrder({ orderId, orderNumber, supabase }) {
@@ -172,6 +194,8 @@ export async function getAdminDashboardState({ selectedOrderNumber } = {}) {
       selected: null
     };
   }
+
+  await markStaleInternalOrdersPending({ supabase });
 
   const orders = await listAdminOrders({ supabase });
   const selectedOrder =
@@ -318,5 +342,60 @@ export async function updateAdminOrderOperation(formData) {
 
   return {
     orderNumber
+  };
+}
+
+export async function setAdminInternalOrderStatus(formData) {
+  const { isConfigured, supabase } = getAdminSupabaseStatus();
+
+  if (!isConfigured) {
+    throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
+  }
+
+  const orderId = cleanString(formData.get("orderId"), 80);
+  const orderNumber = cleanString(formData.get("orderNumber"), 80);
+  const internalOrderStatus = cleanString(formData.get("internalOrderStatus"), 80);
+
+  if (!orderId) {
+    throw new Error("Pedido invalido.");
+  }
+
+  if (!isKnownStatus(internalOrderStatus, internalOrderDecisionStatuses)) {
+    throw new Error("Status interno invalido.");
+  }
+
+  const updatedAt = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("orders")
+    .update({
+      internal_order_status: internalOrderStatus,
+      internal_order_status_updated_at: updatedAt
+    })
+    .eq("id", orderId)
+    .select("order_number")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Pedido nao encontrado.");
+  }
+
+  const resolvedOrderNumber = data.order_number ?? orderNumber;
+
+  await supabase.from("audit_logs").insert({
+    action: "admin_internal_order_status_updated",
+    metadata: {
+      internalOrderStatus,
+      orderNumber: resolvedOrderNumber
+    },
+    order_id: orderId
+  });
+
+  return {
+    internalOrderStatus,
+    orderNumber: resolvedOrderNumber
   };
 }
