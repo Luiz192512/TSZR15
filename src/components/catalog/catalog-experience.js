@@ -164,7 +164,21 @@ function writeStoredCart(items) {
     return;
   }
 
-  window.localStorage.setItem(cartStorageKey, JSON.stringify(items));
+  if (!Array.isArray(items) || items.length === 0) {
+    window.localStorage.removeItem(cartStorageKey);
+  } else {
+    window.localStorage.setItem(cartStorageKey, JSON.stringify(items));
+  }
+
+  window.dispatchEvent(new Event("tszr15-cart-changed"));
+}
+
+function clearStoredCart() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(cartStorageKey);
   window.dispatchEvent(new Event("tszr15-cart-changed"));
 }
 
@@ -1049,6 +1063,8 @@ export function CartCheckout({
         setCheckoutFeedback("Mensagem pronta. Abrindo WhatsApp.");
       }
 
+      clearStoredCart();
+      setCartItems([]);
       window.open(data.whatsappUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       setCheckoutFeedback(
