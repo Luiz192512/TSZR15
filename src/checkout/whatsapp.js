@@ -57,18 +57,25 @@ export function getShippingOption(shippingOptionId) {
   );
 }
 
-export function calculateCartTotals(cartItems, shippingOptionId = "combinar") {
+export function calculateCartTotals(
+  cartItems,
+  shippingOptionId = "combinar",
+  { discountCents = 0 } = {}
+) {
   const subtotalCents = cartItems.reduce(
     (total, item) => total + item.priceCents * item.quantity,
     0
   );
   const shippingOption = getShippingOption(shippingOptionId);
-  const discountCents = 0;
-  const totalCents = subtotalCents - discountCents + shippingOption.priceCents;
+  const safeDiscountCents = Math.min(
+    subtotalCents,
+    Math.max(Number.isInteger(discountCents) ? discountCents : 0, 0)
+  );
+  const totalCents = subtotalCents - safeDiscountCents + shippingOption.priceCents;
 
   return {
     subtotalCents,
-    discountCents,
+    discountCents: safeDiscountCents,
     shippingCents: shippingOption.priceCents,
     totalCents,
     shippingOption
@@ -77,13 +84,16 @@ export function calculateCartTotals(cartItems, shippingOptionId = "combinar") {
 
 export function buildWhatsAppOrderMessage({
   cartItems,
+  coupon = null,
   customer,
   paymentMethodId,
   shippingOptionId,
   storeName = "TSZR15"
 }) {
   const paymentMethod = getPaymentMethod(paymentMethodId);
-  const totals = calculateCartTotals(cartItems, shippingOptionId);
+  const totals = calculateCartTotals(cartItems, shippingOptionId, {
+    discountCents: coupon?.discountCents ?? 0
+  });
   const itemLines = cartItems.map((item) => {
     const subtotal = item.priceCents * item.quantity;
     return `- ${item.name} | Variacao: ${item.variation} | Qtd: ${item.quantity} | Unit.: ${formatCurrency(item.priceCents)} | Subtotal: ${formatCurrency(subtotal)}`;
@@ -96,6 +106,7 @@ export function buildWhatsAppOrderMessage({
     ...itemLines,
     "",
     `Subtotal: ${formatCurrency(totals.subtotalCents)}`,
+    coupon?.code ? `Cupom: ${coupon.code}` : null,
     `Desconto: ${formatCurrency(totals.discountCents)}`,
     `Frete: ${totals.shippingOption.label} - ${totals.shippingOption.eta} - ${formatCurrency(totals.shippingCents)}`,
     `Pagamento escolhido: ${paymentMethod.label}`,

@@ -95,6 +95,7 @@ function normalizeCartItems(cartItems, products = catalogProducts) {
       id: product.id,
       internalPurchaseSource: product.internalPurchaseSource,
       name: product.name,
+      costCents: product.costCents ?? null,
       priceCents: product.priceCents,
       productFamily: product.productFamily,
       quantity: nextQuantity,
@@ -109,6 +110,10 @@ function normalizeCartItems(cartItems, products = catalogProducts) {
   }
 
   return Array.from(itemsByKey.values());
+}
+
+export function normalizeCheckoutCartItems(cartItems, products = catalogProducts) {
+  return normalizeCartItems(cartItems, products);
 }
 
 function normalizeCustomer(customer) {
@@ -171,8 +176,12 @@ function buildDatabaseItems(cartItems) {
     productId: item.id,
     productSlug: item.slug,
     quantity: item.quantity,
+    subtotalCostCents: Number.isInteger(item.costCents)
+      ? item.costCents * item.quantity
+      : null,
     storefrontCategoryIds: item.storefrontCategoryIds,
     subtotalCents: item.priceCents * item.quantity,
+    unitCostCents: Number.isInteger(item.costCents) ? item.costCents : null,
     unitPriceCents: item.priceCents,
     variation: item.variation,
     name: item.name
@@ -195,7 +204,10 @@ function buildConsentSnapshot(hasDataConsent) {
   };
 }
 
-export function buildCheckoutOrderDraft(payload, { products = catalogProducts, storeName = "TSZR15" } = {}) {
+export function buildCheckoutOrderDraft(
+  payload,
+  { coupon = null, products = catalogProducts, storeName = "TSZR15" } = {}
+) {
   const cartItems = normalizeCartItems(payload?.cartItems, products);
   const customer = normalizeCustomer(payload?.customer);
   const hasDataConsent = payload?.hasDataConsent === true;
@@ -204,9 +216,12 @@ export function buildCheckoutOrderDraft(payload, { products = catalogProducts, s
 
   const paymentMethod = getPaymentMethod(payload?.paymentMethodId);
   const shippingOption = getShippingOption(payload?.shippingOptionId);
-  const totals = calculateCartTotals(cartItems, shippingOption.id);
+  const discountedTotals = calculateCartTotals(cartItems, shippingOption.id, {
+    discountCents: coupon?.discountCents ?? 0
+  });
   const message = buildWhatsAppOrderMessage({
     cartItems,
+    coupon,
     customer,
     paymentMethodId: paymentMethod.id,
     shippingOptionId: shippingOption.id,
@@ -217,6 +232,7 @@ export function buildCheckoutOrderDraft(payload, { products = catalogProducts, s
     addressSnapshot: buildAddressSnapshot(customer),
     cartItems,
     consentSnapshot: buildConsentSnapshot(hasDataConsent),
+    coupon,
     customerSnapshot: customer,
     databaseItems: buildDatabaseItems(cartItems),
     message,
@@ -233,10 +249,19 @@ export function buildCheckoutOrderDraft(payload, { products = catalogProducts, s
     },
     totals: {
       currency: "BRL",
-      discountCents: totals.discountCents,
-      shippingCents: totals.shippingCents,
-      subtotalCents: totals.subtotalCents,
-      totalCents: totals.totalCents
+      discountCents: discountedTotals.discountCents,
+      discountSnapshot: coupon
+        ? {
+            code: coupon.code,
+            description: coupon.description,
+            discountCents: coupon.discountCents,
+            discountPercent: coupon.discountPercent,
+            discountType: coupon.discountType
+          }
+        : {},
+      shippingCents: discountedTotals.shippingCents,
+      subtotalCents: discountedTotals.subtotalCents,
+      totalCents: discountedTotals.totalCents
     }
   };
 }

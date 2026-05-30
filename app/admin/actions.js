@@ -9,7 +9,9 @@ import {
   isAdminSessionValid
 } from "@/src/admin/admin-auth.js";
 import {
+  archiveAdminCoupon,
   archiveAdminCatalogProduct,
+  upsertAdminCoupon,
   upsertAdminCatalogProduct
 } from "@/src/admin/catalog-admin.js";
 import {
@@ -177,4 +179,44 @@ export async function archiveAdminProductAction(formData) {
   }
 
   redirect("/admin?tab=produtos&status=produto-arquivado");
+}
+
+export async function upsertAdminCouponAction(formData) {
+  if (!(await isAdminSessionValid())) {
+    redirectWithError("/admin?tab=cupons", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin?tab=cupons", "Requisicao administrativa rejeitada.");
+  }
+
+  let result;
+
+  try {
+    result = await upsertAdminCoupon(formData);
+    revalidateCatalogPaths();
+  } catch (error) {
+    redirectWithError("/admin?tab=cupons", error.message);
+  }
+
+  redirect(`/admin?tab=cupons&cupom=${encodeURIComponent(result.code)}&status=cupom-salvo`);
+}
+
+export async function archiveAdminCouponAction(formData) {
+  if (!(await isAdminSessionValid())) {
+    redirectWithError("/admin?tab=cupons", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin?tab=cupons", "Requisicao administrativa rejeitada.");
+  }
+
+  try {
+    await archiveAdminCoupon(formData);
+    revalidateCatalogPaths();
+  } catch (error) {
+    redirectWithError("/admin?tab=cupons", error.message);
+  }
+
+  redirect("/admin?tab=cupons&status=cupom-arquivado");
 }

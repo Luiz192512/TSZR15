@@ -81,6 +81,7 @@ function toOrderFormProduct(row) {
       visibility: "internal-only"
     },
     name: row.name,
+    costCents: row.cost_cents ?? null,
     priceCents: row.price_cents,
     productFamily: row.product_family,
     slug: row.slug,
@@ -97,6 +98,7 @@ function getFallbackOrderProducts() {
     id: product.id,
     internalPurchaseSource: product.internalPurchaseSource,
     name: product.name,
+    costCents: product.costCents ?? null,
     priceCents: product.priceCents,
     productFamily: product.productFamily,
     slug: product.slug,
@@ -139,20 +141,31 @@ export async function listAdminOrderProducts({ supabase, limit = 160 } = {}) {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from("catalog_products")
-    .select(
-      "id, slug, name, storefront_category_ids, product_family, bike_model_scope, price_cents, currency, variations, checkout_channel, internal_purchase_source, is_published"
-    )
-    .eq("is_published", true)
-    .order("name", { ascending: true })
-    .limit(limit);
+  const [{ data, error }, { data: costRows, error: costError }] = await Promise.all([
+    supabase
+      .from("catalog_products")
+      .select(
+        "id, slug, name, storefront_category_ids, product_family, bike_model_scope, price_cents, currency, variations, checkout_channel, internal_purchase_source, is_published"
+      )
+      .eq("is_published", true)
+      .order("name", { ascending: true })
+      .limit(limit),
+    supabase.from("catalog_product_costs").select("product_id, cost_cents")
+  ]);
 
-  if (error) {
-    throw new Error(error.message);
+  const firstError = error ?? costError;
+
+  if (firstError) {
+    throw new Error(firstError.message);
   }
 
-  return data?.length ? data.map(toOrderFormProduct) : getFallbackOrderProducts();
+  const costsByProductId = new Map((costRows ?? []).map((row) => [row.product_id, row.cost_cents]));
+  const rows = (data ?? []).map((row) => ({
+    ...row,
+    cost_cents: costsByProductId.get(row.id) ?? null
+  }));
+
+  return rows.length ? rows.map(toOrderFormProduct) : getFallbackOrderProducts();
 }
 
 export async function markStaleInternalOrdersPending({ supabase, now = new Date() } = {}) {
@@ -180,8 +193,11 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
     return buildAdminOrderAnalytics();
   }
 
-  const [{ data: orders, error: orderError }, { data: supplierPurchases, error: supplierError }] =
-    await Promise.all([
+  const [
+    { data: orders, error: orderError },
+    { data: supplierPurchases, error: supplierError },
+    { data: orderItems, error: itemError }
+  ] = await Promise.all([
       supabase
         .from("orders")
         .select(
@@ -192,16 +208,21 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
       supabase
         .from("supplier_purchases")
         .select("order_id, product_cost_cents, shipping_cost_cents")
-        .limit(1000)
+        .limit(1000),
+      supabase
+        .from("order_items")
+        .select("order_id, subtotal_cost_cents")
+        .limit(5000)
     ]);
 
-  const firstError = orderError ?? supplierError;
+  const firstError = orderError ?? supplierError ?? itemError;
 
   if (firstError) {
     throw new Error(firstError.message);
   }
 
   return buildAdminOrderAnalytics({
+    orderItems: orderItems ?? [],
     orders: orders ?? [],
     supplierPurchases: supplierPurchases ?? []
   });
