@@ -4,6 +4,7 @@ import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { buildCheckoutOrderDraft, persistCheckoutOrder } from "@/src/checkout/order-backend.js";
 import { buildAdminOrderAnalytics } from "@/src/admin/order-analytics.js";
 import { catalogProducts } from "@/src/catalog/index.js";
+import { listPendingOrderReviews } from "@/src/reviews/order-reviews.js";
 import {
   internalOrderDecisionStatuses,
   internalOrderPendingAfterMs,
@@ -196,7 +197,8 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
   const [
     { data: orders, error: orderError },
     { data: supplierPurchases, error: supplierError },
-    { data: orderItems, error: itemError }
+    { data: orderItems, error: itemError },
+    { data: reviews, error: reviewError }
   ] = await Promise.all([
       supabase
         .from("orders")
@@ -211,11 +213,15 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
         .limit(1000),
       supabase
         .from("order_items")
-        .select("order_id, subtotal_cost_cents")
+        .select("order_id, product_id, product_slug, product_name, quantity, subtotal_cents, subtotal_cost_cents")
+        .limit(5000),
+      supabase
+        .from("order_item_reviews")
+        .select("product_id, product_name, rating, status")
         .limit(5000)
     ]);
 
-  const firstError = orderError ?? supplierError ?? itemError;
+  const firstError = orderError ?? supplierError ?? itemError ?? reviewError;
 
   if (firstError) {
     throw new Error(firstError.message);
@@ -224,6 +230,7 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
   return buildAdminOrderAnalytics({
     orderItems: orderItems ?? [],
     orders: orders ?? [],
+    reviews: reviews ?? [],
     supplierPurchases: supplierPurchases ?? []
   });
 }
@@ -309,10 +316,11 @@ export async function getAdminDashboardState({ selectedOrderNumber } = {}) {
 
   await markStaleInternalOrdersPending({ supabase });
 
-  const [orders, products, analytics] = await Promise.all([
+  const [orders, products, analytics, pendingReviews] = await Promise.all([
     listAdminOrders({ supabase }),
     listAdminOrderProducts({ supabase }),
-    getAdminOrderAnalytics({ supabase })
+    getAdminOrderAnalytics({ supabase }),
+    listPendingOrderReviews({ supabase })
   ]);
   const selectedOrder =
     selectedOrderNumber ?? orders.find((order) => order.order_number)?.order_number ?? "";
@@ -321,6 +329,7 @@ export async function getAdminDashboardState({ selectedOrderNumber } = {}) {
     analytics,
     isConfigured,
     orders,
+    pendingReviews,
     products,
     selected: await getAdminOrder({ orderNumber: selectedOrder, supabase })
   };

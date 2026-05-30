@@ -251,6 +251,18 @@ function ChevronIcon({ direction }) {
   );
 }
 
+function ReviewStars({ rating = 0 }) {
+  return (
+    <span className="review-stars" aria-label={`${rating} de 5 estrelas`}>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <span className={index < Math.round(rating) ? "is-filled" : ""} key={index}>
+          {"\u2605"}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = true }) {
   const cartCount = useCartCount();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -694,7 +706,58 @@ function ProductImageCarousel({ product }) {
   );
 }
 
-export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
+function ProductReviewSection({ reviews = [], summary = { averageRating: 0, reviewCount: 0 } }) {
+  return (
+    <section className="product-reviews-section">
+      <div className="section-heading compact-heading">
+        <div>
+          <p className="section-label">Avaliacoes</p>
+          <h2>Experiencia de quem ja recebeu.</h2>
+        </div>
+        <div className="review-summary-pill">
+          <ReviewStars rating={summary.averageRating} />
+          <strong>
+            {summary.reviewCount > 0
+              ? `${summary.averageRating.toFixed(1)} / 5`
+              : "Sem notas"}
+          </strong>
+          <span>{summary.reviewCount} avaliacao(oes)</span>
+        </div>
+      </div>
+
+      {reviews.length === 0 ? (
+        <p className="empty-copy">As primeiras avaliacoes aprovadas deste produto aparecem aqui.</p>
+      ) : (
+        <div className="product-review-grid">
+          {reviews.map((review) => (
+            <article className="product-review-card" key={review.id}>
+              <div>
+                <ReviewStars rating={review.rating} />
+                <strong>{review.publicName}</strong>
+              </div>
+              <p>{review.comment}</p>
+              {review.photos?.length ? (
+                <div className="product-review-photo-row">
+                  {review.photos.map((photo) => (
+                    <img alt="" key={photo.id} src={photo.url} />
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function ProductDetails({
+  currentUser,
+  product,
+  relatedProducts = [],
+  reviews = [],
+  reviewSummary = { averageRating: 0, reviewCount: 0 }
+}) {
   const [selectedVariation, setSelectedVariation] = useState(product.variations[0]);
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState("");
@@ -758,6 +821,14 @@ export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
 
           <h1>{product.name}</h1>
           <p className="detail-summary">{getProductSummary(product)}</p>
+          <div className="detail-review-summary">
+            <ReviewStars rating={reviewSummary.averageRating} />
+            <span>
+              {reviewSummary.reviewCount > 0
+                ? `${reviewSummary.averageRating.toFixed(1)} de 5 em ${reviewSummary.reviewCount} avaliacao(oes)`
+                : "Ainda sem avaliacoes aprovadas"}
+            </span>
+          </div>
           <strong className="detail-price">{formatCurrency(product.priceCents)}</strong>
 
           <div className="option-group">
@@ -821,6 +892,8 @@ export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
           </div>
         </article>
       </section>
+
+      <ProductReviewSection reviews={reviews} summary={reviewSummary} />
 
       {relatedProducts.length > 0 ? (
         <section className="related-section">
@@ -1167,7 +1240,10 @@ export function CartCheckout({
           </div>
 
           {!hasLoadedCart ? (
-            <p className="empty-copy">Carregando carrinho...</p>
+            <div className="inline-loader-panel">
+              <span aria-hidden="true" className="button-loader" />
+              <p className="empty-copy">Carregando carrinho...</p>
+            </div>
           ) : cartItems.length === 0 ? (
             <div className="empty-cart">
               <p>Seu carrinho ainda esta vázio.</p>
@@ -1430,7 +1506,14 @@ export function CartCheckout({
               onClick={applyCoupon}
               type="button"
             >
-              {isValidatingCoupon ? "Validando..." : "Aplicar cupom"}
+              {isValidatingCoupon ? (
+                <>
+                  <span aria-hidden="true" className="button-loader" />
+                  Validando...
+                </>
+              ) : (
+                "Aplicar cupom"
+              )}
             </button>
             {couponFeedback ? <p className="checkout-note">{couponFeedback}</p> : null}
           </div>
@@ -1461,7 +1544,14 @@ export function CartCheckout({
             onClick={submitCheckout}
             type="button"
           >
-            {isSubmittingCheckout ? "Salvando pedido..." : "Enviar pedido no WhatsApp"}
+            {isSubmittingCheckout ? (
+              <>
+                <span aria-hidden="true" className="button-loader" />
+                Salvando pedido...
+              </>
+            ) : (
+              "Enviar pedido no WhatsApp"
+            )}
           </button>
         </aside>
       </section>

@@ -4,6 +4,7 @@ import { ProductDetails } from "@/src/components/catalog/catalog-experience.js";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
+import { getApprovedProductReviews } from "@/src/reviews/order-reviews.js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,6 +46,25 @@ export default async function ProductPage({ params }) {
         )
     )
     .slice(0, 4);
+  let reviewState = {
+    reviews: [],
+    summary: {
+      averageRating: 0,
+      reviewCount: 0
+    }
+  };
+
+  try {
+    reviewState = await getApprovedProductReviews({ productId: product.id });
+  } catch {
+    reviewState = {
+      reviews: [],
+      summary: {
+        averageRating: 0,
+        reviewCount: 0
+      }
+    };
+  }
 
   return (
     <main className="page-shell">
@@ -52,6 +72,8 @@ export default async function ProductPage({ params }) {
         currentUser={customerSnapshot.user}
         product={product}
         relatedProducts={relatedProducts}
+        reviews={reviewState.reviews}
+        reviewSummary={reviewState.summary}
       />
     </main>
   );
