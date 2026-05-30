@@ -39,6 +39,7 @@ export function buildAdminOrderAnalytics({
   now = new Date(),
   orderItems = [],
   orders = [],
+  reviews = [],
   supplierPurchases = []
 } = {}) {
   const costsByOrderId = new Map();
@@ -65,6 +66,7 @@ export function buildAdminOrderAnalytics({
 
   const activeOrders = orders.filter(isActiveOrder);
   const salesOrders = orders.filter(isSalesOrder);
+  const salesOrderIds = new Set(salesOrders.map((order) => order.id));
   const totalRevenueCents = sumCents(salesOrders.map((order) => order.total_cents));
   const knownCostCents = sumCents(
     salesOrders.map((order) => costsByOrderId.get(order.id) ?? itemCostsByOrderId.get(order.id) ?? 0)
@@ -103,6 +105,60 @@ export function buildAdminOrderAnalytics({
 
   const topCustomers = Array.from(customers.values())
     .sort((a, b) => b.totalCents - a.totalCents || b.count - a.count)
+    .slice(0, 5);
+
+  const soldItems = new Map();
+
+  for (const item of orderItems) {
+    if (!salesOrderIds.has(item.order_id)) {
+      continue;
+    }
+
+    const key = item.product_id || item.product_slug || item.product_name;
+    const previous = soldItems.get(key) ?? {
+      key,
+      name: item.product_name || "Produto sem nome",
+      quantity: 0,
+      totalCents: 0
+    };
+
+    previous.quantity += Number.isInteger(item.quantity) ? item.quantity : 0;
+    previous.totalCents += Number.isInteger(item.subtotal_cents) ? item.subtotal_cents : 0;
+    soldItems.set(key, previous);
+  }
+
+  const topSoldItems = Array.from(soldItems.values())
+    .sort((a, b) => b.quantity - a.quantity || b.totalCents - a.totalCents)
+    .slice(0, 5);
+
+  const reviewedItems = new Map();
+
+  for (const review of reviews) {
+    if (review.status !== "approved" || !Number.isInteger(review.rating)) {
+      continue;
+    }
+
+    const key = review.product_id || review.product_name;
+    const previous = reviewedItems.get(key) ?? {
+      key,
+      name: review.product_name || "Produto sem nome",
+      ratingTotal: 0,
+      reviewCount: 0
+    };
+
+    previous.ratingTotal += review.rating;
+    previous.reviewCount += 1;
+    reviewedItems.set(key, previous);
+  }
+
+  const topRatedItems = Array.from(reviewedItems.values())
+    .map((item) => ({
+      averageRating: Math.round((item.ratingTotal / item.reviewCount) * 10) / 10,
+      key: item.key,
+      name: item.name,
+      reviewCount: item.reviewCount
+    }))
+    .sort((a, b) => b.averageRating - a.averageRating || b.reviewCount - a.reviewCount)
     .slice(0, 5);
 
   const dayBuckets = [];
@@ -145,6 +201,8 @@ export function buildAdminOrderAnalytics({
     internalStatusCounts,
     knownCostCents,
     salesCount: salesOrders.length,
+    topRatedItems,
+    topSoldItems,
     topCustomers,
     totalOrderCount: orders.length,
     totalRevenueCents

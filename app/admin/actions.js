@@ -19,6 +19,7 @@ import {
   setAdminInternalOrderStatus,
   updateAdminOrderOperation
 } from "@/src/admin/order-admin.js";
+import { moderateOrderReview } from "@/src/reviews/order-reviews.js";
 
 function formValue(formData, key) {
   return String(formData.get(key) ?? "").trim();
@@ -219,4 +220,30 @@ export async function archiveAdminCouponAction(formData) {
   }
 
   redirect("/admin?tab=cupons&status=cupom-arquivado");
+}
+
+export async function moderateOrderReviewAction(formData) {
+  if (!(await isAdminSessionValid())) {
+    redirectWithError("/admin?tab=analise", "Sessao administrativa expirada.");
+  }
+
+  if (!(await isSameOriginAdminRequest())) {
+    redirectWithError("/admin?tab=analise", "Requisicao administrativa rejeitada.");
+  }
+
+  let result;
+
+  try {
+    result = await moderateOrderReview({ formData });
+    revalidatePath("/admin");
+    revalidatePath("/produto/[slug]", "page");
+
+    if (result.productSlug) {
+      revalidatePath(`/produto/${result.productSlug}`);
+    }
+  } catch (error) {
+    redirectWithError("/admin?tab=analise", error.message);
+  }
+
+  redirect(`/admin?tab=analise&status=avaliacao-${result.status}`);
 }

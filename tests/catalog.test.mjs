@@ -82,6 +82,12 @@ import {
   internalOrderStatuses,
   operationalStatuses
 } from "../src/orders/status.js";
+import {
+  buildReviewSummary,
+  detectImageMimeType,
+  validateReviewImageMeta,
+  validateReviewInput
+} from "../src/reviews/review-utils.js";
 
 const supabaseEnvKeys = [
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -838,7 +844,39 @@ test("admin analytics computes sales, profit and top customers", () => {
     orderItems: [
       {
         order_id: "order-3",
+        product_id: "escapamento-sc",
+        product_name: "Escapamento SC",
+        quantity: 2,
+        subtotal_cents: 30000,
         subtotal_cost_cents: 13000
+      },
+      {
+        order_id: "order-2",
+        product_id: "pedido-recusado",
+        product_name: "Pedido recusado",
+        quantity: 20,
+        subtotal_cents: 90000,
+        subtotal_cost_cents: 1000
+      }
+    ],
+    reviews: [
+      {
+        product_id: "escapamento-sc",
+        product_name: "Escapamento SC",
+        rating: 5,
+        status: "approved"
+      },
+      {
+        product_id: "escapamento-sc",
+        product_name: "Escapamento SC",
+        rating: 4,
+        status: "approved"
+      },
+      {
+        product_id: "slider",
+        product_name: "Slider",
+        rating: 5,
+        status: "pending"
       }
     ],
     supplierPurchases: [
@@ -857,4 +895,48 @@ test("admin analytics computes sales, profit and top customers", () => {
   assert.equal(analytics.topCustomers[0].name, "Cliente A");
   assert.equal(analytics.topCustomers[0].count, 2);
   assert.equal(analytics.internalStatusCounts.recusado, 1);
+  assert.equal(analytics.topSoldItems[0].name, "Escapamento SC");
+  assert.equal(analytics.topSoldItems[0].quantity, 2);
+  assert.equal(analytics.topRatedItems[0].name, "Escapamento SC");
+  assert.equal(analytics.topRatedItems[0].averageRating, 4.5);
+  assert.equal(analytics.topRatedItems[0].reviewCount, 2);
+});
+
+test("review helpers validate ratings, comments, image mime and public summary", () => {
+  const valid = validateReviewInput({
+    comment: " Otimo acabamento na R15. ",
+    rating: "5"
+  });
+
+  assert.equal(valid.rating, 5);
+  assert.equal(valid.comment, "Otimo acabamento na R15.");
+  assert.deepEqual(valid.errors, []);
+
+  const invalid = validateReviewInput({ comment: "curto", rating: "9" });
+  assert.equal(invalid.rating, null);
+  assert.equal(invalid.errors.length, 2);
+
+  assert.equal(
+    detectImageMimeType(new Uint8Array([0xff, 0xd8, 0xff, 0x00])),
+    "image/jpeg"
+  );
+  assert.equal(
+    detectImageMimeType(
+      new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50])
+    ),
+    "image/webp"
+  );
+  assert.deepEqual(
+    validateReviewImageMeta({ detectedMimeType: "application/pdf", sizeBytes: 100 }),
+    ["Envie fotos JPG, PNG, WEBP ou GIF."]
+  );
+
+  assert.deepEqual(
+    buildReviewSummary([
+      { rating: 5, status: "approved" },
+      { rating: 3, status: "approved" },
+      { rating: 1, status: "pending" }
+    ]),
+    { averageRating: 4, reviewCount: 2 }
+  );
 });

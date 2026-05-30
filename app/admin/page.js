@@ -6,6 +6,7 @@ import {
   archiveAdminCouponAction,
   archiveAdminProductAction,
   createAdminOrderAction,
+  moderateOrderReviewAction,
   setAdminInternalOrderStatusAction,
   upsertAdminCouponAction,
   upsertAdminProductAction,
@@ -142,6 +143,14 @@ function getMessage(params) {
 
   if (params?.status === "cupom-arquivado") {
     return "Cupom desativado.";
+  }
+
+  if (params?.status === "avaliacao-approved") {
+    return "Avaliacao aprovada e liberada no produto.";
+  }
+
+  if (params?.status === "avaliacao-rejected") {
+    return "Avaliacao recusada e mantida no historico interno.";
   }
 
   return typeof params?.error === "string" ? params.error : "";
@@ -713,7 +722,64 @@ function MetricCard({ label, value, detail, tone = "" }) {
   );
 }
 
-function AdminAnalytics({ analytics }) {
+function ReviewStars({ rating = 0 }) {
+  return (
+    <span className="review-stars" aria-label={`${rating} de 5 estrelas`}>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <span className={index < rating ? "is-filled" : ""} key={index}>
+          {"\u2605"}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function PendingReviewCard({ review }) {
+  return (
+    <article className="admin-review-card">
+      <div className="admin-review-head">
+        <div>
+          <strong>{review.productName}</strong>
+          <span>Pedido {review.orderNumber || "sem numero"}</span>
+        </div>
+        <ReviewStars rating={review.rating} />
+      </div>
+
+      <p>{review.comment}</p>
+      <small>
+        {review.publicName} - {formatDateTime(review.createdAt)}
+      </small>
+
+      {review.photos?.length ? (
+        <div className="admin-review-photo-row">
+          {review.photos.map((photo) => (
+            <img alt="" key={photo.id} src={photo.url} />
+          ))}
+        </div>
+      ) : null}
+
+      <div className="admin-review-actions">
+        <form action={moderateOrderReviewAction}>
+          <input name="reviewId" type="hidden" value={review.id} />
+          <input name="reviewStatus" type="hidden" value="approved" />
+          <button className="button button-success" type="submit">
+            Aprovar
+          </button>
+        </form>
+        <form action={moderateOrderReviewAction}>
+          <input name="reviewId" type="hidden" value={review.id} />
+          <input name="reviewStatus" type="hidden" value="rejected" />
+          <input name="moderationNote" type="hidden" value="Conteudo recusado pela moderacao." />
+          <button className="button button-danger" type="submit">
+            Recusar
+          </button>
+        </form>
+      </div>
+    </article>
+  );
+}
+
+function AdminAnalytics({ analytics, pendingReviews = [] }) {
   const statusCounts = analytics.internalStatusCounts ?? {};
 
   return (
@@ -798,7 +864,61 @@ function AdminAnalytics({ analytics }) {
             </div>
           </div>
         </section>
+
+        <section className="admin-section">
+          <h2>Itens mais vendidos</h2>
+          <div className="admin-ranking-list">
+            {analytics.topSoldItems?.length ? (
+              analytics.topSoldItems.map((item, index) => (
+                <div className="admin-ranking-row" key={item.key}>
+                  <span>{index + 1}</span>
+                  <strong>{item.name}</strong>
+                  <small>
+                    {item.quantity} un. - {formatCurrency(item.totalCents)}
+                  </small>
+                </div>
+              ))
+            ) : (
+              <p className="helper-text">Sem pedidos confirmados para ranking de produtos.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="admin-section">
+          <h2>Itens mais bem avaliados</h2>
+          <div className="admin-ranking-list">
+            {analytics.topRatedItems?.length ? (
+              analytics.topRatedItems.map((item, index) => (
+                <div className="admin-ranking-row" key={item.key}>
+                  <span>{index + 1}</span>
+                  <strong>{item.name}</strong>
+                  <small>
+                    {item.averageRating.toFixed(1)} estrelas - {item.reviewCount} avaliacao(oes)
+                  </small>
+                </div>
+              ))
+            ) : (
+              <p className="helper-text">Sem avaliacoes aprovadas para ranking.</p>
+            )}
+          </div>
+        </section>
       </div>
+
+      <section className="admin-section admin-review-moderation">
+        <div className="admin-panel-heading">
+          <p className="section-label">Moderacao</p>
+          <h2>Avaliacoes pendentes</h2>
+        </div>
+        {pendingReviews.length === 0 ? (
+          <p className="helper-text">Nenhuma avaliacao aguardando aprovacao.</p>
+        ) : (
+          <div className="admin-review-grid">
+            {pendingReviews.map((review) => (
+              <PendingReviewCard key={review.id} review={review} />
+            ))}
+          </div>
+        )}
+      </section>
     </section>
   );
 }
@@ -1433,7 +1553,7 @@ export default async function AdminPage({ searchParams }) {
       ) : activeTab === "cupons" ? (
         <AdminCoupons selectedCouponCode={params?.cupom ?? ""} state={state} />
       ) : activeTab === "analise" ? (
-        <AdminAnalytics analytics={state.analytics} />
+        <AdminAnalytics analytics={state.analytics} pendingReviews={state.pendingReviews ?? []} />
       ) : (
         <AdminOrders showNewOrder={params?.novoPedido === "1"} state={state} />
       )}
