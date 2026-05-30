@@ -7,6 +7,7 @@ import {
   groupProductsByCategory,
   getPublicCatalogProducts,
   getStorefrontMenu,
+  toPublicCatalogProduct,
   storefrontCategories,
   rejectedCatalogProducts,
   validateCatalog
@@ -16,6 +17,15 @@ import {
   buildCatalogProductCategoryRows,
   buildCatalogProductRows
 } from "../src/catalog/supabase-rows.js";
+import {
+  readCatalogProductsFromSupabase
+} from "../src/catalog/supabase-catalog-core.js";
+import {
+  removeCartItem,
+  sanitizeCartItems,
+  updateCartItemQuantity,
+  updateCartItemVariation
+} from "../src/cart/cart-items.js";
 import { buildCheckoutOrderDraft, CheckoutValidationError } from "../src/checkout/order-backend.js";
 import {
   buildWhatsAppCheckoutUrl,
@@ -107,6 +117,57 @@ function withEnv(overrides, callback) {
   }
 }
 
+function createSupabaseCatalogStub({ data = [], error = null } = {}) {
+  return {
+    from(table) {
+      assert.equal(table, "catalog_products");
+
+      return {
+        select(columns) {
+          assert.equal(columns, "*");
+          return this;
+        },
+        eq(column, value) {
+          assert.equal(column, "is_published");
+          assert.equal(value, true);
+          return this;
+        },
+        order(column, options) {
+          assert.equal(column, "name");
+          assert.deepEqual(options, { ascending: true });
+
+          return { data, error };
+        }
+      };
+    }
+  };
+}
+
+function buildCatalogRow(overrides = {}) {
+  return {
+    availability: "sob-consulta",
+    bike_model_scope: ["yamaha-r15"],
+    checkout_channel: "whatsapp-business",
+    currency: "BRL",
+    id: "produto-supabase-teste",
+    image_urls: ["https://cdn.example.com/produto.jpg"],
+    internal_purchase_source: {
+      provider: "painel-admin",
+      visibility: "internal-only"
+    },
+    lead_time_days: 2,
+    name: "Produto Supabase Teste",
+    notes: "Criado no painel admin.",
+    price_cents: 12345,
+    product_family: "slider",
+    shipping_class: "medium",
+    slug: "produto-supabase-teste",
+    storefront_category_ids: ["suporte-sliders"],
+    variations: ["Preto", "Vermelho"],
+    ...overrides
+  };
+}
+
 test("storefront menu keeps the five approved labels", () => {
   const labels = getStorefrontMenu().map((category) => category.label);
 
@@ -181,6 +242,40 @@ test("catalog products can carry image URL arrays through Supabase rows", () => 
     "https://cdn.example.com/r15/frente-1.jpg",
     "/brand/tszr15-hero-r15-dark.png"
   ]);
+});
+
+test("configured Supabase catalog can return an empty storefront without local fallback", async () => {
+  const catalog = await readCatalogProductsFromSupabase(
+    createSupabaseCatalogStub({ data: [] })
+  );
+
+  assert.equal(catalog.source, "supabase");
+  assert.deepEqual(catalog.products, []);
+  assert.equal(catalog.error, undefined);
+});
+
+test("configured Supabase catalog does not mask query errors with local products", async () => {
+  const error = new Error("permission denied for table catalog_products");
+  const catalog = await readCatalogProductsFromSupabase(
+    createSupabaseCatalogStub({ data: null, error })
+  );
+
+  assert.equal(catalog.source, "supabase");
+  assert.deepEqual(catalog.products, []);
+  assert.equal(catalog.error, error);
+});
+
+test("Supabase storefront product maps rows and keeps internal sourcing private", async () => {
+  const catalog = await readCatalogProductsFromSupabase(
+    createSupabaseCatalogStub({ data: [buildCatalogRow()] })
+  );
+  const product = toPublicCatalogProduct(catalog.products[0]);
+
+  assert.equal(catalog.source, "supabase");
+  assert.equal(product.name, "Produto Supabase Teste");
+  assert.deepEqual(product.storefrontCategoryIds, ["suporte-sliders"]);
+  assert.deepEqual(product.imageUrls, ["https://cdn.example.com/produto.jpg"]);
+  assert.equal("internalPurchaseSource" in product, false);
 });
 
 test("catalog grouping creates carousel-ready category sections", () => {
@@ -274,6 +369,55 @@ test("WhatsApp checkout message carries items, payment method and total", () => 
   assert.match(message, /WhatsApp: \(11\) 98888-7777/);
   assert.match(message, /CEP: 01001-000/);
   assert.match(url, /^https:\/\/wa\.me\/5511999999999\?text=/);
+});
+
+test("cart item helpers sanitize, edit quantity and remove items", () => {
+  const [sampleProduct] = catalogProducts;
+  const [variation] = sampleProduct.variations;
+  const [item] = sanitizeCartItems(
+    [
+      {
+        id: sampleProduct.id,
+        quantity: 2,
+        variation
+      },
+      {
+        id: "produto-inexistente",
+        quantity: 1,
+        variation: "Padrao"
+      }
+    ],
+    [sampleProduct]
+  );
+
+  assert.equal(item.id, sampleProduct.id);
+  assert.equal(item.quantity, 2);
+  assert.equal(updateCartItemQuantity([item], item.cartKey, 3)[0].quantity, 3);
+  assert.deepEqual(updateCartItemQuantity([item], item.cartKey, 0), []);
+  assert.deepEqual(removeCartItem([item], item.cartKey), []);
+});
+
+test("cart item variation edit merges duplicate product variations", () => {
+  const product = {
+    id: "produto-carrinho",
+    name: "Produto Carrinho",
+    priceCents: 1000,
+    productFamily: "slider",
+    slug: "produto-carrinho",
+    variations: ["Preto", "Vermelho"]
+  };
+  const items = sanitizeCartItems(
+    [
+      { id: product.id, quantity: 1, variation: "Preto" },
+      { id: product.id, quantity: 2, variation: "Vermelho" }
+    ],
+    [product]
+  );
+  const nextItems = updateCartItemVariation(items, [product], `${product.id}:Preto`, "Vermelho");
+
+  assert.equal(nextItems.length, 1);
+  assert.equal(nextItems[0].cartKey, `${product.id}:Vermelho`);
+  assert.equal(nextItems[0].quantity, 3);
 });
 
 test("backend checkout draft trusts catalog prices and creates order snapshots", () => {

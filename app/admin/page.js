@@ -132,6 +132,10 @@ function StatusSelect({ items, name, value }) {
   );
 }
 
+function RequiredMark() {
+  return <span className="required-field-mark" aria-hidden="true">*</span>;
+}
+
 function AdminTabs({ activeTab }) {
   return (
     <nav className="admin-tab-bar" aria-label="Secoes do painel admin">
@@ -770,7 +774,7 @@ function ProductList({ products, selectedProductId }) {
           href="/admin?tab=produtos"
         >
           <span>
-            <strong>Novo produto</strong>
+            <strong>Adicionar produto</strong>
             <em>Criar SKU no Supabase</em>
           </span>
         </Link>
@@ -812,20 +816,28 @@ function ProductForm({ categories, families, product }) {
         <h2>{product ? "Identificacao do produto" : "Novo produto"}</h2>
         <div className="form-grid">
           <label>
-            <span>Nome</span>
-            <input defaultValue={product?.name ?? ""} name="name" required />
+            <span>Nome <RequiredMark /></span>
+            <input
+              autoComplete="off"
+              defaultValue={product?.name ?? ""}
+              name="name"
+              placeholder="Ex: Ponteira SC Project"
+              required
+            />
           </label>
           <label>
             <span>Slug / ID</span>
             <input
+              autoComplete="off"
               defaultValue={product?.slug ?? ""}
               name="slug"
               placeholder="ex: slider-r15-preto"
             />
+            <small>Opcional. Se ficar vazio, o sistema gera pelo nome.</small>
           </label>
           <label>
-            <span>Familia tecnica</span>
-            <select defaultValue={selectedFamily} name="productFamily">
+            <span>Familia tecnica <RequiredMark /></span>
+            <select defaultValue={selectedFamily} name="productFamily" required>
               {families.map((family) => (
                 <option key={family} value={family}>
                   {family}
@@ -840,13 +852,15 @@ function ProductForm({ categories, families, product }) {
         <h2>Preco e operacao</h2>
         <div className="form-grid">
           <label>
-            <span>Preco</span>
+            <span>Preco <RequiredMark /></span>
             <input
               defaultValue={productPriceToInput(product?.priceCents)}
               inputMode="decimal"
               name="price"
+              pattern="[0-9.,]+"
               placeholder="199,90"
               required
+              title="Use um valor como 199,90, 199.90 ou 2.490,00."
             />
           </label>
           <label>
@@ -876,7 +890,7 @@ function ProductForm({ categories, families, product }) {
         <h2>Categorias e compatibilidade</h2>
         <div className="form-grid">
           <fieldset className="span-all admin-checkbox-fieldset">
-            <legend>Categorias</legend>
+            <legend>Categorias <RequiredMark /></legend>
             <div className="admin-checkbox-grid">
               {categories.map((category) => (
                 <label key={category.id}>
@@ -890,6 +904,7 @@ function ProductForm({ categories, families, product }) {
                 </label>
               ))}
             </div>
+            <p className="form-helper-text">Selecione pelo menos uma categoria para publicar na vitrine.</p>
           </fieldset>
           <label className="span-all">
             <span>Escopo tecnico</span>
@@ -905,12 +920,14 @@ function ProductForm({ categories, families, product }) {
         <h2>Vitrine</h2>
         <div className="form-grid">
           <label className="span-all">
-            <span>Variacoes</span>
+            <span>Variacoes <RequiredMark /></span>
             <textarea
               defaultValue={arrayToTextarea(product?.variations) || "Padrao"}
               name="variations"
+              required
               rows={3}
             />
+            <small>Uma por linha ou separadas por virgula.</small>
           </label>
           <label className="span-all">
             <span>URLs de imagens</span>
@@ -920,6 +937,7 @@ function ProductForm({ categories, families, product }) {
               placeholder="https://exemplo.com/imagem-1.jpg"
               rows={4}
             />
+            <small>Use uma URL por linha. A primeira vira capa do produto.</small>
           </label>
           <label className="span-all">
             <span>Notas</span>

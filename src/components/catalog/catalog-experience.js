@@ -26,6 +26,13 @@ import {
   paymentMethods,
   shippingOptions
 } from "@/src/checkout/whatsapp.js";
+import {
+  getCartItemKey,
+  removeCartItem,
+  sanitizeCartItems,
+  updateCartItemQuantity,
+  updateCartItemVariation
+} from "@/src/cart/cart-items.js";
 import { ProfileLink } from "@/src/components/profile-link.js";
 
 const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
@@ -163,40 +170,6 @@ function writeStoredCart(items) {
 
 function getCartCount(items) {
   return items.reduce((total, item) => total + item.quantity, 0);
-}
-
-function sanitizeCartItems(items, products) {
-  const productsById = new Map(products.map((product) => [product.id, product]));
-  const productsBySlug = new Map(products.map((product) => [product.slug, product]));
-  const itemsByKey = new Map();
-
-  for (const item of items) {
-    const product = productsById.get(item?.id) ?? productsBySlug.get(item?.slug);
-    const quantity = Number(item?.quantity);
-
-    if (!product || !Number.isInteger(quantity) || quantity < 1) {
-      continue;
-    }
-
-    const variation = product.variations.includes(item?.variation)
-      ? item.variation
-      : product.variations[0];
-    const cartKey = `${product.id}:${variation}`;
-    const currentItem = itemsByKey.get(cartKey);
-
-    itemsByKey.set(cartKey, {
-      cartKey,
-      id: product.id,
-      name: product.name,
-      priceCents: product.priceCents,
-      productFamily: product.productFamily,
-      quantity: (currentItem?.quantity ?? 0) + quantity,
-      slug: product.slug,
-      variation
-    });
-  }
-
-  return Array.from(itemsByKey.values());
 }
 
 function useCartCount() {
@@ -716,7 +689,7 @@ export function ProductDetails({ currentUser, product, relatedProducts = [] }) {
 
   function addToCart() {
     const currentCart = readStoredCart();
-    const cartKey = `${product.id}:${selectedVariation}`;
+    const cartKey = getCartItemKey(product.id, selectedVariation);
     const existingItem = currentCart.find((item) => item.cartKey === cartKey);
     const nextItems = existingItem
       ? currentCart.map((item) =>
@@ -873,6 +846,10 @@ export function CartCheckout({
   const [customer, setCustomer] = useState(() => getInitialCustomer(initialCustomer));
   const initialCustomerHadAddress = useRef(Boolean(initialCustomer?.address));
   const isAuthenticated = Boolean(currentUser);
+  const productsById = useMemo(
+    () => new Map(products.map((product) => [product.id, product])),
+    [products]
+  );
 
   useEffect(() => {
     const sanitizedItems = sanitizeCartItems(readStoredCart(), products);
@@ -989,13 +966,17 @@ export function CartCheckout({
   );
 
   function updateQuantity(cartKey, nextQuantity) {
+    setCartItems((currentItems) => updateCartItemQuantity(currentItems, cartKey, nextQuantity));
+  }
+
+  function updateVariation(cartKey, nextVariation) {
     setCartItems((currentItems) =>
-      currentItems
-        .map((item) =>
-          item.cartKey === cartKey ? { ...item, quantity: Math.max(nextQuantity, 0) } : item
-        )
-        .filter((item) => item.quantity > 0)
+      updateCartItemVariation(currentItems, products, cartKey, nextVariation)
     );
+  }
+
+  function deleteItem(cartKey) {
+    setCartItems((currentItems) => removeCartItem(currentItems, cartKey));
   }
 
   function updateCustomer(field, value) {
@@ -1112,38 +1093,70 @@ export function CartCheckout({
             </div>
           ) : (
             <div className="cart-line-list">
-              {cartItems.map((item) => (
-                <article className="cart-line" key={item.cartKey}>
-                  <div className={`cart-line-image family-${item.productFamily}`}>
-                    {item.name
-                      .split(/\s+/)
-                      .slice(0, 2)
-                      .map((part) => part[0])
-                      .join("")
-                      .toUpperCase()}
-                  </div>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <span>{item.variation}</span>
-                  </div>
-                  <div className="quantity-control">
-                    <button
-                      onClick={() => updateQuantity(item.cartKey, item.quantity - 1)}
-                      type="button"
-                    >
-                      -
-                    </button>
-                    <span>{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
-                      type="button"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <strong>{formatCurrency(item.priceCents * item.quantity)}</strong>
-                </article>
-              ))}
+              {cartItems.map((item) => {
+                const product = productsById.get(item.id);
+                const canChangeVariation = product?.variations?.length > 1;
+
+                return (
+                  <article className="cart-line" key={item.cartKey}>
+                    <div className={`cart-line-image family-${item.productFamily}`}>
+                      {item.name
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join("")
+                        .toUpperCase()}
+                    </div>
+                    <div className="cart-line-detail">
+                      <strong>{item.name}</strong>
+                      {canChangeVariation ? (
+                        <label className="cart-line-variation">
+                          <span>Variacao</span>
+                          <select
+                            onChange={(event) => updateVariation(item.cartKey, event.target.value)}
+                            value={item.variation}
+                          >
+                            {product.variations.map((variation) => (
+                              <option key={variation} value={variation}>
+                                {variation}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : (
+                        <span>{item.variation}</span>
+                      )}
+                    </div>
+                    <div className="cart-line-controls">
+                      <div className="quantity-control" aria-label={`Quantidade de ${item.name}`}>
+                        <button
+                          aria-label={`Remover uma unidade de ${item.name}`}
+                          onClick={() => updateQuantity(item.cartKey, item.quantity - 1)}
+                          type="button"
+                        >
+                          -
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          aria-label={`Adicionar uma unidade de ${item.name}`}
+                          onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
+                          type="button"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        className="cart-line-delete"
+                        onClick={() => deleteItem(item.cartKey)}
+                        type="button"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                    <strong>{formatCurrency(item.priceCents * item.quantity)}</strong>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1169,10 +1182,11 @@ export function CartCheckout({
 
           <div className="checkout-form">
             <label>
-              <span>Nome</span>
+              <span>Nome <span className="required-field-mark" aria-hidden="true">*</span></span>
               <input
                 onChange={(event) => updateCustomer("name", event.target.value)}
                 placeholder="Nome do cliente"
+                required
                 value={customer.name}
               />
             </label>
@@ -1197,8 +1211,11 @@ export function CartCheckout({
               />
             </label>
             <label>
-              <span>WhatsApp</span>
+              <span>
+                WhatsApp ou telefone <span className="required-field-mark" aria-hidden="true">*</span>
+              </span>
               <input
+                aria-required="true"
                 inputMode="tel"
                 onChange={(event) => updateCustomer("whatsapp", sanitizePhone(event.target.value))}
                 pattern={phonePattern}
@@ -1219,12 +1236,13 @@ export function CartCheckout({
               />
             </label>
             <label>
-              <span>CEP</span>
+              <span>CEP <span className="required-field-mark" aria-hidden="true">*</span></span>
               <input
                 inputMode="numeric"
                 onChange={(event) => updateCep(event.target.value)}
                 pattern={cepPattern}
                 placeholder="00000-000"
+                required
                 title="Use 8 numeros, com ou sem hifen."
                 value={customer.cep}
               />
@@ -1239,10 +1257,13 @@ export function CartCheckout({
               </p>
             ) : null}
             <label className="span-all">
-              <span>Endereço completo</span>
+              <span>
+                Endereço completo <span className="required-field-mark" aria-hidden="true">*</span>
+              </span>
               <input
                 onChange={(event) => updateCustomer("address", event.target.value)}
                 placeholder="Rua, numero, bairro, cidade/UF"
+                required
                 value={customer.address}
               />
             </label>
@@ -1284,9 +1305,13 @@ export function CartCheckout({
               <input
                 checked={hasDataConsent}
                 onChange={(event) => setHasDataConsent(event.target.checked)}
+                required
                 type="checkbox"
               />
-              <span>{ASSISTED_PURCHASE_CONSENT_TEXT}</span>
+              <span>
+                {ASSISTED_PURCHASE_CONSENT_TEXT}{" "}
+                <span className="required-field-mark" aria-hidden="true">*</span>
+              </span>
             </label>
           </div>
 
@@ -1318,7 +1343,7 @@ export function CartCheckout({
           {checkoutFeedback ? <p className="checkout-note">{checkoutFeedback}</p> : null}
 
           <button
-            className={`button button-primary checkout-button ${
+            className={`button button-success checkout-button ${
               !canCheckout || isSubmittingCheckout ? "is-disabled" : ""
             }`}
             disabled={!canCheckout || isSubmittingCheckout}

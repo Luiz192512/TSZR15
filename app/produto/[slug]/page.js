@@ -1,18 +1,12 @@
 import { notFound } from "next/navigation";
 
 import { ProductDetails } from "@/src/components/catalog/catalog-experience.js";
-import { catalogProducts, getPublicCatalogProducts } from "@/src/catalog/index.js";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
-const publicProducts = getPublicCatalogProducts(catalogProducts);
-
-export function generateStaticParams() {
-  return publicProducts.map((product) => ({
-    slug: product.slug
-  }));
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
