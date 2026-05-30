@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { catalogProducts, toPublicCatalogProduct } from "./index.js";
+import { toPublicCatalogProduct } from "./index.js";
 import { readCatalogProductsFromSupabase } from "./supabase-catalog-core.js";
 export {
   buildCatalogCategoryRows,
@@ -38,8 +38,8 @@ export async function getSupabaseCatalogProducts({ supabase } = {}) {
 
   if (!client) {
     return {
-      products: catalogProducts,
-      source: "local-fallback"
+      products: [],
+      source: "supabase-unconfigured"
     };
   }
 
