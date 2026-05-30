@@ -853,9 +853,13 @@ export function CartCheckout({
   const [shippingOptionId, setShippingOptionId] = useState("combinar");
   const [hasDataConsent, setHasDataConsent] = useState(Boolean(currentUser));
   const [checkoutFeedback, setCheckoutFeedback] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponFeedback, setCouponFeedback] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [cepLookup, setCepLookup] = useState({ message: "", status: "idle" });
   const [cepWasEdited, setCepWasEdited] = useState(false);
   const [autoFilledAddressLine, setAutoFilledAddressLine] = useState("");
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
   const [customer, setCustomer] = useState(() => getInitialCustomer(initialCustomer));
   const initialCustomerHadAddress = useRef(Boolean(initialCustomer?.address));
@@ -877,6 +881,13 @@ export function CartCheckout({
       writeStoredCart(cartItems);
     }
   }, [cartItems, hasLoadedCart]);
+
+  useEffect(() => {
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponFeedback("Carrinho alterado. Aplique o cupom novamente.");
+    }
+  }, [cartItems]);
 
   useEffect(() => {
     const cepDigits = getCepDigits(customer.cep);
@@ -939,8 +950,11 @@ export function CartCheckout({
   }, [cepWasEdited, customer.cep]);
 
   const totals = useMemo(
-    () => calculateCartTotals(cartItems, shippingOptionId),
-    [cartItems, shippingOptionId]
+    () =>
+      calculateCartTotals(cartItems, shippingOptionId, {
+        discountCents: appliedCoupon?.discountCents ?? 0
+      }),
+    [appliedCoupon, cartItems, shippingOptionId]
   );
   const customerFieldErrors = useMemo(
     () =>
@@ -971,12 +985,13 @@ export function CartCheckout({
     () =>
       buildWhatsAppOrderMessage({
         cartItems,
+        coupon: appliedCoupon,
         customer,
         paymentMethodId,
         shippingOptionId,
         storeName
       }),
-    [cartItems, customer, paymentMethodId, shippingOptionId]
+    [appliedCoupon, cartItems, customer, paymentMethodId, shippingOptionId]
   );
 
   function updateQuantity(cartKey, nextQuantity) {
@@ -991,6 +1006,58 @@ export function CartCheckout({
 
   function deleteItem(cartKey) {
     setCartItems((currentItems) => removeCartItem(currentItems, cartKey));
+  }
+
+  async function applyCoupon() {
+    const normalizedCode = couponCode
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9_-]/g, "")
+      .slice(0, 40);
+
+    setCouponCode(normalizedCode);
+
+    if (!normalizedCode) {
+      setAppliedCoupon(null);
+      setCouponFeedback("Informe um cupom.");
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      setAppliedCoupon(null);
+      setCouponFeedback("Adicione itens antes de aplicar cupom.");
+      return;
+    }
+
+    setCouponFeedback("");
+    setIsValidatingCoupon(true);
+
+    try {
+      const response = await fetch("/api/coupons/validate", {
+        body: JSON.stringify({
+          cartItems,
+          couponCode: normalizedCode,
+          shippingOptionId
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        method: "POST"
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Cupom invalido.");
+      }
+
+      setAppliedCoupon(data.coupon);
+      setCouponFeedback(`Cupom ${data.coupon.code} aplicado.`);
+    } catch (error) {
+      setAppliedCoupon(null);
+      setCouponFeedback(error instanceof Error ? error.message : "Cupom invalido.");
+    } finally {
+      setIsValidatingCoupon(false);
+    }
   }
 
   function updateCustomer(field, value) {
@@ -1035,6 +1102,7 @@ export function CartCheckout({
         body: JSON.stringify({
           cartItems,
           customer,
+          couponCode: appliedCoupon?.code ?? "",
           hasDataConsent,
           paymentMethodId,
           shippingOptionId
@@ -1334,10 +1402,37 @@ export function CartCheckout({
           <div className="total-box">
             <span>Subtotal</span>
             <strong>{formatCurrency(totals.subtotalCents)}</strong>
+            <span>Desconto</span>
+            <strong>{formatCurrency(totals.discountCents)}</strong>
             <span>Frete</span>
             <strong>{formatCurrency(totals.shippingCents)}</strong>
             <span>Total</span>
             <strong>{formatCurrency(totals.totalCents)}</strong>
+          </div>
+
+          <div className="coupon-box">
+            <label>
+              <span>Cupom de desconto</span>
+              <input
+                onChange={(event) => {
+                  setCouponCode(event.target.value);
+                  if (appliedCoupon) {
+                    setAppliedCoupon(null);
+                  }
+                }}
+                placeholder="R15OFF"
+                value={couponCode}
+              />
+            </label>
+            <button
+              className="button button-secondary"
+              disabled={isValidatingCoupon || cartItems.length === 0}
+              onClick={applyCoupon}
+              type="button"
+            >
+              {isValidatingCoupon ? "Validando..." : "Aplicar cupom"}
+            </button>
+            {couponFeedback ? <p className="checkout-note">{couponFeedback}</p> : null}
           </div>
 
           <textarea className="message-preview" readOnly value={whatsappMessage} />

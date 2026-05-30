@@ -37,10 +37,23 @@ function isSalesOrder(order) {
 
 export function buildAdminOrderAnalytics({
   now = new Date(),
+  orderItems = [],
   orders = [],
   supplierPurchases = []
 } = {}) {
   const costsByOrderId = new Map();
+  const itemCostsByOrderId = new Map();
+
+  for (const item of orderItems) {
+    if (!Number.isInteger(item.subtotal_cost_cents)) {
+      continue;
+    }
+
+    itemCostsByOrderId.set(
+      item.order_id,
+      (itemCostsByOrderId.get(item.order_id) ?? 0) + item.subtotal_cost_cents
+    );
+  }
 
   for (const purchase of supplierPurchases) {
     const orderId = purchase.order_id;
@@ -54,7 +67,7 @@ export function buildAdminOrderAnalytics({
   const salesOrders = orders.filter(isSalesOrder);
   const totalRevenueCents = sumCents(salesOrders.map((order) => order.total_cents));
   const knownCostCents = sumCents(
-    salesOrders.map((order) => costsByOrderId.get(order.id) ?? 0)
+    salesOrders.map((order) => costsByOrderId.get(order.id) ?? itemCostsByOrderId.get(order.id) ?? 0)
   );
   const grossProfitCents = totalRevenueCents - knownCostCents;
   const averageTicketCents =

@@ -26,8 +26,11 @@ export function getStorefrontMenu(products = catalogProducts) {
 
 export function toPublicCatalogProduct(product) {
   const {
+    costCents,
     internalPurchaseCandidates,
     internalPurchaseSource,
+    marginPercent,
+    profitCents,
     supplierSource,
     ...publicProduct
   } = product;

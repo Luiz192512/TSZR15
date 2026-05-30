@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import {
   adminSignOutAction,
+  archiveAdminCouponAction,
   archiveAdminProductAction,
   createAdminOrderAction,
   setAdminInternalOrderStatusAction,
+  upsertAdminCouponAction,
   upsertAdminProductAction,
   updateAdminOrderAction
 } from "@/app/admin/actions.js";
@@ -84,8 +86,12 @@ function productPriceToInput(cents) {
   return centsToInput(cents) || "";
 }
 
+function productCostToInput(cents) {
+  return centsToInput(cents) || "";
+}
+
 function getActiveAdminTab(params) {
-  if (params?.tab === "produtos" || params?.tab === "analise") {
+  if (params?.tab === "produtos" || params?.tab === "cupons" || params?.tab === "analise") {
     return params.tab;
   }
 
@@ -130,6 +136,14 @@ function getMessage(params) {
     return "Produto arquivado da vitrine.";
   }
 
+  if (params?.status === "cupom-salvo") {
+    return "Cupom salvo.";
+  }
+
+  if (params?.status === "cupom-arquivado") {
+    return "Cupom desativado.";
+  }
+
   return typeof params?.error === "string" ? params.error : "";
 }
 
@@ -166,6 +180,12 @@ function AdminTabs({ activeTab }) {
         href="/admin?tab=analise"
       >
         Analise
+      </Link>
+      <Link
+        className={activeTab === "cupons" ? "is-active" : ""}
+        href="/admin?tab=cupons"
+      >
+        Cupons
       </Link>
     </nav>
   );
@@ -446,6 +466,16 @@ function OrderDetail({ selected }) {
                 <span>
                   <strong>{item.product_name}</strong>
                   <em>{item.variation}</em>
+                  {Number.isInteger(item.subtotal_cost_cents) ? (
+                    <em>
+                      Custo: {formatCurrency(item.subtotal_cost_cents, item.currency)} - Lucro:
+                      {" "}
+                      {formatCurrency(
+                        item.subtotal_cents - item.subtotal_cost_cents,
+                        item.currency
+                      )}
+                    </em>
+                  ) : null}
                 </span>
                 <span>
                   {item.quantity}x - {formatCurrency(item.subtotal_cents, item.currency)}
@@ -805,7 +835,12 @@ function ProductList({ newProductCount, products, selectedProductId }) {
               <strong>{product.name}</strong>
               <em>{formatCategoryLabels(product.storefrontCategoryIds).join(", ")}</em>
             </span>
-            <small>{product.isPublished ? "Publicado" : "Arquivado"}</small>
+            <small>
+              {product.isPublished ? "Publicado" : "Arquivado"}
+              {Number.isInteger(product.profitCents)
+                ? ` - lucro ${formatCurrency(product.profitCents, product.currency)}`
+                : ""}
+            </small>
           </Link>
         ))}
       </div>
@@ -822,7 +857,11 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
   const selectedFamily = product?.productFamily ?? families[0] ?? "slider";
 
   return (
-    <form action={upsertAdminProductAction} className="admin-operation-form admin-product-form">
+    <form
+      action={upsertAdminProductAction}
+      className="admin-operation-form admin-product-form"
+      encType="multipart/form-data"
+    >
       <input name="productId" type="hidden" value={product?.id ?? ""} />
       <input name="previousSlug" type="hidden" value={product?.slug ?? ""} />
 
@@ -870,7 +909,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         <h2>Preco e operacao</h2>
         <div className="form-grid">
           <label>
-            <span>Preco <RequiredMark /></span>
+            <span>Preco do cliente <RequiredMark /></span>
             <input
               defaultValue={productPriceToInput(product?.priceCents)}
               inputMode="decimal"
@@ -880,6 +919,19 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
               required
               title="Use um valor como 199,90, 199.90 ou 2.490,00."
             />
+            <small>Valor que aparece no site e sera cobrado do cliente.</small>
+          </label>
+          <label>
+            <span>Preco real interno</span>
+            <input
+              defaultValue={productCostToInput(product?.costCents)}
+              inputMode="decimal"
+              name="cost"
+              pattern="[0-9.,]+"
+              placeholder="120,00"
+              title="Custo interno do produto para calculo de lucro."
+            />
+            <small>Visivel apenas no admin. Fica fora do catalogo publico.</small>
           </label>
           <label>
             <span>Disponibilidade</span>
@@ -901,6 +953,17 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             <span>Frete</span>
             <input defaultValue={product?.shippingClass ?? "medium"} name="shippingClass" />
           </label>
+          <div className="admin-profit-preview span-all">
+            <span>Lucro estimado do produto</span>
+            <strong>
+              {Number.isInteger(product?.profitCents)
+                ? formatCurrency(product.profitCents, product.currency)
+                : "Informe o preco real para calcular"}
+            </strong>
+            {Number.isInteger(product?.marginPercent) ? (
+              <small>{product.marginPercent}% de margem sobre o preco do cliente</small>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -957,6 +1020,16 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             />
             <small>Use uma URL por linha. A primeira vira capa do produto.</small>
           </label>
+          <label className="span-all admin-upload-field">
+            <span>Upload de imagens</span>
+            <input
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              name="imageFiles"
+              type="file"
+            />
+            <small>JPG, PNG, WEBP ou GIF ate 5MB cada. As imagens enviadas entram antes das URLs.</small>
+          </label>
           <label className="span-all">
             <span>Notas</span>
             <textarea defaultValue={product?.notes ?? ""} name="notes" rows={4} />
@@ -974,6 +1047,238 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         </button>
       </div>
     </form>
+  );
+}
+
+function CouponList({ coupons, selectedCouponCode }) {
+  return (
+    <aside className="admin-list-panel">
+      <div className="admin-panel-heading">
+        <p className="section-label">Promocoes</p>
+        <strong>{coupons.length} cupons</strong>
+      </div>
+
+      <div className="admin-product-list">
+        <Link
+          className={`admin-product-link ${!selectedCouponCode ? "is-active" : ""}`}
+          href="/admin?tab=cupons"
+        >
+          <span>
+            <strong>Criar cupom</strong>
+            <em>Nova regra de desconto</em>
+          </span>
+          <small>Novo</small>
+        </Link>
+
+        {coupons.map((coupon) => (
+          <Link
+            className={`admin-product-link ${
+              selectedCouponCode === coupon.code ? "is-active" : ""
+            }`}
+            href={`/admin?tab=cupons&cupom=${encodeURIComponent(coupon.code)}`}
+            key={coupon.id}
+          >
+            <span>
+              <strong>{coupon.code}</strong>
+              <em>
+                {coupon.discountType === "percent"
+                  ? `${coupon.discountPercent}%`
+                  : formatCurrency(coupon.discountCents)}
+              </em>
+            </span>
+            <small>
+              {coupon.isActive ? "Ativo" : "Inativo"} - {coupon.redemptionCount} uso(s)
+            </small>
+          </Link>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function CouponForm({ categories, coupon, products }) {
+  const selectedProductIds = new Set(coupon?.appliesToProductIds ?? []);
+  const selectedCategoryIds = new Set(coupon?.appliesToCategoryIds ?? []);
+  const discountType = coupon?.discountType ?? "percent";
+
+  return (
+    <form action={upsertAdminCouponAction} className="admin-operation-form admin-product-form">
+      <div className="admin-form-block">
+        <h2>{coupon ? `Cupom ${coupon.code}` : "Novo cupom"}</h2>
+        <div className="form-grid">
+          <label>
+            <span>Codigo <RequiredMark /></span>
+            <input
+              autoComplete="off"
+              defaultValue={coupon?.code ?? ""}
+              name="couponCode"
+              pattern="[A-Za-z0-9_-]{3,40}"
+              placeholder="R15OFF"
+              required
+              title="Use letras, numeros, hifen ou underline."
+            />
+          </label>
+          <div className="admin-form-inline-field">
+            <span>Status</span>
+            <label className="admin-toggle-row">
+              <input
+                defaultChecked={coupon?.isActive ?? true}
+                name="couponIsActive"
+                type="checkbox"
+              />
+              <span>Cupom ativo</span>
+            </label>
+          </div>
+          <label className="span-all">
+            <span>Descricao interna</span>
+            <input
+              defaultValue={coupon?.description ?? ""}
+              name="couponDescription"
+              placeholder="Ex: campanha de lancamento"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="admin-form-block">
+        <h2>Desconto</h2>
+        <div className="form-grid">
+          <label>
+            <span>Tipo <RequiredMark /></span>
+            <select defaultValue={discountType} name="discountType" required>
+              <option value="percent">Percentual</option>
+              <option value="fixed">Valor fixo</option>
+            </select>
+          </label>
+          <label>
+            <span>Percentual</span>
+            <input
+              defaultValue={coupon?.discountPercent ?? ""}
+              max="100"
+              min="1"
+              name="discountPercent"
+              placeholder="10"
+              type="number"
+            />
+            <small>Usado quando o tipo for percentual.</small>
+          </label>
+          <label>
+            <span>Valor fixo</span>
+            <input
+              defaultValue={productPriceToInput(coupon?.discountCents)}
+              inputMode="decimal"
+              name="discountValue"
+              pattern="[0-9.,]+"
+              placeholder="50,00"
+            />
+            <small>Usado quando o tipo for valor fixo.</small>
+          </label>
+          <label>
+            <span>Subtotal minimo</span>
+            <input
+              defaultValue={productPriceToInput(coupon?.minimumSubtotalCents)}
+              inputMode="decimal"
+              name="minimumSubtotal"
+              pattern="[0-9.,]+"
+              placeholder="0,00"
+            />
+          </label>
+          <label>
+            <span>Limite de usos</span>
+            <input
+              defaultValue={coupon?.maxRedemptions ?? ""}
+              min="1"
+              name="maxRedemptions"
+              placeholder="sem limite"
+              type="number"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="admin-form-block">
+        <h2>Validade e aplicacao</h2>
+        <div className="form-grid">
+          <label>
+            <span>Comeca em</span>
+            <input defaultValue={dateTimeToInput(coupon?.startsAt)} name="startsAt" type="datetime-local" />
+          </label>
+          <label>
+            <span>Expira em</span>
+            <input defaultValue={dateTimeToInput(coupon?.expiresAt)} name="expiresAt" type="datetime-local" />
+          </label>
+          <fieldset className="span-all admin-checkbox-fieldset">
+            <legend>Categorias aplicaveis</legend>
+            <div className="admin-checkbox-grid">
+              {categories.map((category) => (
+                <label key={category.id}>
+                  <input
+                    defaultChecked={selectedCategoryIds.has(category.id)}
+                    name="couponCategoryIds"
+                    type="checkbox"
+                    value={category.id}
+                  />
+                  <span>{category.label}</span>
+                </label>
+              ))}
+            </div>
+            <p className="form-helper-text">
+              Sem categoria e sem produto selecionado, o cupom vale para todo o carrinho.
+            </p>
+          </fieldset>
+          <fieldset className="span-all admin-checkbox-fieldset admin-product-coupon-fieldset">
+            <legend>Produtos aplicaveis</legend>
+            <div className="admin-checkbox-grid">
+              {products.map((product) => (
+                <label key={product.id}>
+                  <input
+                    defaultChecked={selectedProductIds.has(product.id)}
+                    name="couponProductIds"
+                    type="checkbox"
+                    value={product.id}
+                  />
+                  <span>{product.name}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      </div>
+
+      <div className="admin-product-actions">
+        <button className="button button-primary" type="submit">
+          Salvar cupom
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AdminCoupons({ selectedCouponCode, state }) {
+  const selectedCoupon = state.coupons.find((coupon) => coupon.code === selectedCouponCode);
+
+  return (
+    <section className="admin-shell admin-products-shell">
+      <CouponList coupons={state.coupons} selectedCouponCode={selectedCouponCode} />
+
+      <div className="admin-detail-panel admin-product-panel">
+        <CouponForm
+          categories={state.categories}
+          coupon={selectedCoupon}
+          products={state.products}
+        />
+
+        {selectedCoupon ? (
+          <form action={archiveAdminCouponAction} className="admin-archive-form">
+            <input name="couponCode" type="hidden" value={selectedCoupon.code} />
+            <button className="button button-secondary" type="submit">
+              Desativar cupom
+            </button>
+            <p>O cupom fica no historico e deixa de validar no carrinho.</p>
+          </form>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -1060,7 +1365,7 @@ export default async function AdminPage({ searchParams }) {
 
   try {
     state =
-      activeTab === "produtos"
+      activeTab === "produtos" || activeTab === "cupons"
         ? await getAdminCatalogState()
         : await getAdminDashboardState({ selectedOrderNumber: params?.pedido });
   } catch (error) {
@@ -1102,6 +1407,11 @@ export default async function AdminPage({ searchParams }) {
               Adicionar produto
             </Link>
           ) : null}
+          {activeTab === "cupons" ? (
+            <Link className="button button-primary" href="/admin?tab=cupons">
+              Criar cupom
+            </Link>
+          ) : null}
           <form action={adminSignOutAction}>
             <button className="button button-secondary" type="submit">
               Sair
@@ -1120,6 +1430,8 @@ export default async function AdminPage({ searchParams }) {
           selectedProductId={params?.produto ?? ""}
           state={state}
         />
+      ) : activeTab === "cupons" ? (
+        <AdminCoupons selectedCouponCode={params?.cupom ?? ""} state={state} />
       ) : activeTab === "analise" ? (
         <AdminAnalytics analytics={state.analytics} />
       ) : (

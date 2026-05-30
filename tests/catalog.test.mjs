@@ -27,6 +27,7 @@ import {
   updateCartItemVariation
 } from "../src/cart/cart-items.js";
 import { buildCheckoutOrderDraft, CheckoutValidationError } from "../src/checkout/order-backend.js";
+import { toCheckoutCoupon } from "../src/checkout/coupons.js";
 import {
   buildWhatsAppCheckoutUrl,
   buildWhatsAppOrderMessage,
@@ -192,13 +193,23 @@ test("every published SKU has storefront categories, price, variations and Whats
 });
 
 test("public catalog hides internal purchase metadata", () => {
-  const publicProducts = getPublicCatalogProducts();
+  const publicProducts = getPublicCatalogProducts(
+    catalogProducts.map((product) => ({
+      ...product,
+      costCents: 1000,
+      marginPercent: 50,
+      profitCents: product.priceCents - 1000
+    }))
+  );
 
   assert.equal(publicProducts.length, catalogProducts.length);
 
   for (const product of publicProducts) {
     assert.equal("internalPurchaseSource" in product, false);
     assert.equal("internalPurchaseCandidates" in product, false);
+    assert.equal("costCents" in product, false);
+    assert.equal("marginPercent" in product, false);
+    assert.equal("profitCents" in product, false);
     assert.equal("supplierSource" in product, false);
   }
 });
@@ -421,6 +432,28 @@ test("cart item variation edit merges duplicate product variations", () => {
 });
 
 test("backend checkout draft trusts catalog prices and creates order snapshots", () => {
+  const product = catalogProducts.find(
+    (item) => item.id === "slider-esportivo-em-aluminio-somente-slider"
+  );
+  const coupon = toCheckoutCoupon(
+    {
+      applies_to_category_ids: [],
+      applies_to_product_ids: [product.id],
+      code: "R15OFF",
+      description: "Teste",
+      discount_percent: 10,
+      discount_type: "percent",
+      is_active: true,
+      minimum_subtotal_cents: 0,
+      redemption_count: 0
+    },
+    [
+      {
+        ...product,
+        quantity: 1
+      }
+    ]
+  );
   const draft = buildCheckoutOrderDraft(
     {
       cartItems: [
@@ -443,13 +476,27 @@ test("backend checkout draft trusts catalog prices and creates order snapshots",
       paymentMethodId: "pix",
       shippingOptionId: "combinar"
     },
-    { storeName: "TSZR15" }
+    {
+      coupon,
+      products: [
+        {
+          ...product,
+          costCents: 9000
+        }
+      ],
+      storeName: "TSZR15"
+    }
   );
 
   assert.equal(draft.totals.subtotalCents, 14990);
+  assert.equal(draft.totals.discountCents, 1499);
   assert.equal(draft.databaseItems[0].name, "Slider Esportivo em Aluminio Somente Slider");
+  assert.equal(draft.databaseItems[0].unitCostCents, 9000);
+  assert.equal(draft.databaseItems[0].subtotalCostCents, 9000);
   assert.equal(draft.databaseItems[0].unitPriceCents, 14990);
   assert.equal(draft.consentSnapshot.accepted, true);
+  assert.equal(draft.totals.discountSnapshot.code, "R15OFF");
+  assert.match(draft.message, /Cupom: R15OFF/);
   assert.match(draft.message, /Compra assistida/);
 });
 
@@ -788,16 +835,17 @@ test("admin analytics computes sales, profit and top customers", () => {
         total_cents: 30000
       }
     ],
+    orderItems: [
+      {
+        order_id: "order-3",
+        subtotal_cost_cents: 13000
+      }
+    ],
     supplierPurchases: [
       {
         order_id: "order-1",
         product_cost_cents: 8000,
         shipping_cost_cents: 2000
-      },
-      {
-        order_id: "order-3",
-        product_cost_cents: 10000,
-        shipping_cost_cents: 3000
       }
     ]
   });

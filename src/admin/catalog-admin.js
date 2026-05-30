@@ -5,7 +5,12 @@ import {
   storefrontCategoryMap,
   technicalFamilies
 } from "@/src/catalog/categories.js";
+import { normalizeCouponCode } from "@/src/checkout/coupons.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
+
+const productImageBucket = "product-images";
+const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const maxImageBytes = 5 * 1024 * 1024;
 
 function cleanString(value, maxLength = 500) {
   return String(value ?? "").trim().slice(0, maxLength);
@@ -36,6 +41,22 @@ function parseMoneyToCents(value) {
   return Math.round(numeric * 100);
 }
 
+function parseOptionalMoneyToCents(value) {
+  const cleaned = cleanString(value, 40);
+
+  if (!cleaned) {
+    return null;
+  }
+
+  const numeric = parseMoneyToCents(cleaned);
+
+  if (!Number.isInteger(numeric) || numeric < 0) {
+    return null;
+  }
+
+  return numeric;
+}
+
 function parseInteger(value, fallback = 0) {
   const numeric = Number.parseInt(cleanString(value, 20), 10);
 
@@ -61,6 +82,12 @@ function splitImageUrls(value) {
     .slice(0, 12);
 }
 
+function splitCouponCodes(value) {
+  return splitList(value, { maxItems: 60, maxLength: 40 })
+    .map(normalizeCouponCode)
+    .filter(Boolean);
+}
+
 function isValidImageUrl(value) {
   if (value.startsWith("/")) {
     return true;
@@ -82,6 +109,9 @@ function getSelectedCategoryIds(formData) {
 }
 
 function toAdminProduct(row) {
+  const costCents = row.cost_cents ?? row.catalog_product_costs?.cost_cents ?? null;
+  const profitCents = Number.isInteger(costCents) ? row.price_cents - costCents : null;
+
   return {
     id: row.id,
     slug: row.slug,
@@ -90,6 +120,12 @@ function toAdminProduct(row) {
     productFamily: row.product_family,
     bikeModelScope: row.bike_model_scope ?? ["yamaha-r15"],
     priceCents: row.price_cents,
+    costCents,
+    profitCents,
+    marginPercent:
+      Number.isInteger(profitCents) && row.price_cents > 0
+        ? Math.round((profitCents / row.price_cents) * 100)
+        : null,
     currency: row.currency ?? "BRL",
     variations: row.variations ?? [],
     availability: row.availability ?? "sob-consulta",
@@ -103,6 +139,101 @@ function toAdminProduct(row) {
   };
 }
 
+function toAdminCoupon(row) {
+  return {
+    appliesToCategoryIds: row.applies_to_category_ids ?? [],
+    appliesToProductIds: row.applies_to_product_ids ?? [],
+    code: row.code,
+    description: row.description ?? "",
+    discountCents: row.discount_cents ?? null,
+    discountPercent: row.discount_percent ?? null,
+    discountType: row.discount_type,
+    expiresAt: row.expires_at ?? "",
+    id: row.id,
+    isActive: row.is_active !== false,
+    maxRedemptions: row.max_redemptions ?? null,
+    minimumSubtotalCents: row.minimum_subtotal_cents ?? 0,
+    redemptionCount: row.redemption_count ?? 0,
+    startsAt: row.starts_at ?? "",
+    updatedAt: row.updated_at,
+    createdAt: row.created_at
+  };
+}
+
+function hasUploadFile(value) {
+  return (
+    value &&
+    typeof value === "object" &&
+    typeof value.arrayBuffer === "function" &&
+    typeof value.name === "string" &&
+    value.size > 0
+  );
+}
+
+function safeFileName(value) {
+  const cleaned = slugify(value).slice(0, 80);
+  return cleaned || "produto";
+}
+
+function getFileExtension(file) {
+  const fromName = String(file.name ?? "").split(".").pop()?.toLowerCase();
+
+  if (fromName && /^[a-z0-9]{2,5}$/.test(fromName)) {
+    return fromName;
+  }
+
+  return file.type === "image/png"
+    ? "png"
+    : file.type === "image/webp"
+      ? "webp"
+      : file.type === "image/gif"
+        ? "gif"
+        : "jpg";
+}
+
+async function uploadProductImages({ formData, productId, supabase }) {
+  const files = formData.getAll("imageFiles").filter(hasUploadFile).slice(0, 8);
+
+  if (files.length === 0) {
+    return [];
+  }
+
+  const uploadedUrls = [];
+
+  for (const file of files) {
+    if (!allowedImageTypes.has(file.type)) {
+      throw new Error("Envie imagens JPG, PNG, WEBP ou GIF.");
+    }
+
+    if (file.size > maxImageBytes) {
+      throw new Error("Cada imagem deve ter no maximo 5MB.");
+    }
+
+    const extension = getFileExtension(file);
+    const filePath = `${productId}/${Date.now()}-${crypto.randomUUID()}-${safeFileName(file.name)}.${extension}`;
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const { error } = await supabase.storage
+      .from(productImageBucket)
+      .upload(filePath, fileBuffer, {
+        cacheControl: "31536000",
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (error) {
+      throw new Error(`Upload de imagem falhou: ${error.message}`);
+    }
+
+    const { data } = supabase.storage.from(productImageBucket).getPublicUrl(filePath);
+
+    if (data?.publicUrl) {
+      uploadedUrls.push(data.publicUrl);
+    }
+  }
+
+  return uploadedUrls;
+}
+
 function collectProductPayload(formData) {
   const name = cleanString(formData.get("name"), 180);
   const previousId = cleanString(formData.get("productId"), 160);
@@ -111,6 +242,7 @@ function collectProductPayload(formData) {
   const storefrontCategoryIds = getSelectedCategoryIds(formData);
   const productFamily = cleanString(formData.get("productFamily"), 80);
   const priceCents = parseMoneyToCents(formData.get("price"));
+  const costCents = parseOptionalMoneyToCents(formData.get("cost"));
   const variations = splitList(formData.get("variations"), { maxItems: 24, maxLength: 120 });
   const imageUrls = splitImageUrls(formData.get("imageUrls"));
   const bikeModelScope = splitList(formData.get("bikeModelScope"), {
@@ -135,7 +267,11 @@ function collectProductPayload(formData) {
   }
 
   if (!Number.isInteger(priceCents)) {
-    throw new Error("Informe um preco valido.");
+    throw new Error("Informe um preco do cliente valido.");
+  }
+
+  if (cleanString(formData.get("cost"), 40) && !Number.isInteger(costCents)) {
+    throw new Error("Informe um preco real valido ou deixe vazio.");
   }
 
   if (variations.length === 0) {
@@ -149,6 +285,7 @@ function collectProductPayload(formData) {
   }
 
   return {
+    costCents,
     id,
     row: {
       id,
@@ -177,34 +314,112 @@ function collectProductPayload(formData) {
   };
 }
 
+function collectCouponPayload(formData) {
+  const code = normalizeCouponCode(formData.get("couponCode"));
+  const discountType = cleanString(formData.get("discountType"), 20) || "percent";
+  const discountPercent = parseInteger(formData.get("discountPercent"), 0);
+  const discountCents = parseOptionalMoneyToCents(formData.get("discountValue"));
+  const minimumSubtotalCents = parseOptionalMoneyToCents(formData.get("minimumSubtotal")) ?? 0;
+  const maxRedemptions = parseInteger(formData.get("maxRedemptions"), 0) || null;
+  const appliesToProductIds = formData
+    .getAll("couponProductIds")
+    .map((productId) => cleanString(productId, 160))
+    .filter(Boolean)
+    .slice(0, 80);
+  const appliesToCategoryIds = formData
+    .getAll("couponCategoryIds")
+    .map((categoryId) => cleanString(categoryId, 80))
+    .filter((categoryId) => storefrontCategoryMap.has(categoryId));
+
+  if (!code || code.length < 3) {
+    throw new Error("Informe um codigo de cupom com pelo menos 3 caracteres.");
+  }
+
+  if (discountType !== "percent" && discountType !== "fixed") {
+    throw new Error("Tipo de desconto invalido.");
+  }
+
+  if (discountType === "percent" && (discountPercent < 1 || discountPercent > 100)) {
+    throw new Error("Informe um percentual entre 1 e 100.");
+  }
+
+  if (discountType === "fixed" && !Number.isInteger(discountCents)) {
+    throw new Error("Informe o valor do desconto fixo.");
+  }
+
+  const startsAt = cleanString(formData.get("startsAt"), 80);
+  const expiresAt = cleanString(formData.get("expiresAt"), 80);
+
+  return {
+    code,
+    row: {
+      applies_to_category_ids: appliesToCategoryIds,
+      applies_to_product_ids: appliesToProductIds,
+      code,
+      description: cleanString(formData.get("couponDescription"), 300),
+      discount_cents: discountType === "fixed" ? discountCents : null,
+      discount_percent: discountType === "percent" ? discountPercent : null,
+      discount_type: discountType,
+      expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
+      is_active: formData.get("couponIsActive") === "on",
+      max_redemptions: maxRedemptions,
+      minimum_subtotal_cents: minimumSubtotalCents,
+      starts_at: startsAt ? new Date(startsAt).toISOString() : null
+    }
+  };
+}
+
 export async function getAdminCatalogState() {
   const { isConfigured, supabase } = getAdminSupabaseStatus();
 
   if (!isConfigured) {
     return {
       categories: storefrontCategories,
+      coupons: [],
       families: technicalFamilies,
       isConfigured,
       products: []
     };
   }
 
-  const { data, error } = await supabase
-    .from("catalog_products")
-    .select("*")
-    .order("is_published", { ascending: false })
-    .order("updated_at", { ascending: false })
-    .order("name", { ascending: true });
+  const [
+    { data, error },
+    { data: costRows, error: costError },
+    { data: couponRows, error: couponError }
+  ] = await Promise.all([
+    supabase
+      .from("catalog_products")
+      .select("*")
+      .order("is_published", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .order("name", { ascending: true }),
+    supabase.from("catalog_product_costs").select("*"),
+    supabase
+      .from("catalog_coupons")
+      .select("*")
+      .order("is_active", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .order("code", { ascending: true })
+  ]);
 
-  if (error) {
-    throw new Error(error.message);
+  const firstError = error ?? costError ?? couponError;
+
+  if (firstError) {
+    throw new Error(firstError.message);
   }
+
+  const costsByProductId = new Map((costRows ?? []).map((row) => [row.product_id, row]));
+  const productRows = (data ?? []).map((row) => ({
+    ...row,
+    cost_cents: costsByProductId.get(row.id)?.cost_cents ?? null
+  }));
 
   return {
     categories: storefrontCategories,
+    coupons: (couponRows ?? []).map(toAdminCoupon),
     families: technicalFamilies,
     isConfigured,
-    products: (data ?? []).map(toAdminProduct)
+    products: productRows.map(toAdminProduct)
   };
 }
 
@@ -215,11 +430,40 @@ export async function upsertAdminCatalogProduct(formData) {
     throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
   }
 
-  const { id, row } = collectProductPayload(formData);
-  const { error } = await supabase.from("catalog_products").upsert(row, { onConflict: "id" });
+  const { costCents, id, row } = collectProductPayload(formData);
+  const uploadedImageUrls = await uploadProductImages({ formData, productId: id, supabase });
+  const finalRow = {
+    ...row,
+    image_urls: [...uploadedImageUrls, ...row.image_urls].slice(0, 12)
+  };
+  const { error } = await supabase.from("catalog_products").upsert(finalRow, { onConflict: "id" });
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (Number.isInteger(costCents)) {
+    const { error: costError } = await supabase.from("catalog_product_costs").upsert(
+      {
+        cost_cents: costCents,
+        currency: "BRL",
+        product_id: id
+      },
+      { onConflict: "product_id" }
+    );
+
+    if (costError) {
+      throw new Error(costError.message);
+    }
+  } else {
+    const { error: costDeleteError } = await supabase
+      .from("catalog_product_costs")
+      .delete()
+      .eq("product_id", id);
+
+    if (costDeleteError) {
+      throw new Error(costDeleteError.message);
+    }
   }
 
   const { error: deleteError } = await supabase
@@ -231,7 +475,7 @@ export async function upsertAdminCatalogProduct(formData) {
     throw new Error(deleteError.message);
   }
 
-  const relationRows = row.storefront_category_ids.map((categoryId) => ({
+  const relationRows = finalRow.storefront_category_ids.map((categoryId) => ({
     product_id: id,
     category_id: categoryId
   }));
@@ -246,8 +490,49 @@ export async function upsertAdminCatalogProduct(formData) {
 
   return {
     id,
-    slug: row.slug
+    slug: finalRow.slug
   };
+}
+
+export async function upsertAdminCoupon(formData) {
+  const { isConfigured, supabase } = getAdminSupabaseStatus();
+
+  if (!isConfigured) {
+    throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
+  }
+
+  const { code, row } = collectCouponPayload(formData);
+  const { error } = await supabase.from("catalog_coupons").upsert(row, { onConflict: "code" });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { code };
+}
+
+export async function archiveAdminCoupon(formData) {
+  const { isConfigured, supabase } = getAdminSupabaseStatus();
+  const code = normalizeCouponCode(formData.get("couponCode"));
+
+  if (!isConfigured) {
+    throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
+  }
+
+  if (!code) {
+    throw new Error("Cupom invalido.");
+  }
+
+  const { error } = await supabase
+    .from("catalog_coupons")
+    .update({ is_active: false })
+    .eq("code", code);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { code };
 }
 
 export async function archiveAdminCatalogProduct(formData) {
