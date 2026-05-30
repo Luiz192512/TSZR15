@@ -92,6 +92,19 @@ function getActiveAdminTab(params) {
   return "pedidos";
 }
 
+function getNewProductCount(params) {
+  const count = Number.parseInt(String(params?.novosProdutos ?? ""), 10);
+
+  return Number.isInteger(count) && count > 0 ? Math.min(count, 12) : 0;
+}
+
+function buildAddProductHref({ newProductCount = 0, selectedProductId = "" } = {}) {
+  const currentDraftCount = selectedProductId ? newProductCount : Math.max(newProductCount, 1);
+  const nextDraftCount = Math.min(currentDraftCount + 1, 12);
+
+  return `/admin?tab=produtos&novosProdutos=${nextDraftCount}`;
+}
+
 function getMessage(params) {
   if (params?.status === "salvo") {
     return "Pedido atualizado.";
@@ -130,6 +143,10 @@ function StatusSelect({ items, name, value }) {
       ))}
     </select>
   );
+}
+
+function RequiredMark() {
+  return <span className="required-field-mark" aria-hidden="true">*</span>;
 }
 
 function AdminTabs({ activeTab }) {
@@ -756,7 +773,7 @@ function AdminAnalytics({ analytics }) {
   );
 }
 
-function ProductList({ products, selectedProductId }) {
+function ProductList({ newProductCount, products, selectedProductId }) {
   return (
     <aside className="admin-list-panel">
       <div className="admin-panel-heading">
@@ -767,12 +784,13 @@ function ProductList({ products, selectedProductId }) {
       <div className="admin-product-list">
         <Link
           className={`admin-product-link ${!selectedProductId ? "is-active" : ""}`}
-          href="/admin?tab=produtos"
+          href={buildAddProductHref({ newProductCount, selectedProductId })}
         >
           <span>
-            <strong>Novo produto</strong>
-            <em>Criar SKU no Supabase</em>
+            <strong>Adicionar produto</strong>
+            <em>Criar outro card vazio</em>
           </span>
+          <small>{selectedProductId ? "Novo" : `${Math.max(newProductCount, 1)} aberto(s)`}</small>
         </Link>
 
         {products.map((product) => (
@@ -795,7 +813,7 @@ function ProductList({ products, selectedProductId }) {
   );
 }
 
-function ProductForm({ categories, families, product }) {
+function ProductForm({ categories, draftIndex = 0, families, product }) {
   const selectedCategoryIds = new Set(
     product?.storefrontCategoryIds?.length
       ? product.storefrontCategoryIds
@@ -809,23 +827,35 @@ function ProductForm({ categories, families, product }) {
       <input name="previousSlug" type="hidden" value={product?.slug ?? ""} />
 
       <div className="admin-form-block">
-        <h2>{product ? "Identificacao do produto" : "Novo produto"}</h2>
+        <h2>
+          {product
+            ? "Identificacao do produto"
+            : `Novo produto${draftIndex ? ` #${draftIndex}` : ""}`}
+        </h2>
         <div className="form-grid">
           <label>
-            <span>Nome</span>
-            <input defaultValue={product?.name ?? ""} name="name" required />
+            <span>Nome <RequiredMark /></span>
+            <input
+              autoComplete="off"
+              defaultValue={product?.name ?? ""}
+              name="name"
+              placeholder="Ex: Ponteira SC Project"
+              required
+            />
           </label>
           <label>
             <span>Slug / ID</span>
             <input
+              autoComplete="off"
               defaultValue={product?.slug ?? ""}
               name="slug"
               placeholder="ex: slider-r15-preto"
             />
+            <small>Opcional. Se ficar vazio, o sistema gera pelo nome.</small>
           </label>
           <label>
-            <span>Familia tecnica</span>
-            <select defaultValue={selectedFamily} name="productFamily">
+            <span>Familia tecnica <RequiredMark /></span>
+            <select defaultValue={selectedFamily} name="productFamily" required>
               {families.map((family) => (
                 <option key={family} value={family}>
                   {family}
@@ -840,13 +870,15 @@ function ProductForm({ categories, families, product }) {
         <h2>Preco e operacao</h2>
         <div className="form-grid">
           <label>
-            <span>Preco</span>
+            <span>Preco <RequiredMark /></span>
             <input
               defaultValue={productPriceToInput(product?.priceCents)}
               inputMode="decimal"
               name="price"
+              pattern="[0-9.,]+"
               placeholder="199,90"
               required
+              title="Use um valor como 199,90, 199.90 ou 2.490,00."
             />
           </label>
           <label>
@@ -876,7 +908,7 @@ function ProductForm({ categories, families, product }) {
         <h2>Categorias e compatibilidade</h2>
         <div className="form-grid">
           <fieldset className="span-all admin-checkbox-fieldset">
-            <legend>Categorias</legend>
+            <legend>Categorias <RequiredMark /></legend>
             <div className="admin-checkbox-grid">
               {categories.map((category) => (
                 <label key={category.id}>
@@ -890,6 +922,7 @@ function ProductForm({ categories, families, product }) {
                 </label>
               ))}
             </div>
+            <p className="form-helper-text">Selecione pelo menos uma categoria para publicar na vitrine.</p>
           </fieldset>
           <label className="span-all">
             <span>Escopo tecnico</span>
@@ -905,12 +938,14 @@ function ProductForm({ categories, families, product }) {
         <h2>Vitrine</h2>
         <div className="form-grid">
           <label className="span-all">
-            <span>Variacoes</span>
+            <span>Variacoes <RequiredMark /></span>
             <textarea
               defaultValue={arrayToTextarea(product?.variations) || "Padrao"}
               name="variations"
+              required
               rows={3}
             />
+            <small>Uma por linha ou separadas por virgula.</small>
           </label>
           <label className="span-all">
             <span>URLs de imagens</span>
@@ -920,6 +955,7 @@ function ProductForm({ categories, families, product }) {
               placeholder="https://exemplo.com/imagem-1.jpg"
               rows={4}
             />
+            <small>Use uma URL por linha. A primeira vira capa do produto.</small>
           </label>
           <label className="span-all">
             <span>Notas</span>
@@ -941,19 +977,36 @@ function ProductForm({ categories, families, product }) {
   );
 }
 
-function AdminProducts({ selectedProductId, state }) {
+function AdminProducts({ newProductCount, selectedProductId, state }) {
   const selectedProduct = state.products.find((product) => product.id === selectedProductId);
+  const draftCount = selectedProduct ? newProductCount : Math.max(newProductCount, 1);
+  const draftIndexes = Array.from({ length: draftCount }, (_, index) => index + 1);
 
   return (
     <section className="admin-shell admin-products-shell">
-      <ProductList products={state.products} selectedProductId={selectedProductId} />
+      <ProductList
+        newProductCount={newProductCount}
+        products={state.products}
+        selectedProductId={selectedProductId}
+      />
 
       <div className="admin-detail-panel admin-product-panel">
-        <ProductForm
-          categories={state.categories}
-          families={state.families}
-          product={selectedProduct}
-        />
+        {selectedProduct ? (
+          <ProductForm
+            categories={state.categories}
+            families={state.families}
+            product={selectedProduct}
+          />
+        ) : null}
+
+        {draftIndexes.map((draftIndex) => (
+          <ProductForm
+            categories={state.categories}
+            draftIndex={draftIndex}
+            families={state.families}
+            key={`new-product-${draftIndex}`}
+          />
+        ))}
 
         {selectedProduct ? (
           <form action={archiveAdminProductAction} className="admin-archive-form">
@@ -993,6 +1046,7 @@ export default async function AdminPage({ searchParams }) {
   const params = await searchParams;
   const message = getMessage(params);
   const activeTab = getActiveAdminTab(params);
+  const newProductCount = getNewProductCount(params);
 
   if (!isAdminTokenConfigured()) {
     redirect("/entrar?next=/admin");
@@ -1038,7 +1092,13 @@ export default async function AdminPage({ searchParams }) {
             </Link>
           ) : null}
           {activeTab === "produtos" ? (
-            <Link className="button button-primary" href="/admin?tab=produtos">
+            <Link
+              className="button button-primary"
+              href={buildAddProductHref({
+                newProductCount,
+                selectedProductId: params?.produto ?? ""
+              })}
+            >
               Adicionar produto
             </Link>
           ) : null}
@@ -1055,7 +1115,11 @@ export default async function AdminPage({ searchParams }) {
       {message ? <p className="form-alert admin-message">{message}</p> : null}
 
       {activeTab === "produtos" ? (
-        <AdminProducts selectedProductId={params?.produto ?? ""} state={state} />
+        <AdminProducts
+          newProductCount={newProductCount}
+          selectedProductId={params?.produto ?? ""}
+          state={state}
+        />
       ) : activeTab === "analise" ? (
         <AdminAnalytics analytics={state.analytics} />
       ) : (

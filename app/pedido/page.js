@@ -7,6 +7,8 @@ export const metadata = {
   title: "Carrinho e pedido | TSZR15",
   description: "Carrinho de compra separado da home, com dados de entrega e envio por WhatsApp."
 };
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function CartPage() {
   const catalog = await getPublicCatalogProductsForStorefront();

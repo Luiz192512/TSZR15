@@ -5,6 +5,9 @@ import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function getParamValue(params, key) {
   const value = params?.[key];
   return Array.isArray(value) ? value[0] : value;
