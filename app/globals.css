@@ -4879,7 +4879,7 @@ body::before {
   grid-column: 2;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .page-shell {
     overflow: visible;
   }
@@ -4966,17 +4966,6 @@ body::before {
     display: none;
   }
 
-  .store-header.is-menu-open .store-nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    order: 3;
-    gap: 8px;
-    width: 100%;
-    padding: 4px 0 0;
-  }
-
-  .store-header.is-menu-open .store-nav > a,
-  .store-header.is-menu-open .store-nav .button,
   .mobile-nav-panel a {
     display: inline-flex;
     min-height: 44px;
@@ -4991,15 +4980,6 @@ body::before {
     letter-spacing: 0.04em;
     text-transform: uppercase;
     white-space: normal;
-  }
-
-  .store-header.is-menu-open .store-nav > .cart-nav-link,
-  .store-header.is-menu-open .store-nav > .desktop-account-link {
-    display: none;
-  }
-
-  .store-header.is-menu-open .store-nav > .mobile-nav-link {
-    display: inline-flex;
   }
 
   .mobile-nav-details[open] .mobile-nav-panel {

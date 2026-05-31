@@ -265,20 +265,13 @@ function ReviewStars({ rating = 0 }) {
 
 function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = true }) {
   const cartCount = useCartCount();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  function closeMenu() {
-    setIsMenuOpen(false);
-  }
 
   return (
     <header
-      className={`store-header ${showSearch ? "" : "store-header-compact"} ${
-        isMenuOpen ? "is-menu-open" : ""
-      }`}
+      className={`store-header ${showSearch ? "" : "store-header-compact"}`}
     >
       <div className="store-header-top">
-        <Link className="store-brand" href="/" onClick={closeMenu}>
+        <Link className="store-brand" href="/">
           <img className="store-logo-image" src={brandLogoSrc} alt="TSZ Store" />
           <span>
             <strong>TSZR15</strong>
@@ -287,20 +280,24 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
         </Link>
 
         <div className="mobile-nav-actions">
-          <Link className="cart-nav-link mobile-cart-link" href="/pedido" onClick={closeMenu}>
+          <Link className="cart-nav-link mobile-cart-link" href="/pedido">
             Carrinho
             <span>{cartCount}</span>
           </Link>
-          <button
-            aria-controls="store-mobile-menu"
-            aria-expanded={isMenuOpen}
-            className="mobile-menu-button"
-            onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
-            type="button"
-          >
-            Menu
-            <span aria-hidden="true" className="mobile-menu-icon" />
-          </button>
+          <details className="mobile-nav-details">
+            <summary className="mobile-menu-button">
+              Menu
+              <span aria-hidden="true" className="mobile-menu-icon" />
+            </summary>
+            <nav className="mobile-nav-panel" aria-label="Menu mobile da loja">
+              <Link href="/">Inicio</Link>
+              <Link href="/catalogo#produtos">Produtos</Link>
+              <Link href="/#lancamentos">Lancamentos</Link>
+              <Link href="/#sobre">Sobre nos</Link>
+              <Link href="/rastreio">Rastreio</Link>
+              {currentUser ? <Link href="/conta">Conta</Link> : <Link href="/entrar">Entrar</Link>}
+            </nav>
+          </details>
         </div>
       </div>
 
@@ -316,24 +313,21 @@ function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = tru
         </label>
       ) : null}
 
-      <nav className="store-nav" id="store-mobile-menu" aria-label="Navegacao principal">
-        <Link href="/" onClick={closeMenu}>Inicio</Link>
-        <Link href="/catalogo#produtos" onClick={closeMenu}>Produtos</Link>
-        <Link href="/#lancamentos" onClick={closeMenu}>Lancamentos</Link>
-        <Link href="/#sobre" onClick={closeMenu}>Sobre nos</Link>
-        <Link className="cart-nav-link" href="/pedido" onClick={closeMenu}>
+      <nav className="store-nav" aria-label="Navegacao principal">
+        <Link href="/">Inicio</Link>
+        <Link href="/catalogo#produtos">Produtos</Link>
+        <Link href="/#lancamentos">Lancamentos</Link>
+        <Link href="/#sobre">Sobre nos</Link>
+        <Link className="cart-nav-link" href="/pedido">
           Carrinho
           <span>{cartCount}</span>
         </Link>
         {currentUser ? (
           <>
             <ProfileLink className="store-profile-link desktop-account-link" user={currentUser} />
-            <Link className="mobile-nav-link" href="/conta" onClick={closeMenu}>
-              Conta
-            </Link>
           </>
         ) : (
-          <Link className="button button-secondary" href="/entrar" onClick={closeMenu}>
+          <Link className="button button-secondary" href="/entrar">
             Entrar
           </Link>
         )}
