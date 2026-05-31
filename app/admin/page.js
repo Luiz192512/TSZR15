@@ -27,6 +27,7 @@ import {
   supplierSourceStatuses
 } from "@/src/orders/status.js";
 import { paymentMethods, shippingOptions } from "@/src/checkout/whatsapp.js";
+import { ProductImageUploader } from "@/src/components/admin/product-image-uploader.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 
 export const metadata = {
@@ -1130,26 +1131,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             />
             <small>Uma por linha ou separadas por virgula.</small>
           </label>
-          <label className="span-all">
-            <span>URLs de imagens</span>
-            <textarea
-              defaultValue={arrayToTextarea(product?.imageUrls)}
-              name="imageUrls"
-              placeholder="https://exemplo.com/imagem-1.jpg"
-              rows={4}
-            />
-            <small>Use uma URL por linha. A primeira vira capa do produto.</small>
-          </label>
-          <label className="span-all admin-upload-field">
-            <span>Upload de imagens</span>
-            <input
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              multiple
-              name="imageFiles"
-              type="file"
-            />
-            <small>JPG, PNG, WEBP ou GIF ate 5MB cada. As imagens enviadas entram antes das URLs.</small>
-          </label>
+          <ProductImageUploader existingImageUrls={product?.imageUrls ?? []} />
           <label className="span-all">
             <span>Notas</span>
             <textarea defaultValue={product?.notes ?? ""} name="notes" rows={4} />
