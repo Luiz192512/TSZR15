@@ -4,6 +4,7 @@ import {
   ASSISTED_PURCHASE_CONSENT_VERSION
 } from "../customer/customer-data.js";
 import { validateCustomerFieldFormats } from "../customer/field-validation.js";
+import { getSupabaseServiceRoleKey } from "../lib/supabase/config.js";
 import {
   buildWhatsAppOrderMessage,
   calculateCartTotals,
@@ -29,13 +30,13 @@ export class CheckoutPersistenceError extends Error {
 }
 
 function cleanString(value, maxLength = 500) {
-  return String(value ?? "").trim().slice(0, maxLength);
+  return String(value ?? "")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function getCatalogProduct(productId, products = catalogProducts) {
-  return products.find(
-    (product) => product.id === productId || product.slug === productId
-  );
+  return products.find((product) => product.id === productId || product.slug === productId);
 }
 
 function normalizeQuantity(value) {
@@ -176,9 +177,7 @@ function buildDatabaseItems(cartItems) {
     productId: item.id,
     productSlug: item.slug,
     quantity: item.quantity,
-    subtotalCostCents: Number.isInteger(item.costCents)
-      ? item.costCents * item.quantity
-      : null,
+    subtotalCostCents: Number.isInteger(item.costCents) ? item.costCents * item.quantity : null,
     storefrontCategoryIds: item.storefrontCategoryIds,
     subtotalCents: item.priceCents * item.quantity,
     unitCostCents: Number.isInteger(item.costCents) ? item.costCents : null,
@@ -274,7 +273,7 @@ export async function persistCheckoutOrder({ draft, requestContext = {}, supabas
     };
   }
 
-  if (!user && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!user && !getSupabaseServiceRoleKey()) {
     return {
       reason: "Pedido de convidado precisa de SUPABASE_SERVICE_ROLE_KEY no servidor.",
       saved: false
