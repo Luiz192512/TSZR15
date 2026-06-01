@@ -1,8 +1,8 @@
 import { getStorefrontMenu } from "@/src/catalog/index.js";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const dynamic = "force-static";
+export const revalidate = 3600;
 
 export async function GET() {
   const catalog = await getPublicCatalogProductsForStorefront();

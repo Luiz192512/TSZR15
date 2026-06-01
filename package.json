@@ -6,8 +6,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "format": "prettier --write \"app/api/**/*.js\" \"app/auth/actions.js\" \"app/page.js\" \"app/catalogo/page.js\" \"app/pedido/page.js\" \"app/produto/[slug]/page.js\" \"src/components/catalog/*.js\" \"src/lib/*.js\" \"tests/rate-limit.test.mjs\" \"*.{json,mjs}\"",
+    "format:check": "prettier --check \"app/api/**/*.js\" \"app/auth/actions.js\" \"app/page.js\" \"app/catalogo/page.js\" \"app/pedido/page.js\" \"app/produto/[slug]/page.js\" \"src/components/catalog/*.js\" \"src/lib/*.js\" \"tests/rate-limit.test.mjs\" \"*.{json,mjs}\"",
+    "lint": "eslint app src tests scripts next.config.mjs",
     "start": "next start",
+    "clone:preview": "node scripts/clone-supabase-preview.mjs",
     "sync:catalog": "node scripts/sync-supabase-catalog.mjs",
+    "sync:catalog:preview": "node scripts/sync-supabase-catalog.mjs --target preview",
     "test": "node --test",
     "validate": "node scripts/validate-catalog.mjs"
   },
@@ -15,10 +20,16 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.0",
     "next": "^16.2.4",
+    "pino": "^10.3.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
     "supabase": "^2.100.1"
   },
   "overrides": {

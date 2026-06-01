@@ -37,8 +37,7 @@ export const metadata = {
   },
   title: "Admin | TSZR15"
 };
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 600;
 
 function formatCurrency(cents, currency = "BRL") {
   return new Intl.NumberFormat("pt-BR", {

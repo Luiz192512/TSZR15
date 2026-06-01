@@ -17,9 +17,7 @@ import {
   buildCatalogProductCategoryRows,
   buildCatalogProductRows
 } from "../src/catalog/supabase-rows.js";
-import {
-  readCatalogProductsFromSupabase
-} from "../src/catalog/supabase-catalog-core.js";
+import { readCatalogProductsFromSupabase } from "../src/catalog/supabase-catalog-core.js";
 import {
   removeCartItem,
   sanitizeCartItems,
@@ -53,7 +51,8 @@ import {
 import { getUserDisplayName, getUserInitials } from "../src/auth/user-display.js";
 import {
   getPublicSupabaseConfig,
-  getSupabaseConfigStatus
+  getSupabaseConfigStatus,
+  getSupabaseServiceRoleKey
 } from "../src/lib/supabase/config.js";
 import {
   createAdminSessionValue,
@@ -93,15 +92,26 @@ const supabaseEnvKeys = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SUPABASE_PREVIEW_URL",
+  "NEXT_PUBLIC_SUPABASE_PREVIEW_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_PREVIEW_ANON_KEY",
   "SUPABASE_URL",
   "SUPABASE_PUBLISHABLE_KEY",
-  "SUPABASE_ANON_KEY"
+  "SUPABASE_ANON_KEY",
+  "SUPABASE_PREVIEW_URL",
+  "SUPABASE_PREVIEW_PUBLISHABLE_KEY",
+  "SUPABASE_PREVIEW_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_SECRET_KEY",
+  "SUPABASE_PREVIEW_SERVICE_ROLE_KEY",
+  "SUPABASE_PREVIEW_SECRET_KEY",
+  "SUPABASE_RUNTIME_TARGET",
+  "NEXT_PUBLIC_SUPABASE_RUNTIME_TARGET",
+  "VERCEL_ENV"
 ];
 
 function withEnv(overrides, callback) {
-  const previousValues = new Map(
-    Object.keys(overrides).map((key) => [key, process.env[key]])
-  );
+  const previousValues = new Map(Object.keys(overrides).map((key) => [key, process.env[key]]));
 
   for (const [key, value] of Object.entries(overrides)) {
     if (value === undefined) {
@@ -248,10 +258,7 @@ test("catalog products can carry image URL arrays through Supabase rows", () => 
   const [row] = buildCatalogProductRows([
     {
       ...sampleProduct,
-      imageUrls: [
-        "https://cdn.example.com/r15/frente-1.jpg",
-        "/brand/tszr15-hero-r15-dark.png"
-      ]
+      imageUrls: ["https://cdn.example.com/r15/frente-1.jpg", "/brand/tszr15-hero-r15-dark.png"]
     }
   ]);
 
@@ -262,9 +269,7 @@ test("catalog products can carry image URL arrays through Supabase rows", () => 
 });
 
 test("configured Supabase catalog can return an empty storefront without local fallback", async () => {
-  const catalog = await readCatalogProductsFromSupabase(
-    createSupabaseCatalogStub({ data: [] })
-  );
+  const catalog = await readCatalogProductsFromSupabase(createSupabaseCatalogStub({ data: [] }));
 
   assert.equal(catalog.source, "supabase");
   assert.deepEqual(catalog.products, []);
@@ -301,14 +306,19 @@ test("catalog grouping creates carousel-ready category sections", () => {
 
   assert.equal(groups.length, storefrontCategories.length);
   assert.ok(firstGroup.products.length > 0);
-  assert.ok(firstGroup.products.every((product) => product.storefrontCategoryIds.includes(firstGroup.id)));
+  assert.ok(
+    firstGroup.products.every((product) => product.storefrontCategoryIds.includes(firstGroup.id))
+  );
 });
 
 test("published catalog excludes vestuario and unsupported motorcycles", () => {
   const blockedNames = ["r3", "sbm 250s", "zx10", "vestuario"];
 
   for (const product of catalogProducts) {
-    const searchable = product.name.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+    const searchable = product.name
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
 
     for (const token of blockedNames) {
       assert.equal(
@@ -332,7 +342,9 @@ test("catalog allows approved style-reference exceptions for R15", () => {
 
 test("cross-listed products stay as single SKUs", () => {
   const filtro = catalogProducts.find((product) => product.name === "Filtro de AR Esportivo");
-  const protetor = catalogProducts.find((product) => product.name === "Protetor de Tanque Completo");
+  const protetor = catalogProducts.find(
+    (product) => product.name === "Protetor de Tanque Completo"
+  );
 
   assert.deepEqual(filtro.storefrontCategoryIds, ["escapamentos", "manutencao"]);
   assert.deepEqual(protetor.storefrontCategoryIds, ["adesivagem", "estetica"]);
@@ -573,24 +585,24 @@ test("backend checkout draft rejects invalid customer field formats", () => {
 
   try {
     buildCheckoutOrderDraft({
-        cartItems: [
-          {
-            id: "slider-esportivo-em-aluminio-somente-slider",
-            quantity: 1,
-            variation: "Preto"
-          }
-        ],
-        customer: {
-          address: "Rua Teste, 123 - Sao Paulo/SP",
-          cep: "cep-abc",
-          name: "Cliente Teste",
-          taxId: "abc123",
-          whatsapp: "telefone"
-        },
-        hasDataConsent: true,
-        paymentMethodId: "pix",
-        shippingOptionId: "combinar"
-      });
+      cartItems: [
+        {
+          id: "slider-esportivo-em-aluminio-somente-slider",
+          quantity: 1,
+          variation: "Preto"
+        }
+      ],
+      customer: {
+        address: "Rua Teste, 123 - Sao Paulo/SP",
+        cep: "cep-abc",
+        name: "Cliente Teste",
+        taxId: "abc123",
+        whatsapp: "telefone"
+      },
+      hasDataConsent: true,
+      paymentMethodId: "pix",
+      shippingOptionId: "combinar"
+    });
   } catch (caughtError) {
     error = caughtError;
   }
@@ -621,7 +633,10 @@ test("customer snapshot builds complete checkout data from account records", () 
   };
   const customer = buildCustomerSnapshot({ address, profile, user: { email: profile.email } });
 
-  assert.equal(buildAddressLine(address), "Rua XV, 50 - Centro - Curitiba/PR - CEP 80000-000 - Casa 2 - Ref.: Portao preto");
+  assert.equal(
+    buildAddressLine(address),
+    "Rua XV, 50 - Centro - Curitiba/PR - CEP 80000-000 - Casa 2 - Ref.: Portao preto"
+  );
   assert.equal(customer.name, "Cliente TSZR15");
   assert.equal(customer.email, "cliente@tszr15.com");
   assert.equal(customer.whatsapp, "(41) 99999-9999");
@@ -728,6 +743,50 @@ test("Supabase config accepts public and hosted integration env names", () => {
       assert.equal(config.isConfigured, true);
       assert.equal(config.projectRef, "server-ref");
       assert.equal(config.publishableKey, "anon-server-key");
+    }
+  );
+});
+
+test("Supabase config prefers preview env names in preview runtime", () => {
+  const emptyEnv = Object.fromEntries(supabaseEnvKeys.map((key) => [key, undefined]));
+
+  withEnv(
+    {
+      ...emptyEnv,
+      NEXT_PUBLIC_SUPABASE_PREVIEW_PUBLISHABLE_KEY: "sb_publishable_preview",
+      NEXT_PUBLIC_SUPABASE_PREVIEW_URL: "https://preview-ref.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_public",
+      NEXT_PUBLIC_SUPABASE_URL: "https://public-ref.supabase.co",
+      SUPABASE_PREVIEW_SERVICE_ROLE_KEY: "preview-service-role",
+      SUPABASE_SERVICE_ROLE_KEY: "production-service-role",
+      VERCEL_ENV: "preview"
+    },
+    () => {
+      const config = getPublicSupabaseConfig();
+
+      assert.equal(config.isConfigured, true);
+      assert.equal(config.projectRef, "preview-ref");
+      assert.equal(config.publishableKey, "sb_publishable_preview");
+      assert.equal(getSupabaseServiceRoleKey(), "preview-service-role");
+    }
+  );
+
+  withEnv(
+    {
+      ...emptyEnv,
+      NEXT_PUBLIC_SUPABASE_PREVIEW_PUBLISHABLE_KEY: "sb_publishable_preview",
+      NEXT_PUBLIC_SUPABASE_PREVIEW_URL: "https://preview-ref.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_public",
+      NEXT_PUBLIC_SUPABASE_URL: "https://public-ref.supabase.co",
+      SUPABASE_PREVIEW_SERVICE_ROLE_KEY: "preview-service-role",
+      SUPABASE_SERVICE_ROLE_KEY: "production-service-role"
+    },
+    () => {
+      const config = getPublicSupabaseConfig();
+
+      assert.equal(config.projectRef, "public-ref");
+      assert.equal(config.publishableKey, "sb_publishable_public");
+      assert.equal(getSupabaseServiceRoleKey(), "production-service-role");
     }
   );
 });
@@ -916,10 +975,7 @@ test("review helpers validate ratings, comments, image mime and public summary",
   assert.equal(invalid.rating, null);
   assert.equal(invalid.errors.length, 2);
 
-  assert.equal(
-    detectImageMimeType(new Uint8Array([0xff, 0xd8, 0xff, 0x00])),
-    "image/jpeg"
-  );
+  assert.equal(detectImageMimeType(new Uint8Array([0xff, 0xd8, 0xff, 0x00])), "image/jpeg");
   assert.equal(
     detectImageMimeType(
       new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50])

@@ -17,6 +17,13 @@ import {
   getSiteOriginFromHeaders
 } from "@/src/auth/password-reset.js";
 
+import { logServerEvent } from "@/src/lib/logger.js";
+import {
+  consumeRateLimit,
+  getRequestIp,
+  rateLimitProfiles,
+  resetRateLimit
+} from "@/src/lib/rate-limit.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { getSupabaseConfigStatus } from "@/src/lib/supabase/config.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
@@ -44,6 +51,54 @@ function redirectWithStatus(path, status) {
   });
 
   redirect(`${path}?${params.toString()}`);
+}
+
+async function getAdminRateLimitContext() {
+  const headerStore = await headers();
+  const identifier = `${getRequestIp(headerStore)}:admin`;
+
+  return {
+    identifier,
+    supabase: createServiceRoleSupabaseClient()
+  };
+}
+
+async function checkAdminLoginRateLimit() {
+  const context = await getAdminRateLimitContext();
+  const result = await consumeRateLimit({
+    ...rateLimitProfiles.adminLogin,
+    identifier: context.identifier,
+    increment: false,
+    supabase: context.supabase
+  });
+
+  if (!result.allowed) {
+    logServerEvent("warn", "admin_login_rate_limit_blocked", {
+      retryAfterSeconds: result.retryAfterSeconds,
+      unavailable: result.unavailable
+    });
+  }
+
+  return {
+    ...context,
+    result
+  };
+}
+
+async function recordFailedAdminLogin({ identifier, supabase }) {
+  const result = await consumeRateLimit({
+    ...rateLimitProfiles.adminLogin,
+    identifier,
+    increment: true,
+    supabase
+  });
+
+  logServerEvent("warn", "admin_login_failed", {
+    retryAfterSeconds: result.retryAfterSeconds,
+    unavailable: result.unavailable
+  });
+
+  return result;
 }
 
 function collectProfilePayload(formData, user) {
@@ -247,7 +302,18 @@ export async function signInAction(formData) {
   const nextPath = getSafeAuthRedirectPath(formValue(formData, "next"), "/conta");
 
   if (email.toLowerCase() === "admin") {
+    const rateLimitContext = await checkAdminLoginRateLimit();
+
+    if (!rateLimitContext.result.allowed) {
+      const message = rateLimitContext.result.unavailable
+        ? "Protecao administrativa indisponivel. Tente novamente em instantes."
+        : "Muitas tentativas administrativas. Aguarde alguns minutos antes de tentar de novo.";
+
+      redirectWithError("/entrar", message, "/admin");
+    }
+
     if (!isAdminTokenConfigured()) {
+      logServerEvent("error", "admin_login_token_missing");
       redirectWithError(
         "/entrar",
         "Token administrativo ausente no servidor. Configure TSZR15_ADMIN_TOKEN no ambiente de producao.",
@@ -258,9 +324,25 @@ export async function signInAction(formData) {
     const isValidAdmin = await startAdminSession(password);
 
     if (!isValidAdmin) {
+      const failedAttempt = await recordFailedAdminLogin(rateLimitContext);
+
+      if (!failedAttempt.allowed) {
+        redirectWithError(
+          "/entrar",
+          "Muitas tentativas administrativas. Aguarde alguns minutos antes de tentar de novo.",
+          "/admin"
+        );
+      }
+
       redirectWithError("/entrar", "Senha administrativa invalida.", "/admin");
     }
 
+    await resetRateLimit({
+      ...rateLimitProfiles.adminLogin,
+      identifier: rateLimitContext.identifier,
+      supabase: rateLimitContext.supabase
+    });
+    logServerEvent("info", "admin_login_success");
     redirect("/admin");
   }
 
@@ -269,7 +351,11 @@ export async function signInAction(formData) {
   if (!supabase) {
     const status = getSupabaseConfigStatus();
     const missing = status.missing.length ? ` Faltando: ${status.missing.join("; ")}.` : "";
-    redirectWithError("/entrar", `Configure as variaveis do Supabase antes de entrar.${missing}`, nextPath);
+    redirectWithError(
+      "/entrar",
+      `Configure as variaveis do Supabase antes de entrar.${missing}`,
+      nextPath
+    );
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -408,7 +494,10 @@ export async function requestPasswordResetAction(formData) {
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
-    redirectWithError("/recuperar-senha", "Configure as variaveis do Supabase antes de recuperar senha.");
+    redirectWithError(
+      "/recuperar-senha",
+      "Configure as variaveis do Supabase antes de recuperar senha."
+    );
   }
 
   const email = formValue(formData, "email").toLowerCase();

@@ -1,23 +1,20 @@
-import {
-  buildWhatsAppCheckoutUrl,
-} from "@/src/checkout/whatsapp.js";
+import { buildWhatsAppCheckoutUrl } from "@/src/checkout/whatsapp.js";
 import {
   buildCheckoutOrderDraft,
   CheckoutPersistenceError,
   CheckoutValidationError,
   persistCheckoutOrder
 } from "@/src/checkout/order-backend.js";
-import {
-  markCouponRedeemed,
-  resolveCheckoutCoupon
-} from "@/src/checkout/coupons.js";
+import { markCouponRedeemed, resolveCheckoutCoupon } from "@/src/checkout/coupons.js";
 import { getSupabaseCatalogProducts } from "@/src/catalog/supabase-catalog.js";
+import { logServerEvent } from "@/src/lib/logger.js";
+import { consumeRateLimit, getRequestIp, rateLimitProfiles } from "@/src/lib/rate-limit.js";
+import { createRateLimitResponse } from "@/src/lib/rate-limit-response.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 function getRequestContext(request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const ipAddress = forwardedFor?.split(",")[0]?.trim() || null;
+  const ipAddress = getRequestIp(request);
 
   return {
     ipAddress,
@@ -43,7 +40,10 @@ async function attachInternalProductCosts(products, supabase) {
   const { data, error } = await supabase
     .from("catalog_product_costs")
     .select("product_id, cost_cents")
-    .in("product_id", products.map((product) => product.id));
+    .in(
+      "product_id",
+      products.map((product) => product.id)
+    );
 
   if (error) {
     throw new Error(error.message);
@@ -58,11 +58,32 @@ async function attachInternalProductCosts(products, supabase) {
 }
 
 export async function POST(request) {
+  const serviceSupabase = createServiceRoleSupabaseClient();
+  const rateLimit = await consumeRateLimit({
+    ...rateLimitProfiles.checkout,
+    identifier: getRequestIp(request),
+    supabase: serviceSupabase
+  });
+
+  if (!rateLimit.allowed) {
+    logServerEvent("warn", "checkout_rate_limit_blocked", {
+      retryAfterSeconds: rateLimit.retryAfterSeconds,
+      unavailable: rateLimit.unavailable
+    });
+
+    return createRateLimitResponse(rateLimit, {
+      rateLimitedMessage: "Muitas tentativas de checkout. Tente novamente em instantes."
+    });
+  }
+
   let payload;
 
   try {
     payload = await request.json();
   } catch {
+    logServerEvent("warn", "checkout_validation_error", {
+      reason: "invalid_json"
+    });
     return errorResponse("Envie um JSON valido para finalizar o pedido.", 400);
   }
 
@@ -72,7 +93,6 @@ export async function POST(request) {
     process.env.NEXT_PUBLIC_WHATSAPP_BUSINESS_NUMBER ??
     "5511999999999";
   const userSupabase = await createServerSupabaseClient();
-  const serviceSupabase = createServiceRoleSupabaseClient();
   const supabase = serviceSupabase ?? userSupabase;
 
   let draft;
@@ -87,14 +107,19 @@ export async function POST(request) {
       supabase: serviceSupabase
     });
 
-    draft = coupon
-      ? buildCheckoutOrderDraft(payload, { coupon, products, storeName })
-      : baseDraft;
+    draft = coupon ? buildCheckoutOrderDraft(payload, { coupon, products, storeName }) : baseDraft;
   } catch (error) {
     if (error instanceof CheckoutValidationError) {
+      logServerEvent("warn", "checkout_validation_error", {
+        details: error.details,
+        reason: error.message
+      });
       return errorResponse(error.message, 400, error.details);
     }
 
+    logServerEvent("error", "checkout_unhandled_build_error", {
+      reason: error instanceof Error ? error.message : "unknown"
+    });
     throw error;
   }
   const {
@@ -112,9 +137,15 @@ export async function POST(request) {
     });
   } catch (error) {
     if (error instanceof CheckoutPersistenceError) {
+      logServerEvent("error", "checkout_persistence_error", {
+        reason: error.message
+      });
       return errorResponse(`Nao foi possivel salvar o pedido: ${error.message}`, 500);
     }
 
+    logServerEvent("error", "checkout_unhandled_persistence_error", {
+      reason: error instanceof Error ? error.message : "unknown"
+    });
     throw error;
   }
 
@@ -122,12 +153,21 @@ export async function POST(request) {
     await markCouponRedeemed({ code: draft.coupon.code, supabase: serviceSupabase });
   }
 
-  return Response.json({
-    channel: "whatsapp-business",
-    coupon: draft.coupon,
-    message: draft.message,
-    order,
-    totals: draft.totals,
-    whatsappUrl: buildWhatsAppCheckoutUrl({ phoneNumber, message: draft.message })
-  }, { status: order.saved ? 201 : 200 });
+  logServerEvent(order.saved ? "info" : "warn", "checkout_order_processed", {
+    orderNumber: order.orderNumber,
+    orderSaved: order.saved,
+    reason: order.reason
+  });
+
+  return Response.json(
+    {
+      channel: "whatsapp-business",
+      coupon: draft.coupon,
+      message: draft.message,
+      order,
+      totals: draft.totals,
+      whatsappUrl: buildWhatsAppCheckoutUrl({ phoneNumber, message: draft.message })
+    },
+    { status: order.saved ? 201 : 200 }
+  );
 }

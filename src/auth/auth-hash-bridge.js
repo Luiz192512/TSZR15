@@ -18,11 +18,37 @@ function getHashParams() {
   return new URLSearchParams(hash);
 }
 
+function getRootRecoveryCodeRedirect() {
+  if (typeof window === "undefined" || window.location.pathname !== "/") {
+    return "";
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+
+  if (!code || params.has("next")) {
+    return "";
+  }
+
+  const callbackUrl = new URL("/auth/callback", window.location.origin);
+  callbackUrl.searchParams.set("code", code);
+  callbackUrl.searchParams.set("next", "/trocar-senha");
+
+  return `${callbackUrl.pathname}${callbackUrl.search}`;
+}
+
 export function AuthHashBridge() {
   useEffect(() => {
     let isMounted = true;
 
     async function bridgeRecoveryHash() {
+      const rootRecoveryRedirect = getRootRecoveryCodeRedirect();
+
+      if (rootRecoveryRedirect) {
+        window.location.replace(rootRecoveryRedirect);
+        return;
+      }
+
       const params = getHashParams();
 
       if (!params) {

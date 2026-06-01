@@ -9,15 +9,17 @@ import {
   buildCatalogProductCategoryRows,
   buildCatalogProductRows
 } from "../src/catalog/supabase-rows.js";
+import { getSupabaseServiceRoleKey, getSupabaseUrl } from "../src/lib/supabase/config.js";
 
 const envPath = resolve(process.cwd(), ".env.local");
 const dryRun = process.argv.includes("--dry-run");
 const sqlArgIndex = process.argv.findIndex((argument) => argument === "--write-sql");
-const sqlOutputPath =
-  sqlArgIndex >= 0 ? process.argv[sqlArgIndex + 1] : null;
+const sqlOutputPath = sqlArgIndex >= 0 ? process.argv[sqlArgIndex + 1] : null;
+const targetArgIndex = process.argv.findIndex((argument) => argument === "--target");
+const targetArg = targetArgIndex >= 0 ? process.argv[targetArgIndex + 1] : null;
 
 function loadLocalEnv() {
-  let content = "";
+  let content;
 
   try {
     content = readFileSync(envPath, "utf8");
@@ -169,6 +171,10 @@ select
 async function main() {
   loadLocalEnv();
 
+  if (targetArg) {
+    process.env.SUPABASE_RUNTIME_TARGET = targetArg;
+  }
+
   const catalogIssues = validateCatalog();
 
   if (catalogIssues.length > 0) {
@@ -195,11 +201,13 @@ async function main() {
     return;
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+  const url = getSupabaseUrl();
+  const serviceRoleKey = getSupabaseServiceRoleKey();
 
   if (!url || !serviceRoleKey) {
-    throw new Error("Configure NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_URL, alem de SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_SECRET_KEY no .env.local.");
+    throw new Error(
+      "Configure as envs Supabase do destino. Para preview use NEXT_PUBLIC_SUPABASE_PREVIEW_URL e SUPABASE_PREVIEW_SERVICE_ROLE_KEY, ou rode com as envs padrao."
+    );
   }
 
   if (getJwtRole(serviceRoleKey) === "anon") {
