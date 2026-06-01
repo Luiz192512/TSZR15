@@ -1,4 +1,4 @@
-import { CatalogHub } from "@/src/components/catalog/catalog-experience.js";
+import { CatalogHub } from "@/src/components/catalog/catalog-hub.js";
 import { getStorefrontMenu } from "@/src/catalog/index.js";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";

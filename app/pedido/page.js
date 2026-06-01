@@ -1,7 +1,12 @@
-import { CartCheckout } from "@/src/components/catalog/catalog-experience.js";
+import nextDynamic from "next/dynamic";
+
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
+
+const CartCheckout = nextDynamic(() =>
+  import("@/src/components/catalog/cart-checkout.js").then((module) => module.CartCheckout)
+);
 
 export const metadata = {
   title: "Carrinho e pedido | TSZR15",
