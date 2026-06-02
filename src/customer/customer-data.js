@@ -64,21 +64,22 @@ export async function getCurrentCustomerSnapshot(supabase) {
     };
   }
 
-  const [{ data: profile, error: profileError }, { data: address, error: addressError }] =
+  const [{ data: profile, error: profileError }, { data: addresses, error: addressError }] =
     await Promise.all([
       supabase.from("customer_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase
         .from("customer_addresses")
         .select("*")
         .eq("user_id", user.id)
-        .eq("is_default", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
+        .order("is_default", { ascending: false })
+        .order("updated_at", { ascending: false })
     ]);
+  const addressList = addresses ?? [];
+  const address = addressList.find((item) => item.is_default) ?? addressList[0] ?? null;
 
   return {
     address,
+    addresses: addressList,
     customer: buildCustomerSnapshot({ address, profile, user }),
     error: profileError ?? addressError ?? null,
     profile,

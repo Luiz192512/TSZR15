@@ -42,7 +42,7 @@ function redirectWithError(path, message, nextPath = "") {
     params.set("next", safeNextPath);
   }
 
-  redirect(`${path}?${params.toString()}`);
+  redirect(`${path}${path.includes("?") ? "&" : "?"}${params.toString()}`);
 }
 
 function redirectWithStatus(path, status) {
@@ -120,8 +120,8 @@ function collectAddressPayload(formData, user) {
     city: formValue(formData, "city"),
     complement: formValue(formData, "complement"),
     district: formValue(formData, "district"),
-    is_default: true,
-    label: "Principal",
+    is_default: formData.get("addressIsDefault") === "on",
+    label: formValue(formData, "addressLabel") || "Endereco",
     number: formValue(formData, "number"),
     reference_point: formValue(formData, "referencePoint"),
     state: formValue(formData, "state").toUpperCase(),
@@ -139,11 +139,31 @@ function collectSignUpMetadata(formData) {
   };
 }
 
-function validateRequiredProfile(formData) {
+function validateRequiredSignUp(formData) {
   const requiredFields = [
     ["fullName", "Informe o nome completo."],
     ["email", "Informe o email."],
-    ["whatsapp", "Informe o WhatsApp."],
+    ["taxId", "Informe o CPF."],
+    ["whatsapp", "Informe o numero de contato."]
+  ];
+
+  for (const [field, message] of requiredFields) {
+    if (!formValue(formData, field)) {
+      return message;
+    }
+  }
+
+  const [formatError] = validateCustomerFieldFormats({
+    phone: "",
+    taxId: formValue(formData, "taxId"),
+    whatsapp: formValue(formData, "whatsapp")
+  });
+
+  return formatError ?? null;
+}
+
+function validateRequiredAddress(formData) {
+  const requiredFields = [
     ["cep", "Informe o CEP."],
     ["street", "Informe a rua."],
     ["number", "Informe o numero."],
@@ -158,23 +178,21 @@ function validateRequiredProfile(formData) {
     }
   }
 
-  if (formData.get("dataConsent") !== "on") {
-    return "Confirme o consentimento de uso dos dados para compra assistida.";
-  }
-
   const [formatError] = validateCustomerFieldFormats({
     cep: formValue(formData, "cep"),
-    phone: formValue(formData, "phone"),
+    phone: "",
     state: formValue(formData, "state"),
-    taxId: formValue(formData, "taxId"),
-    whatsapp: formValue(formData, "whatsapp")
+    taxId: "",
+    whatsapp: ""
   });
 
-  if (formatError) {
-    return formatError;
-  }
+  return formatError ?? null;
+}
 
-  return null;
+function hasAddressFormData(formData) {
+  return ["cep", "street", "number", "district", "city", "state"].some((field) =>
+    formValue(formData, field)
+  );
 }
 
 async function insertConsent(supabase, userId) {
@@ -233,7 +251,6 @@ async function persistSignUpCustomerData({ formData, hasSession, supabase, user 
   }
 
   const profilePayload = collectProfilePayload(formData, user);
-  const addressPayload = collectAddressPayload(formData, user);
 
   const { error: profileError } = await persistenceSupabase
     .from("customer_profiles")
@@ -243,16 +260,24 @@ async function persistSignUpCustomerData({ formData, hasSession, supabase, user 
     return { error: profileError };
   }
 
-  const { error: addressError } = await upsertDefaultAddress(persistenceSupabase, addressPayload);
+  if (hasAddressFormData(formData)) {
+    const addressPayload = {
+      ...collectAddressPayload(formData, user),
+      is_default: true
+    };
+    const { error: addressError } = await upsertDefaultAddress(persistenceSupabase, addressPayload);
 
-  if (addressError) {
-    return { error: addressError };
+    if (addressError) {
+      return { error: addressError };
+    }
   }
 
-  const { error: consentError } = await insertConsent(persistenceSupabase, user.id);
+  if (formData.get("dataConsent") === "on") {
+    const { error: consentError } = await insertConsent(persistenceSupabase, user.id);
 
-  if (consentError) {
-    return { error: consentError };
+    if (consentError) {
+      return { error: consentError };
+    }
   }
 
   return { error: null };
@@ -375,7 +400,7 @@ export async function signUpAction(formData) {
     redirectWithError("/cadastrar", "Configure as variaveis do Supabase antes de cadastrar.");
   }
 
-  const validationError = validateRequiredProfile(formData);
+  const validationError = validateRequiredSignUp(formData);
 
   if (validationError) {
     redirectWithError("/cadastrar", validationError);
@@ -437,11 +462,11 @@ export async function signUpAction(formData) {
   redirect("/entrar?status=confirmar-email");
 }
 
-export async function saveAccountAction(formData) {
+export async function saveAccountProfileAction(formData) {
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
-    redirectWithError("/conta", "Configure as variaveis do Supabase antes de salvar.");
+    redirectWithError("/conta?tab=dados", "Configure as variaveis do Supabase antes de salvar.");
   }
 
   const {
@@ -453,22 +478,84 @@ export async function saveAccountAction(formData) {
     redirect("/entrar?next=/conta");
   }
 
-  const validationError = validateRequiredProfile(formData);
+  const requiredFields = [
+    ["fullName", "Informe o nome completo."],
+    ["email", "Informe o email."],
+    ["taxId", "Informe o CPF/CNPJ."],
+    ["whatsapp", "Informe o WhatsApp."]
+  ];
 
-  if (validationError) {
-    redirectWithError("/conta", validationError);
+  for (const [field, message] of requiredFields) {
+    if (!formValue(formData, field)) {
+      redirectWithError("/conta?tab=dados", message);
+    }
+  }
+
+  const [formatError] = validateCustomerFieldFormats({
+    phone: formValue(formData, "phone"),
+    taxId: formValue(formData, "taxId"),
+    whatsapp: formValue(formData, "whatsapp")
+  });
+
+  if (formatError) {
+    redirectWithError("/conta?tab=dados", formatError);
   }
 
   const profilePayload = collectProfilePayload(formData, user);
-  const addressPayload = collectAddressPayload(formData, user);
-  const addressId = formValue(formData, "addressId");
 
   const { error: profileError } = await supabase
     .from("customer_profiles")
     .upsert(profilePayload, { onConflict: "user_id" });
 
   if (profileError) {
-    redirectWithError("/conta", profileError.message);
+    redirectWithError("/conta?tab=dados", profileError.message);
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/conta?tab=dados&status=salvo");
+}
+
+export async function saveAccountAddressAction(formData) {
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    redirectWithError(
+      "/conta?tab=enderecos",
+      "Configure as variaveis do Supabase antes de salvar."
+    );
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect("/entrar?next=/conta");
+  }
+
+  const validationError = validateRequiredAddress(formData);
+
+  if (validationError) {
+    redirectWithError("/conta?tab=enderecos", validationError);
+  }
+
+  const addressId = formValue(formData, "addressId");
+  const isFirstAddress = formData.get("isFirstAddress") === "true";
+  const addressPayload = {
+    ...collectAddressPayload(formData, user),
+    is_default: formData.get("addressIsDefault") === "on" || isFirstAddress
+  };
+
+  if (addressPayload.is_default) {
+    const { error: resetError } = await supabase
+      .from("customer_addresses")
+      .update({ is_default: false })
+      .eq("user_id", user.id);
+
+    if (resetError) {
+      redirectWithError("/conta?tab=enderecos", resetError.message);
+    }
   }
 
   const addressRequest = addressId
@@ -477,17 +564,65 @@ export async function saveAccountAction(formData) {
   const { error: addressError } = await addressRequest;
 
   if (addressError) {
-    redirectWithError("/conta", addressError.message);
+    redirectWithError("/conta?tab=enderecos", addressError.message);
   }
 
   const { error: consentError } = await insertConsent(supabase, user.id);
 
   if (consentError) {
-    redirectWithError("/conta", consentError.message);
+    redirectWithError("/conta?tab=enderecos", consentError.message);
   }
 
   revalidatePath("/", "layout");
-  redirect("/conta?status=salvo");
+  redirect("/conta?tab=enderecos&status=salvo");
+}
+
+export async function setDefaultAddressAction(formData) {
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    redirectWithError(
+      "/conta?tab=enderecos",
+      "Configure as variaveis do Supabase antes de salvar."
+    );
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect("/entrar?next=/conta");
+  }
+
+  const addressId = formValue(formData, "addressId");
+
+  if (!addressId) {
+    redirectWithError("/conta?tab=enderecos", "Endereco invalido.");
+  }
+
+  const { error: resetError } = await supabase
+    .from("customer_addresses")
+    .update({ is_default: false })
+    .eq("user_id", user.id);
+
+  if (resetError) {
+    redirectWithError("/conta?tab=enderecos", resetError.message);
+  }
+
+  const { error } = await supabase
+    .from("customer_addresses")
+    .update({ is_default: true })
+    .eq("id", addressId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    redirectWithError("/conta?tab=enderecos", error.message);
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/conta?tab=enderecos&status=salvo");
 }
 
 export async function requestPasswordResetAction(formData) {

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
-import { ProfileLink } from "@/src/components/profile-link.js";
+import { AccountNavLink } from "@/src/components/account-nav-link.js";
 export const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
 export const cartStorageKey = "tszr15-cart";
 export const brandLogoSrc = "/brand/logo-tszr15-store.png";
@@ -247,6 +247,7 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
 
         <div className="mobile-nav-actions">
           <Link className="cart-nav-link mobile-cart-link" href="/pedido">
+            <span aria-hidden="true" className="cart-link-icon" />
             Carrinho
             <span>{cartCount}</span>
           </Link>
@@ -261,7 +262,12 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
               <Link href="/#lancamentos">Lancamentos</Link>
               <Link href="/#sobre">Sobre nos</Link>
               <Link href="/rastreio">Rastreio</Link>
-              {currentUser ? <Link href="/conta">Conta</Link> : <Link href="/entrar">Entrar</Link>}
+              <AccountNavLink
+                authenticatedClassName=""
+                unauthenticatedClassName=""
+                user={currentUser}
+                variant="text"
+              />
             </nav>
           </details>
         </div>
@@ -285,18 +291,15 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
         <Link href="/#lancamentos">Lancamentos</Link>
         <Link href="/#sobre">Sobre nos</Link>
         <Link className="cart-nav-link" href="/pedido">
+          <span aria-hidden="true" className="cart-link-icon" />
           Carrinho
           <span>{cartCount}</span>
         </Link>
-        {currentUser ? (
-          <>
-            <ProfileLink className="store-profile-link desktop-account-link" user={currentUser} />
-          </>
-        ) : (
-          <Link className="button button-secondary" href="/entrar">
-            Entrar
-          </Link>
-        )}
+        <AccountNavLink
+          authenticatedClassName="profile-link store-profile-link desktop-account-link"
+          unauthenticatedClassName="button button-secondary"
+          user={currentUser}
+        />
       </nav>
     </header>
   );

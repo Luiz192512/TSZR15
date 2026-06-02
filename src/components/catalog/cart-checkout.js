@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
+import { ASSISTED_PURCHASE_CONSENT_TEXT, buildAddressLine } from "@/src/customer/customer-data.js";
 import { fetchCepAddress, formatCepAddressLine, getCepDigits } from "@/src/customer/cep-lookup.js";
 import {
   cepPattern,
@@ -35,6 +35,8 @@ import {
   storeName,
   writeStoredCart
 } from "./catalog-shared.js";
+import { createBrowserSupabaseClient } from "@/src/lib/supabase/client.js";
+
 export function CartCheckout({ currentUser, initialCustomer, isSupabaseConfigured, products }) {
   const [cartItems, setCartItems] = useState([]);
   const [hasLoadedCart, setHasLoadedCart] = useState(false);
@@ -51,8 +53,9 @@ export function CartCheckout({ currentUser, initialCustomer, isSupabaseConfigure
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
   const [customer, setCustomer] = useState(() => getInitialCustomer(initialCustomer));
+  const [resolvedUser, setResolvedUser] = useState(currentUser ?? null);
   const initialCustomerHadAddress = useRef(Boolean(initialCustomer?.address));
-  const isAuthenticated = Boolean(currentUser);
+  const isAuthenticated = Boolean(resolvedUser);
   const productsById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
     [products]
@@ -64,6 +67,87 @@ export function CartCheckout({ currentUser, initialCustomer, isSupabaseConfigure
     setHasLoadedCart(true);
     writeStoredCart(sanitizedItems);
   }, [products]);
+
+  useEffect(() => {
+    if (currentUser) {
+      setResolvedUser(currentUser);
+      setHasDataConsent(true);
+      return undefined;
+    }
+
+    const supabase = createBrowserSupabaseClient();
+
+    if (!supabase) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    async function loadCustomerData() {
+      try {
+        const {
+          data: { user }
+        } = await supabase.auth.getUser();
+
+        if (!isMounted || !user) {
+          return;
+        }
+
+        setResolvedUser(user);
+        setHasDataConsent(true);
+
+        const [{ data: profile }, { data: address }] = await Promise.all([
+          supabase.from("customer_profiles").select("*").eq("user_id", user.id).maybeSingle(),
+          supabase
+            .from("customer_addresses")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("is_default", { ascending: false })
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const addressLine = buildAddressLine(address);
+
+        if (addressLine) {
+          initialCustomerHadAddress.current = true;
+        }
+
+        setCustomer((currentCustomer) => ({
+          ...currentCustomer,
+          address: currentCustomer.address || addressLine,
+          cep: currentCustomer.cep || address?.cep || "",
+          email: currentCustomer.email || profile?.email || user.email || "",
+          name: currentCustomer.name || profile?.full_name || "",
+          phone: currentCustomer.phone || profile?.phone || "",
+          taxId: currentCustomer.taxId || profile?.tax_id || "",
+          whatsapp: currentCustomer.whatsapp || profile?.whatsapp || ""
+        }));
+      } catch {
+        if (isMounted) {
+          setResolvedUser(null);
+        }
+      }
+    }
+
+    loadCustomerData();
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setResolvedUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [currentUser]);
 
   useEffect(() => {
     if (hasLoadedCart) {
@@ -333,7 +417,7 @@ export function CartCheckout({ currentUser, initialCustomer, isSupabaseConfigure
 
   return (
     <>
-      <StoreHeader currentUser={currentUser} showSearch={false} />
+      <StoreHeader currentUser={resolvedUser} showSearch={false} />
 
       <section className="cart-heading">
         <div>
