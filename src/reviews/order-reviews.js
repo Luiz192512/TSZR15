@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
+import { buildPublicOrderTrackingView } from "@/src/tracking/order-tracking.js";
 import {
   buildReviewSummary,
   cleanReviewString,
@@ -17,7 +18,9 @@ import {
 const reviewPhotoBucket = "review-photos";
 
 function cleanString(value, maxLength = 500) {
-  return String(value ?? "").trim().slice(0, maxLength);
+  return String(value ?? "")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function digitsOnly(value) {
@@ -73,7 +76,7 @@ async function createSignedPhotoUrls({ photos, supabase }) {
     signedPhotos.push({
       id: photo.id,
       sortOrder: photo.sort_order ?? 0,
-      url: error ? "" : data?.signedUrl ?? ""
+      url: error ? "" : (data?.signedUrl ?? "")
     });
   }
 
@@ -226,7 +229,9 @@ export async function getCustomerAccountOrders({ user }) {
 
   const { data: orders, error: orderError } = await supabase
     .from("orders")
-    .select("id, order_number, created_at, operational_status, payment_status, total_cents, currency")
+    .select(
+      "id, order_number, created_at, operational_status, payment_status, total_cents, currency, shipping_eta"
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(80);
@@ -247,21 +252,32 @@ export async function getCustomerAccountOrders({ user }) {
 
   const [
     { data: items, error: itemError },
-    { data: reviews, error: reviewError }
+    { data: reviews, error: reviewError },
+    { data: supplierPurchases, error: supplierError },
+    { data: trackingEvents, error: trackingError }
   ] = await Promise.all([
     supabase
       .from("order_items")
-      .select("id, order_id, product_id, product_slug, product_name, variation, quantity, subtotal_cents")
+      .select(
+        "id, order_id, product_id, product_slug, product_name, variation, quantity, subtotal_cents"
+      )
+      .in("order_id", orderIds)
+      .order("created_at", { ascending: true }),
+    supabase.from("order_item_reviews").select("*").in("order_id", orderIds).eq("user_id", user.id),
+    supabase
+      .from("supplier_purchases")
+      .select("order_id, carrier, source_eta, tracking_code, created_at")
       .in("order_id", orderIds)
       .order("created_at", { ascending: true }),
     supabase
-      .from("order_item_reviews")
-      .select("*")
+      .from("supplier_tracking_events")
+      .select("id, order_id, event_status, event_at, location, description, created_at")
       .in("order_id", orderIds)
-      .eq("user_id", user.id)
+      .order("event_at", { ascending: false })
+      .order("created_at", { ascending: false })
   ]);
 
-  const firstError = itemError ?? reviewError;
+  const firstError = itemError ?? reviewError ?? supplierError ?? trackingError;
 
   if (firstError) {
     throw new Error(firstError.message);
@@ -297,6 +313,8 @@ export async function getCustomerAccountOrders({ user }) {
     ])
   );
   const itemsByOrderId = new Map();
+  const supplierByOrderId = new Map();
+  const trackingEventsByOrderId = new Map();
 
   for (const item of items ?? []) {
     const orderItems = itemsByOrderId.get(item.order_id) ?? [];
@@ -304,17 +322,40 @@ export async function getCustomerAccountOrders({ user }) {
     itemsByOrderId.set(item.order_id, orderItems);
   }
 
-  const mappedOrders = (orders ?? []).map((order) => ({
-    createdAt: order.created_at,
-    currency: order.currency ?? "BRL",
-    id: order.id,
-    isDelivered: order.operational_status === "entregue",
-    items: itemsByOrderId.get(order.id) ?? [],
-    operationalStatus: order.operational_status,
-    orderNumber: order.order_number,
-    paymentStatus: order.payment_status,
-    totalCents: order.total_cents
-  }));
+  for (const supplierPurchase of supplierPurchases ?? []) {
+    if (!supplierByOrderId.has(supplierPurchase.order_id)) {
+      supplierByOrderId.set(supplierPurchase.order_id, supplierPurchase);
+    }
+  }
+
+  for (const event of trackingEvents ?? []) {
+    const orderEvents = trackingEventsByOrderId.get(event.order_id) ?? [];
+    orderEvents.push(event);
+    trackingEventsByOrderId.set(event.order_id, orderEvents);
+  }
+
+  const mappedOrders = (orders ?? []).map((order) => {
+    const trackingView = buildPublicOrderTrackingView({
+      order,
+      supplierPurchase: supplierByOrderId.get(order.id) ?? null,
+      trackingEvents: trackingEventsByOrderId.get(order.id) ?? []
+    });
+
+    return {
+      createdAt: order.created_at,
+      currency: order.currency ?? "BRL",
+      id: order.id,
+      isDelivered: order.operational_status === "entregue",
+      items: itemsByOrderId.get(order.id) ?? [],
+      operationalStatus: order.operational_status,
+      orderNumber: order.order_number,
+      paymentStatus: order.payment_status,
+      shippingEta: order.shipping_eta,
+      timeline: trackingView.timeline,
+      totalCents: order.total_cents,
+      tracking: trackingView.tracking
+    };
+  });
 
   return {
     completedOrders: mappedOrders.filter((order) => order.isDelivered),
@@ -343,7 +384,9 @@ export async function claimCustomerOrder({ formData, user }) {
 
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id, order_number, user_id, customer_whatsapp, customer_phone, customer_tax_id, customer_snapshot")
+    .select(
+      "id, order_number, user_id, customer_whatsapp, customer_phone, customer_tax_id, customer_snapshot"
+    )
     .eq("order_number", orderNumber)
     .limit(1)
     .maybeSingle();
@@ -408,10 +451,7 @@ export async function submitOrderItemReview({ formData, user }) {
     throw new Error(validation.errors[0]);
   }
 
-  const [
-    { data: order, error: orderError },
-    { data: item, error: itemError }
-  ] = await Promise.all([
+  const [{ data: order, error: orderError }, { data: item, error: itemError }] = await Promise.all([
     supabase
       .from("orders")
       .select("id, order_number, user_id, operational_status")
@@ -553,7 +593,9 @@ export async function getApprovedProductReviews({ productId, limit = 12 }) {
 
   const { data: reviews, error } = await supabase
     .from("order_item_reviews")
-    .select("id, product_id, product_name, rating, comment, public_name, status, created_at, updated_at")
+    .select(
+      "id, product_id, product_name, rating, comment, public_name, status, created_at, updated_at"
+    )
     .eq("product_id", productId)
     .eq("status", "approved")
     .order("created_at", { ascending: false })
@@ -584,7 +626,9 @@ export async function getApprovedProductReviews({ productId, limit = 12 }) {
 
   for (const review of reviews ?? []) {
     const reviewPhotos = photos.filter((photo) => photo.review_id === review.id);
-    mappedReviews.push(mapReview(review, await createSignedPhotoUrls({ photos: reviewPhotos, supabase })));
+    mappedReviews.push(
+      mapReview(review, await createSignedPhotoUrls({ photos: reviewPhotos, supabase }))
+    );
   }
 
   return {
@@ -602,7 +646,9 @@ export async function listPendingOrderReviews({ limit = 40, supabase } = {}) {
 
   const { data: reviews, error } = await client
     .from("order_item_reviews")
-    .select("id, order_id, product_id, product_slug, product_name, rating, comment, public_name, status, created_at, updated_at")
+    .select(
+      "id, order_id, product_id, product_slug, product_name, rating, comment, public_name, status, created_at, updated_at"
+    )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
     .limit(limit);

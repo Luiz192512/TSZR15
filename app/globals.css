@@ -5443,6 +5443,67 @@ body::before {
   white-space: nowrap;
 }
 
+.account-order-tracking {
+  border: 1px solid rgba(242, 7, 16, 0.22);
+  background: rgba(8, 8, 10, 0.045);
+}
+
+.account-order-tracking summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.account-order-tracking summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-order-tracking summary span,
+.account-tracking-facts span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.account-order-tracking summary strong {
+  color: #f20710;
+  text-align: right;
+}
+
+.account-order-tracking-body {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.account-current-step {
+  margin: 0;
+}
+
+.account-tracking-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.account-tracking-facts div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.account-tracking-events {
+  display: grid;
+  gap: 8px;
+}
+
 .review-stars {
   display: inline-flex;
   gap: 2px;
@@ -5850,6 +5911,16 @@ body::before {
 
   .account-address-grid,
   .account-suggestion-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-order-tracking summary,
+  .account-order-head,
+  .account-order-item-head {
+    align-items: flex-start;
+  }
+
+  .account-tracking-facts {
     grid-template-columns: 1fr;
   }
 }

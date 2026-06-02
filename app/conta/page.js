@@ -7,10 +7,7 @@ import {
   setDefaultAddressAction,
   signOutAction
 } from "@/app/auth/actions.js";
-import {
-  claimCustomerOrderAction,
-  submitOrderItemReviewAction
-} from "@/app/conta/actions.js";
+import { claimCustomerOrderAction, submitOrderItemReviewAction } from "@/app/conta/actions.js";
 import {
   ASSISTED_PURCHASE_CONSENT_TEXT,
   buildAddressLine,
@@ -25,11 +22,7 @@ import { phonePattern, taxIdPattern } from "@/src/customer/field-validation.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 import { getCustomerAccountOrders } from "@/src/reviews/order-reviews.js";
 import { getReviewStatusLabel } from "@/src/reviews/review-utils.js";
-import {
-  getStatusLabel,
-  operationalStatuses,
-  paymentStatuses
-} from "@/src/orders/status.js";
+import { getStatusLabel, operationalStatuses, paymentStatuses } from "@/src/orders/status.js";
 
 function getStatusMessage(params) {
   if (params?.status === "cadastrado") {
@@ -131,6 +124,9 @@ function ReviewForm({ item, order, profile }) {
 }
 
 function AccountOrderCard({ order, profile }) {
+  const canShowTracking = !order.isDelivered && order.timeline?.currentStep;
+  const recentEvents = order.timeline?.events?.slice(0, 3) ?? [];
+
   return (
     <article className="account-order-card">
       <div className="account-order-head">
@@ -149,9 +145,58 @@ function AccountOrderCard({ order, profile }) {
         <span>{order.items.length} item(ns)</span>
       </div>
 
+      {canShowTracking ? (
+        <details className="account-order-tracking">
+          <summary>
+            <span>Rastreio atual</span>
+            <strong>{order.timeline.currentStep.label}</strong>
+          </summary>
+          <div className="account-order-tracking-body">
+            <div className="tracking-current-step account-current-step">
+              <span>Agora</span>
+              <strong>{order.timeline.currentStep.label}</strong>
+              <small>
+                {order.tracking?.trackingCode
+                  ? `Codigo: ${order.tracking.trackingCode}`
+                  : "Codigo ainda nao liberado"}
+              </small>
+            </div>
+            <div className="account-tracking-facts">
+              <div>
+                <span>Transportadora</span>
+                <strong>{order.tracking?.carrier || "Aguardando"}</strong>
+              </div>
+              <div>
+                <span>Previsao</span>
+                <strong>{order.tracking?.sourceEta || order.shippingEta || "A confirmar"}</strong>
+              </div>
+            </div>
+            {recentEvents.length > 0 ? (
+              <div className="account-tracking-events">
+                {recentEvents.map((event) => (
+                  <div className="tracking-event-row" key={event.id}>
+                    <div>
+                      <strong>{event.label}</strong>
+                      <span>
+                        {formatDate(event.eventAt)}
+                        {event.location ? ` - ${event.location}` : ""}
+                      </span>
+                    </div>
+                    <p>{event.description || "Atualizacao operacional registrada."}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="helper-text">A primeira atualizacao aparece quando o envio andar.</p>
+            )}
+          </div>
+        </details>
+      ) : null}
+
       <div className="account-order-items">
         {order.items.map((item) => {
-          const canSubmitReview = order.isDelivered && (!item.review || item.review.status === "rejected");
+          const canSubmitReview =
+            order.isDelivered && (!item.review || item.review.status === "rejected");
 
           return (
             <section className="account-order-item" key={item.id}>
@@ -217,7 +262,9 @@ function AccountOrders({ accountOrders, profile }) {
           <h2>Avalie os itens entregues.</h2>
         </div>
         {accountOrders.completedOrders.length === 0 ? (
-          <p className="helper-text">Quando um pedido chegar em entregue, a avaliacao aparece aqui.</p>
+          <p className="helper-text">
+            Quando um pedido chegar em entregue, a avaliacao aparece aqui.
+          </p>
         ) : (
           accountOrders.completedOrders.map((order) => (
             <AccountOrderCard key={order.id} order={order} profile={profile} />
@@ -248,9 +295,7 @@ function ClaimOrderForm() {
         <input name="claimContact" required />
       </label>
 
-      <PendingSubmitButton pendingLabel="Vinculando pedido...">
-        Vincular pedido
-      </PendingSubmitButton>
+      <PendingSubmitButton pendingLabel="Vinculando pedido...">Vincular pedido</PendingSubmitButton>
     </form>
   );
 }
@@ -325,7 +370,11 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
         </div>
         <div className="account-suggestion-grid">
           {suggestions.map((product) => (
-            <Link className="account-suggestion-card" href={`/produto/${product.slug}`} key={product.id}>
+            <Link
+              className="account-suggestion-card"
+              href={`/produto/${product.slug}`}
+              key={product.id}
+            >
               <span>{product.storefrontCategoryIds?.[0] ?? "R15"}</span>
               <strong>{product.name}</strong>
             </Link>
@@ -340,7 +389,10 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
 
 function PersonalDataForm({ profile, user }) {
   return (
-    <form action={saveAccountProfileAction} className="auth-card account-form-card compact-account-form">
+    <form
+      action={saveAccountProfileAction}
+      className="auth-card account-form-card compact-account-form"
+    >
       <div className="account-panel-heading">
         <p className="section-label">Dados pessoais</p>
         <h2>Atualize seus dados principais.</h2>
@@ -364,7 +416,12 @@ function PersonalDataForm({ profile, user }) {
         </label>
         <label>
           <span>Email</span>
-          <input defaultValue={profile.email ?? user.email ?? ""} name="email" required type="email" />
+          <input
+            defaultValue={profile.email ?? user.email ?? ""}
+            name="email"
+            required
+            type="email"
+          />
         </label>
         <label>
           <span>WhatsApp</span>
@@ -390,16 +447,13 @@ function PersonalDataForm({ profile, user }) {
           />
         </label>
       </div>
-      <PendingSubmitButton pendingLabel="Salvando dados...">
-        Salvar dados
-      </PendingSubmitButton>
+      <PendingSubmitButton pendingLabel="Salvando dados...">Salvar dados</PendingSubmitButton>
     </form>
   );
 }
 
 function AddressBook({ addresses, selectedAddressId }) {
-  const selectedAddress =
-    addresses.find((address) => address.id === selectedAddressId) ?? null;
+  const selectedAddress = addresses.find((address) => address.id === selectedAddressId) ?? null;
 
   return (
     <div className="account-main-stack">
@@ -439,17 +493,28 @@ function AddressBook({ addresses, selectedAddressId }) {
         )}
       </section>
 
-      <form action={saveAccountAddressAction} className="auth-card account-form-card compact-account-form">
+      <form
+        action={saveAccountAddressAction}
+        className="auth-card account-form-card compact-account-form"
+      >
         <div className="account-panel-heading">
           <p className="section-label">{selectedAddress ? "Editar endereco" : "Novo endereco"}</p>
           <h2>Dados de entrega.</h2>
         </div>
         <input name="addressId" type="hidden" value={selectedAddress?.id ?? ""} />
-        <input name="isFirstAddress" type="hidden" value={addresses.length === 0 ? "true" : "false"} />
+        <input
+          name="isFirstAddress"
+          type="hidden"
+          value={addresses.length === 0 ? "true" : "false"}
+        />
         <div className="form-grid">
           <label>
             <span>Apelido</span>
-            <input defaultValue={selectedAddress?.label ?? ""} name="addressLabel" placeholder="Casa, trabalho..." />
+            <input
+              defaultValue={selectedAddress?.label ?? ""}
+              name="addressLabel"
+              placeholder="Casa, trabalho..."
+            />
           </label>
           <CepAddressFields
             defaults={{
@@ -522,9 +587,9 @@ export default async function AccountPage({ searchParams }) {
           <p className="section-label">Supabase pendente</p>
           <h1>Configure o Supabase para ativar contas de cliente.</h1>
           <p>
-            Preencha `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-            ou sincronize as variaveis da integracao Supabase/Vercel no ambiente do servidor.
-            Depois aplique a migracao SQL e reinicie o servidor.
+            Preencha `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ou
+            sincronize as variaveis da integracao Supabase/Vercel no ambiente do servidor. Depois
+            aplique a migracao SQL e reinicie o servidor.
           </p>
         </section>
       </main>

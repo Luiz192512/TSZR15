@@ -6,6 +6,25 @@ import { useEffect, useState } from "react";
 import { getUserInitials } from "@/src/auth/user-display.js";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/client.js";
 
+async function getHeaderSessionUser() {
+  try {
+    const response = await fetch("/api/auth/me", {
+      cache: "no-store",
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json();
+
+    return payload.authenticated ? payload.user : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AccountNavLink({
   authenticatedClassName = "profile-link",
   unauthenticatedClassName = "nav-link nav-link-auth",
@@ -25,24 +44,63 @@ export function AccountNavLink({
     const supabase = createBrowserSupabaseClient();
 
     if (!supabase) {
-      setHasCheckedSession(true);
-      return undefined;
+      let isMounted = true;
+
+      getHeaderSessionUser().then((sessionUser) => {
+        if (isMounted) {
+          setCurrentUser(sessionUser);
+          setHasCheckedSession(true);
+        }
+      });
+
+      return () => {
+        isMounted = false;
+      };
     }
 
     let isMounted = true;
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (isMounted) {
-        setCurrentUser(data.user ?? null);
+    supabase.auth
+      .getUser()
+      .then(async ({ data }) => {
+        const sessionUser = data.user ?? (await getHeaderSessionUser());
+
+        if (isMounted) {
+          setCurrentUser(sessionUser);
+          setHasCheckedSession(true);
+        }
+      })
+      .catch(async () => {
+        const sessionUser = await getHeaderSessionUser();
+
+        if (isMounted) {
+          setCurrentUser(sessionUser);
+          setHasCheckedSession(true);
+        }
+      });
+
+    getHeaderSessionUser().then((sessionUser) => {
+      if (isMounted && sessionUser) {
+        setCurrentUser(sessionUser);
         setHasCheckedSession(true);
       }
     });
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user ?? null);
-      setHasCheckedSession(true);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user || event === "SIGNED_OUT") {
+        setCurrentUser(session?.user ?? null);
+        setHasCheckedSession(true);
+        return;
+      }
+
+      getHeaderSessionUser().then((sessionUser) => {
+        if (isMounted) {
+          setCurrentUser(sessionUser);
+          setHasCheckedSession(true);
+        }
+      });
     });
 
     return () => {
@@ -70,6 +128,24 @@ export function AccountNavLink({
         <span aria-hidden="true" className="profile-link-icon">
           {getUserInitials(currentUser)}
         </span>
+      </Link>
+    );
+  }
+
+  if (!hasCheckedSession) {
+    return (
+      <Link
+        className={authenticatedClassName || unauthenticatedClassName}
+        data-auth-loading="true"
+        href="/conta"
+      >
+        {variant === "text" ? (
+          "Conta"
+        ) : (
+          <span aria-hidden="true" className="profile-link-icon">
+            C
+          </span>
+        )}
       </Link>
     );
   }

@@ -9,7 +9,9 @@ import {
 } from "@/src/orders/status.js";
 
 function cleanString(value, maxLength = 200) {
-  return String(value ?? "").trim().slice(0, maxLength);
+  return String(value ?? "")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function digitsOnly(value) {
@@ -60,13 +62,12 @@ function buildPublicTimeline(order, trackingEvents) {
     label: getStatusLabel(event.event_status, operationalStatuses),
     location: event.location
   }));
-  const currentStep =
-    statusSteps.find((step) => step.isActive) ?? {
-      id: order.operational_status,
-      isActive: true,
-      isDone: true,
-      label: getStatusLabel(order.operational_status, operationalStatuses)
-    };
+  const currentStep = statusSteps.find((step) => step.isActive) ?? {
+    id: order.operational_status,
+    isActive: true,
+    isDone: true,
+    label: getStatusLabel(order.operational_status, operationalStatuses)
+  };
 
   return {
     events: eventSteps,
@@ -88,6 +89,13 @@ function sanitizeSupplierTracking(supplierPurchase) {
     carrier: supplierPurchase.carrier ?? null,
     sourceEta: supplierPurchase.source_eta ?? null,
     trackingCode: supplierPurchase.tracking_code ?? null
+  };
+}
+
+export function buildPublicOrderTrackingView({ order, supplierPurchase, trackingEvents }) {
+  return {
+    tracking: sanitizeSupplierTracking(supplierPurchase),
+    timeline: buildPublicTimeline(order, trackingEvents ?? [])
   };
 }
 
@@ -158,7 +166,11 @@ export async function findPublicOrderTracking({ contact, orderNumber, supabase }
     throw new Error(firstError.message);
   }
 
-  const supplierTracking = sanitizeSupplierTracking(supplierPurchases?.[0] ?? null);
+  const trackingView = buildPublicOrderTrackingView({
+    order,
+    supplierPurchase: supplierPurchases?.[0] ?? null,
+    trackingEvents: trackingEvents ?? []
+  });
 
   return {
     order: {
@@ -172,9 +184,9 @@ export async function findPublicOrderTracking({ contact, orderNumber, supabase }
       paymentStatusLabel: getStatusLabel(order.payment_status, paymentStatuses),
       shippingEta: order.shipping_eta,
       totalCents: order.total_cents,
-      tracking: supplierTracking
+      tracking: trackingView.tracking
     },
     status: "found",
-    timeline: buildPublicTimeline(order, trackingEvents ?? [])
+    timeline: trackingView.timeline
   };
 }
