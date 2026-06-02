@@ -44,8 +44,18 @@ export function AccountNavLink({
     const supabase = createBrowserSupabaseClient();
 
     if (!supabase) {
-      setHasCheckedSession(true);
-      return undefined;
+      let isMounted = true;
+
+      getHeaderSessionUser().then((sessionUser) => {
+        if (isMounted) {
+          setCurrentUser(sessionUser);
+          setHasCheckedSession(true);
+        }
+      });
+
+      return () => {
+        isMounted = false;
+      };
     }
 
     let isMounted = true;
