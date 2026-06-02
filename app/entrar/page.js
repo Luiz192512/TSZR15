@@ -66,7 +66,7 @@ export default async function SignInPage({ searchParams }) {
           </button>
 
           <p className="auth-switch">
-            Ainda nao tem conta? <Link href="/cadastrar">Cadastrar cliente</Link>
+            Ainda nao tem conta? <Link href="/cadastrar">Cadastrar Usuário</Link>
           </p>
           <p className="auth-switch">
             Esqueceu a senha? <Link href="/recuperar-senha">Recuperar acesso</Link>
