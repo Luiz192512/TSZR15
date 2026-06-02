@@ -103,9 +103,7 @@ button {
   width: 46px;
   height: 46px;
   border-radius: 8px;
-  background:
-    linear-gradient(135deg, var(--red), var(--red-dark)),
-    var(--red);
+  background: linear-gradient(135deg, var(--red), var(--red-dark)), var(--red);
   color: #fff;
   font-size: 0.96rem;
   font-weight: 900;
@@ -258,8 +256,16 @@ button {
   border: 1px solid rgba(24, 27, 31, 0.24);
   border-radius: 8px;
   background:
-    linear-gradient(112deg, rgba(217, 37, 37, 0.95) 0 9px, transparent 9px 18px) left 30px bottom 26px / 132px 24px no-repeat,
-    linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 25%, transparent 25% 50%, rgba(255, 255, 255, 0.07) 50% 75%, transparent 75%) 0 0 / 34px 34px,
+    linear-gradient(112deg, rgba(217, 37, 37, 0.95) 0 9px, transparent 9px 18px) left 30px bottom
+      26px / 132px 24px no-repeat,
+    linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.07) 0 25%,
+        transparent 25% 50%,
+        rgba(255, 255, 255, 0.07) 50% 75%,
+        transparent 75%
+      )
+      0 0 / 34px 34px,
     linear-gradient(135deg, #20252a, #121416);
   color: #fff;
   box-shadow: var(--shadow);
@@ -519,7 +525,13 @@ button {
   border-radius: 8px;
   padding: 12px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0 20%, transparent 20% 44%, rgba(255, 255, 255, 0.16) 44% 54%, transparent 54%),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.18) 0 20%,
+      transparent 20% 44%,
+      rgba(255, 255, 255, 0.16) 44% 54%,
+      transparent 54%
+    ),
     linear-gradient(135deg, #2a2f35, #16191d);
   color: #fff;
   overflow: hidden;
@@ -758,9 +770,7 @@ button {
   gap: 8px 12px;
   margin-top: 14px;
   border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(217, 37, 37, 0.22), transparent 42%),
-    var(--carbon);
+  background: linear-gradient(135deg, rgba(217, 37, 37, 0.22), transparent 42%), var(--carbon);
   color: #fff;
   padding: 14px;
 }
@@ -944,8 +954,7 @@ button {
   border-radius: 16px;
   background:
     linear-gradient(135deg, var(--purple) 0 48%, transparent 48%),
-    linear-gradient(135deg, transparent 0 52%, var(--red) 52%),
-    #fff;
+    linear-gradient(135deg, transparent 0 52%, var(--red) 52%), #fff;
   color: #fff;
   font-size: 1.35rem;
   font-weight: 950;
@@ -1054,8 +1063,7 @@ button {
   margin-bottom: 24px;
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(109, 40, 217, 0.96), rgba(126, 34, 206, 0.92)),
-    var(--purple);
+    linear-gradient(135deg, rgba(109, 40, 217, 0.96), rgba(126, 34, 206, 0.92)), var(--purple);
   color: #fff;
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -1443,8 +1451,7 @@ button {
   border-radius: 8px;
   background:
     linear-gradient(135deg, #14213d 0 48%, transparent 48%),
-    linear-gradient(135deg, transparent 0 52%, var(--red) 52%),
-    #fff;
+    linear-gradient(135deg, transparent 0 52%, var(--red) 52%), #fff;
   color: #fff;
   font-weight: 950;
   letter-spacing: 0;
@@ -1548,9 +1555,7 @@ button {
   margin: 10px 0 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(11, 127, 120, 0.1), transparent 42%),
-    #fff;
+  background: linear-gradient(135deg, rgba(11, 127, 120, 0.1), transparent 42%), #fff;
   padding: 18px;
   box-shadow: var(--shadow-tight);
 }
@@ -2035,9 +2040,7 @@ button {
 
 .checkout-button.button-success {
   border-color: rgba(25, 190, 93, 0.86);
-  background:
-    linear-gradient(115deg, #14a35e 0 72%, #08713d 72%),
-    #14a35e;
+  background: linear-gradient(115deg, #14a35e 0 72%, #08713d 72%), #14a35e;
   color: #fff;
   box-shadow: 0 18px 34px rgba(25, 190, 93, 0.24);
 }
@@ -2249,8 +2252,7 @@ body::before {
   border-color: rgba(255, 255, 255, 0.17);
   border-radius: 0;
   background:
-    linear-gradient(115deg, rgba(242, 7, 16, 0.13), transparent 28%),
-    rgba(255, 255, 255, 0.045);
+    linear-gradient(115deg, rgba(242, 7, 16, 0.13), transparent 28%), rgba(255, 255, 255, 0.045);
   clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
 }
 
@@ -2302,9 +2304,7 @@ body::before {
 }
 
 .profile-link-icon {
-  background:
-    linear-gradient(135deg, var(--red), #7f0005),
-    var(--red);
+  background: linear-gradient(135deg, var(--red), #7f0005), var(--red);
   box-shadow: 0 9px 18px rgba(242, 7, 16, 0.27);
 }
 
@@ -2334,9 +2334,7 @@ body::before {
 
 .button-primary {
   border-color: var(--red);
-  background:
-    linear-gradient(115deg, var(--red) 0 70%, #7f0005 70%),
-    var(--red);
+  background: linear-gradient(115deg, var(--red) 0 70%, #7f0005 70%), var(--red);
   box-shadow: 0 18px 34px rgba(242, 7, 16, 0.27);
 }
 
@@ -2365,7 +2363,12 @@ body::before {
   border-bottom: 1px solid var(--line);
   overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(2, 2, 2, 0.96) 0 33%, rgba(2, 2, 2, 0.68) 55%, rgba(2, 2, 2, 0.42) 100%),
+    linear-gradient(
+      90deg,
+      rgba(2, 2, 2, 0.96) 0 33%,
+      rgba(2, 2, 2, 0.68) 55%,
+      rgba(2, 2, 2, 0.42) 100%
+    ),
     #020202;
 }
 
@@ -2376,8 +2379,18 @@ body::before {
   pointer-events: none;
   content: "";
   background:
-    linear-gradient(118deg, transparent 0 42%, rgba(242, 7, 16, 0.22) 42% 43%, transparent 43% 100%),
-    linear-gradient(118deg, transparent 0 65%, rgba(255, 255, 255, 0.08) 65% 65.25%, transparent 65.25% 100%);
+    linear-gradient(
+      118deg,
+      transparent 0 42%,
+      rgba(242, 7, 16, 0.22) 42% 43%,
+      transparent 43% 100%
+    ),
+    linear-gradient(
+      118deg,
+      transparent 0 65%,
+      rgba(255, 255, 255, 0.08) 65% 65.25%,
+      transparent 65.25% 100%
+    );
 }
 
 .brand-hero-copy {
@@ -2457,9 +2470,7 @@ body::before {
   gap: 4px;
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  background:
-    linear-gradient(118deg, rgba(242, 7, 16, 0.22), transparent 42%),
-    rgba(7, 7, 7, 0.68);
+  background: linear-gradient(118deg, rgba(242, 7, 16, 0.22), transparent 42%), rgba(7, 7, 7, 0.68);
   padding: 13px 10px;
   clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
 }
@@ -2529,8 +2540,7 @@ body::before {
   grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
   background:
-    linear-gradient(110deg, rgba(8, 8, 8, 0.92), rgba(8, 8, 8, 0.55)),
-    rgba(8, 8, 8, 0.74);
+    linear-gradient(110deg, rgba(8, 8, 8, 0.92), rgba(8, 8, 8, 0.55)), rgba(8, 8, 8, 0.74);
 }
 
 .assurance-card strong,
@@ -2549,9 +2559,7 @@ body::before {
   gap: 0;
   min-height: 330px;
   border-bottom: 1px solid var(--line);
-  background:
-    linear-gradient(90deg, #060606 0 34%, rgba(6, 6, 6, 0.62) 100%),
-    #080808;
+  background: linear-gradient(90deg, #060606 0 34%, rgba(6, 6, 6, 0.62) 100%), #080808;
   overflow: hidden;
 }
 
@@ -2611,9 +2619,7 @@ body::before {
   align-content: center;
   border-right: 1px solid var(--line);
   padding: 18px clamp(14px, 2vw, 28px);
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.055), transparent 38%),
-    #090909;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.055), transparent 38%), #090909;
   clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
 }
 
@@ -2640,8 +2646,7 @@ body::before {
   border-color: var(--line);
   border-radius: 0;
   background:
-    linear-gradient(120deg, rgba(242, 7, 16, 0.16), transparent 34%),
-    rgba(255, 255, 255, 0.045);
+    linear-gradient(120deg, rgba(242, 7, 16, 0.16), transparent 34%), rgba(255, 255, 255, 0.045);
   box-shadow: none;
 }
 
@@ -2678,9 +2683,7 @@ body::before {
   min-height: 46px;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 0;
-  background:
-    linear-gradient(118deg, rgba(255, 255, 255, 0.06), transparent 38%),
-    #0d0d0d;
+  background: linear-gradient(118deg, rgba(255, 255, 255, 0.06), transparent 38%), #0d0d0d;
   color: #f0f1f3;
   box-shadow: none;
   clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
@@ -2722,9 +2725,7 @@ body::before {
 .empty-state {
   border-color: var(--line);
   border-radius: 0;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 32%),
-    #0d0d0d;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 32%), #0d0d0d;
   box-shadow: var(--shadow-tight);
 }
 
@@ -2739,7 +2740,9 @@ body::before {
 
 .hub-product-card:hover {
   border-color: rgba(242, 7, 16, 0.68);
-  box-shadow: 0 22px 54px rgba(242, 7, 16, 0.13), var(--shadow-tight);
+  box-shadow:
+    0 22px 54px rgba(242, 7, 16, 0.13),
+    var(--shadow-tight);
 }
 
 .product-image {
@@ -2852,9 +2855,7 @@ body::before {
 }
 
 .detail-assist-box {
-  background:
-    linear-gradient(120deg, rgba(242, 7, 16, 0.16), transparent 42%),
-    #0b0b0b;
+  background: linear-gradient(120deg, rgba(242, 7, 16, 0.16), transparent 42%), #0b0b0b;
 }
 
 .detail-assist-box strong,
@@ -3161,8 +3162,18 @@ body::before {
 
 .brand-hero::before {
   background:
-    linear-gradient(118deg, transparent 0 58%, rgba(242, 7, 16, 0.2) 58% 58.45%, transparent 58.45% 100%),
-    linear-gradient(118deg, transparent 0 73%, rgba(255, 255, 255, 0.08) 73% 73.2%, transparent 73.2% 100%);
+    linear-gradient(
+      118deg,
+      transparent 0 58%,
+      rgba(242, 7, 16, 0.2) 58% 58.45%,
+      transparent 58.45% 100%
+    ),
+    linear-gradient(
+      118deg,
+      transparent 0 73%,
+      rgba(255, 255, 255, 0.08) 73% 73.2%,
+      transparent 73.2% 100%
+    );
 }
 
 .brand-hero-copy {
@@ -3348,9 +3359,7 @@ body::before {
 .featured-carousel-window {
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  background:
-    linear-gradient(126deg, rgba(242, 7, 16, 0.12), transparent 42%),
-    #0a0a0a;
+  background: linear-gradient(126deg, rgba(242, 7, 16, 0.12), transparent 42%), #0a0a0a;
   overflow: hidden;
   box-shadow: var(--shadow-tight);
 }
@@ -3822,9 +3831,7 @@ body::before {
 .admin-form-block {
   min-width: 0;
   border: 1px solid var(--line);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 32%),
-    #0d0d0d;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 32%), #0d0d0d;
   box-shadow: var(--shadow-tight);
 }
 
@@ -4073,9 +4080,7 @@ body::before {
 .admin-status-summary div {
   min-width: 0;
   border: 1px solid var(--line);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.075), transparent 42%),
-    #0d0d0d;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.075), transparent 42%), #0d0d0d;
   padding: 16px;
 }
 
@@ -4336,8 +4341,7 @@ body::before {
   padding: 16px;
   border: 1px dashed rgba(242, 7, 16, 0.58);
   background:
-    linear-gradient(135deg, rgba(242, 7, 16, 0.16), transparent 42%),
-    rgba(255, 255, 255, 0.035);
+    linear-gradient(135deg, rgba(242, 7, 16, 0.16), transparent 42%), rgba(255, 255, 255, 0.035);
 }
 
 .admin-uploader-dropzone div {
@@ -4378,9 +4382,7 @@ body::before {
   min-height: 220px;
   overflow: hidden;
   border: 1px solid rgba(242, 7, 16, 0.42);
-  background:
-    linear-gradient(120deg, rgba(242, 7, 16, 0.18), transparent 36%),
-    #050505;
+  background: linear-gradient(120deg, rgba(242, 7, 16, 0.18), transparent 36%), #050505;
 }
 
 .admin-image-crop-stage::after {
@@ -4738,9 +4740,7 @@ body::before {
 .tracking-page .site-header {
   border: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  background:
-    linear-gradient(90deg, rgba(242, 7, 16, 0.08), transparent 42%),
-    rgba(3, 3, 3, 0.92);
+  background: linear-gradient(90deg, rgba(242, 7, 16, 0.08), transparent 42%), rgba(3, 3, 3, 0.92);
   box-shadow: none;
 }
 
@@ -4849,8 +4849,7 @@ body::before {
   clip-path: none;
   border-color: rgba(255, 255, 255, 0.13);
   background:
-    linear-gradient(90deg, rgba(242, 7, 16, 0.12), transparent 42%),
-    rgba(255, 255, 255, 0.045);
+    linear-gradient(90deg, rgba(242, 7, 16, 0.12), transparent 42%), rgba(255, 255, 255, 0.045);
   backdrop-filter: blur(12px);
 }
 
@@ -4997,8 +4996,7 @@ body::before {
     width: min(320px, calc(100vw - 20px));
     border: 1px solid rgba(255, 255, 255, 0.16);
     background:
-      linear-gradient(120deg, rgba(242, 7, 16, 0.14), transparent 42%),
-      rgba(5, 5, 5, 0.98);
+      linear-gradient(120deg, rgba(242, 7, 16, 0.14), transparent 42%), rgba(5, 5, 5, 0.98);
     box-shadow: 0 24px 44px rgba(0, 0, 0, 0.38);
     padding: 10px;
   }
@@ -5126,8 +5124,7 @@ body::before {
     min-height: 54px;
     border-color: rgba(242, 7, 16, 0.62);
     background:
-      linear-gradient(115deg, rgba(242, 7, 16, 0.2), rgba(242, 7, 16, 0.08)),
-      rgba(242, 7, 16, 0.1);
+      linear-gradient(115deg, rgba(242, 7, 16, 0.2), rgba(242, 7, 16, 0.08)), rgba(242, 7, 16, 0.1);
     color: #fff;
     clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
   }
@@ -5243,8 +5240,7 @@ body::before {
   color: #fff;
   background:
     linear-gradient(135deg, rgba(242, 7, 16, 0.18), transparent 32%),
-    radial-gradient(circle at 78% 18%, rgba(242, 7, 16, 0.22), transparent 28%),
-    #050505;
+    radial-gradient(circle at 78% 18%, rgba(242, 7, 16, 0.22), transparent 28%), #050505;
 }
 
 .tszr-loader-card {
@@ -5760,8 +5756,7 @@ body::before {
   align-items: center;
   border: 1px solid rgba(242, 7, 16, 0.68);
   background:
-    linear-gradient(120deg, rgba(242, 7, 16, 0.18), transparent 42%),
-    rgba(255, 255, 255, 0.055);
+    linear-gradient(120deg, rgba(242, 7, 16, 0.18), transparent 42%), rgba(255, 255, 255, 0.055);
   padding: 14px;
 }
 
@@ -5893,5 +5888,238 @@ body::before {
   .tszr-loader-card {
     grid-template-columns: 1fr;
     clip-path: none;
+  }
+}
+
+/* Overlay loading, cleaner cart, centered auth, integrated hero */
+.navigation-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 160ms ease,
+    visibility 160ms ease;
+}
+
+.navigation-loading-overlay.is-visible,
+html[data-navigation-loading="true"] .navigation-loading-overlay {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+}
+
+.tszr-loader-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  min-height: 100dvh;
+  background: linear-gradient(135deg, rgba(242, 7, 16, 0.2), transparent 34%), rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(9px);
+}
+
+.navigation-loading-overlay .tszr-loader-shell {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.cart-summary-empty {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(120deg, rgba(242, 7, 16, 0.12), transparent 46%), rgba(255, 255, 255, 0.045);
+  padding: 16px;
+}
+
+.cart-summary-empty strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.cart-summary-empty span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.auth-shell:not(.wide) {
+  min-height: calc(100dvh - 112px);
+  place-items: center;
+  padding-block: clamp(22px, 5vw, 46px);
+}
+
+.login-card {
+  width: min(470px, 100%);
+  margin-inline: auto;
+}
+
+.brand-hero {
+  isolation: isolate;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "copy";
+  min-height: clamp(620px, 72vh, 820px);
+  padding: clamp(34px, 5vw, 78px);
+}
+
+.brand-hero-copy {
+  max-width: 700px;
+}
+
+.brand-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  min-height: 100%;
+  pointer-events: none;
+}
+
+.hero-media-frame {
+  position: absolute;
+  inset: 0;
+  min-height: 100%;
+  border: 0;
+  background: #050505;
+  box-shadow: none;
+  clip-path: none;
+}
+
+.hero-media-frame img {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: 74% center;
+  opacity: 0.86;
+}
+
+.hero-media-frame::after {
+  background:
+    linear-gradient(
+      90deg,
+      #050505 0%,
+      rgba(5, 5, 5, 0.92) 27%,
+      rgba(5, 5, 5, 0.48) 56%,
+      rgba(5, 5, 5, 0.16) 100%
+    ),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.05), rgba(5, 5, 5, 0.88) 100%);
+}
+
+@media (max-width: 760px) {
+  .cart-heading {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .cart-heading h1 {
+    max-width: 14ch;
+    font-size: clamp(1.55rem, 7vw, 2.15rem);
+    line-height: 1;
+  }
+
+  .cart-page-layout {
+    gap: 12px;
+  }
+
+  .cart-items-panel,
+  .cart-summary-panel {
+    padding: 14px;
+  }
+
+  .panel-heading {
+    align-items: center;
+  }
+
+  .panel-heading h2 {
+    font-size: 1.2rem;
+  }
+
+  .cart-line {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 10px;
+  }
+
+  .cart-line-image {
+    width: 58px;
+    min-height: 58px;
+    aspect-ratio: 1;
+    font-size: 0.95rem;
+  }
+
+  .cart-line-controls {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: stretch;
+  }
+
+  .cart-line-controls .quantity-control {
+    width: 100%;
+    grid-template-columns: 40px 1fr 40px;
+  }
+
+  .cart-line-delete {
+    width: auto;
+    min-width: 92px;
+  }
+
+  .cart-line > strong:last-child {
+    grid-column: 2;
+    justify-self: start;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .brand-hero {
+    min-height: 720px;
+    padding: 22px 14px 280px;
+  }
+
+  .brand-hero-copy {
+    align-content: start;
+    gap: 16px;
+  }
+
+  .hero-media-frame {
+    min-height: 100%;
+  }
+
+  .hero-media-frame img {
+    object-position: 68% bottom;
+    opacity: 0.96;
+    filter: saturate(1.24) contrast(1.16) brightness(1.82);
+  }
+
+  .hero-media-frame::after {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(5, 5, 5, 0.86) 0%,
+        rgba(5, 5, 5, 0.82) 46%,
+        rgba(5, 5, 5, 0.14) 72%,
+        rgba(5, 5, 5, 0.32) 100%
+      ),
+      linear-gradient(90deg, rgba(5, 5, 5, 0.68), rgba(5, 5, 5, 0));
+  }
+
+  .auth-shell:not(.wide) {
+    min-height: calc(100dvh - 88px);
+    padding-block: 18px;
+  }
+
+  .login-card {
+    padding: 22px 18px;
   }
 }
