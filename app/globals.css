@@ -191,6 +191,91 @@ button {
   border-color: var(--line-strong);
 }
 
+.account-menu {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 auto;
+}
+
+.account-menu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-menu-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 120;
+  display: none;
+  width: min(290px, calc(100vw - 24px));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    linear-gradient(135deg, rgba(242, 7, 16, 0.09), transparent 42%), rgba(5, 7, 10, 0.98);
+  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.46);
+  padding: 10px;
+}
+
+.account-menu[open] .account-menu-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.account-menu-user {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+}
+
+.account-menu-user div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-menu-user strong,
+.account-menu-user small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-user small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.account-menu-panel nav {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 8px;
+}
+
+.account-menu-panel nav a {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid transparent;
+  color: #f2f3f5;
+  padding: 8px 10px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.account-menu-panel nav a:hover {
+  border-color: rgba(242, 7, 16, 0.34);
+  background: rgba(242, 7, 16, 0.12);
+  color: #fff;
+}
+
 .profile-link-icon {
   display: inline-grid;
   place-items: center;
@@ -2309,7 +2394,9 @@ body::before {
 }
 
 .store-nav > a.profile-link,
-.nav-links > a.profile-link {
+.nav-links > a.profile-link,
+.store-nav .account-menu > .profile-link,
+.nav-links .account-menu > .profile-link {
   width: 42px;
   min-width: 42px;
   height: 42px;
@@ -2322,7 +2409,9 @@ body::before {
 }
 
 .store-nav > a.profile-link:hover,
-.nav-links > a.profile-link:hover {
+.nav-links > a.profile-link:hover,
+.store-nav .account-menu > .profile-link:hover,
+.nav-links .account-menu > .profile-link:hover {
   border-color: rgba(242, 7, 16, 0.72);
   background: rgba(242, 7, 16, 0.13);
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getUserInitials } from "@/src/auth/user-display.js";
+import { getUserDisplayName, getUserInitials } from "@/src/auth/user-display.js";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/client.js";
 
 async function getHeaderSessionUser() {
@@ -110,6 +110,9 @@ export function AccountNavLink({
   }, [user]);
 
   if (currentUser) {
+    const displayName = getUserDisplayName(currentUser);
+    const email = currentUser.email ?? "";
+
     if (variant === "text") {
       return (
         <Link className={authenticatedClassName} href="/conta">
@@ -119,16 +122,35 @@ export function AccountNavLink({
     }
 
     return (
-      <Link
-        aria-label="Acessar perfil"
-        className={authenticatedClassName}
-        href="/conta"
-        title="Minha conta"
-      >
-        <span aria-hidden="true" className="profile-link-icon">
-          {getUserInitials(currentUser)}
-        </span>
-      </Link>
+      <details className="account-menu">
+        <summary
+          aria-label="Abrir menu da conta"
+          className={authenticatedClassName}
+          title="Minha conta"
+        >
+          <span aria-hidden="true" className="profile-link-icon">
+            {getUserInitials(currentUser)}
+          </span>
+        </summary>
+        <div className="account-menu-panel">
+          <div className="account-menu-user">
+            <span aria-hidden="true" className="profile-link-icon">
+              {getUserInitials(currentUser)}
+            </span>
+            <div>
+              <strong>{displayName}</strong>
+              {email ? <small>{email}</small> : null}
+            </div>
+          </div>
+          <nav aria-label="Menu da conta">
+            <Link href="/conta">Perfil</Link>
+            <Link href="/conta#pedidos">Pedidos</Link>
+            <Link href="/conta?tab=enderecos">Enderecos</Link>
+            <Link href="/rastreio">Rastreio</Link>
+            <Link href="/conta?tab=configuracoes">Configuracoes</Link>
+          </nav>
+        </div>
+      </details>
     );
   }
 

@@ -241,7 +241,7 @@ function AccountOrderCard({ order, profile }) {
 
 function AccountOrders({ accountOrders, profile }) {
   return (
-    <div className="account-orders-stack">
+    <div className="account-orders-stack" id="pedidos">
       <section className="account-panel">
         <div className="account-panel-heading">
           <p className="section-label">Pedidos em andamento</p>
