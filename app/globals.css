@@ -4307,14 +4307,18 @@ body::before {
 
 .visually-hidden-field {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  max-height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
-  border: 0;
+  border: 0 !important;
   white-space: nowrap;
 }
 
