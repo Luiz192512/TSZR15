@@ -1,9 +1,7 @@
 import Link from "next/link";
 
 import { signUpAction } from "@/app/auth/actions.js";
-import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
 import { SiteHeader } from "@/src/components/site-header.js";
-import { CepAddressFields } from "@/src/components/form/cep-address-fields.js";
 import { PasswordInput } from "@/src/components/form/password-input.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
 import { phonePattern, taxIdPattern } from "@/src/customer/field-validation.js";
@@ -22,28 +20,25 @@ export default async function SignUpPage({ searchParams }) {
       <SiteHeader user={user} />
 
       <section className="auth-shell wide">
-        <form action={signUpAction} className="auth-card account-form-card">
+        <form action={signUpAction} className="auth-card account-form-card signup-card">
           <p className="section-label">Cadastro de cliente</p>
-          <h1>Salve seus dados para fechar pedidos TSZR15.</h1>
-          <p className="helper-text">
-            O cadastro guarda seus dados de compra e entrega. A origem interna do pedido continua
-            restrita a operação TSZR15.
-          </p>
+          <h1>Crie sua conta TSZR15.</h1>
+          <p className="helper-text">O endereco fica no perfil, depois do cadastro.</p>
 
           {message ? <p className="form-alert">{message}</p> : null}
 
-          <div className="form-grid">
+          <div className="form-grid compact-signup-grid">
             <label>
               <span>Nome completo</span>
               <input autoComplete="name" name="fullName" required />
             </label>
             <label>
-              <span>CPF/CNPJ</span>
+              <span>CPF</span>
               <SanitizedInput
                 inputMode="numeric"
                 name="taxId"
                 pattern={taxIdPattern}
-                placeholder="Opcional quando nao exigido"
+                required
                 sanitizer="taxId"
                 title="Use somente numeros, pontos, barra e hifen."
               />
@@ -52,9 +47,8 @@ export default async function SignUpPage({ searchParams }) {
               <span>Email</span>
               <input autoComplete="email" name="email" required type="email" />
             </label>
-            <PasswordInput autoComplete="new-password" label="Senha" minLength={6} name="password" required />
             <label>
-              <span>WhatsApp</span>
+              <span>Numero</span>
               <SanitizedInput
                 autoComplete="tel"
                 inputMode="tel"
@@ -65,24 +59,14 @@ export default async function SignUpPage({ searchParams }) {
                 title="Use somente numeros e pontuacao de telefone."
               />
             </label>
-            <label>
-              <span>Telefone opcional</span>
-              <SanitizedInput
-                autoComplete="tel"
-                inputMode="tel"
-                name="phone"
-                pattern={phonePattern}
-                sanitizer="phone"
-                title="Use somente numeros e pontuacao de telefone."
-              />
-            </label>
-            <CepAddressFields />
+            <PasswordInput
+              autoComplete="new-password"
+              label="Senha"
+              minLength={6}
+              name="password"
+              required
+            />
           </div>
-
-          <label className="consent-box account-consent">
-            <input name="dataConsent" required type="checkbox" />
-            <span>{ASSISTED_PURCHASE_CONSENT_TEXT}</span>
-          </label>
 
           <button className="button button-primary" type="submit">
             Criar conta

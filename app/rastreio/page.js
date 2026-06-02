@@ -82,18 +82,12 @@ function TrackingResult({ result }) {
         </div>
       </div>
 
-      <div className="tracking-progress">
-        {timeline.steps.map((step) => (
-          <div
-            className={`tracking-step ${step.isDone ? "is-done" : ""} ${
-              step.isActive ? "is-active" : ""
-            }`}
-            key={step.id}
-          >
-            <span />
-            <strong>{step.label}</strong>
-          </div>
-        ))}
+      <div className="tracking-current-step">
+        <span aria-hidden="true" />
+        <div>
+          <small>Status atual</small>
+          <strong>{timeline.currentStep.label}</strong>
+        </div>
       </div>
 
       <div className="tracking-content-grid">

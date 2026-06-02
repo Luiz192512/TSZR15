@@ -1,6 +1,7 @@
 import "./globals.css";
 
 import { AuthHashBridge } from "@/src/auth/auth-hash-bridge.js";
+import { NavigationLoadingOverlay } from "@/src/components/loading/navigation-loading-overlay.js";
 
 export const metadata = {
   title: "TSZR15 | Loja R15 com conta de cliente",
@@ -16,6 +17,7 @@ export default function RootLayout({ children }) {
     <html data-scroll-behavior="smooth" lang="pt-BR">
       <body>
         <AuthHashBridge />
+        <NavigationLoadingOverlay />
         {children}
       </body>
     </html>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
+import { AccountNavLink } from "@/src/components/account-nav-link.js";
 import { CartCountBadge } from "@/src/components/cart-count-badge.js";
-import { ProfileLink } from "@/src/components/profile-link.js";
 
 export function SiteHeader({ user } = {}) {
   return (
@@ -21,6 +21,7 @@ export function SiteHeader({ user } = {}) {
 
         <div className="mobile-nav-actions">
           <Link className="cart-nav-link mobile-cart-link" href="/pedido">
+            <span aria-hidden="true" className="cart-link-icon" />
             Carrinho
             <CartCountBadge />
           </Link>
@@ -35,7 +36,12 @@ export function SiteHeader({ user } = {}) {
               <Link href="/#lancamentos">Lancamentos</Link>
               <Link href="/#sobre">Sobre nos</Link>
               <Link href="/rastreio">Rastreio</Link>
-              {user ? <Link href="/conta">Conta</Link> : <Link href="/entrar">Entrar</Link>}
+              <AccountNavLink
+                authenticatedClassName=""
+                unauthenticatedClassName=""
+                user={user}
+                variant="text"
+              />
             </nav>
           </details>
         </div>
@@ -52,18 +58,13 @@ export function SiteHeader({ user } = {}) {
           Sobre nos
         </Link>
         <Link className="nav-link" href="/pedido">
+          <span aria-hidden="true" className="cart-link-icon" />
           Carrinho
         </Link>
         <Link className="nav-link" href="/rastreio">
           Rastreio
         </Link>
-        {user ? (
-          <ProfileLink user={user} />
-        ) : (
-          <Link className="nav-link nav-link-auth" href="/entrar">
-            Entrar
-          </Link>
-        )}
+        <AccountNavLink user={user} />
       </nav>
     </header>
   );

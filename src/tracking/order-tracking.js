@@ -60,9 +60,17 @@ function buildPublicTimeline(order, trackingEvents) {
     label: getStatusLabel(event.event_status, operationalStatuses),
     location: event.location
   }));
+  const currentStep =
+    statusSteps.find((step) => step.isActive) ?? {
+      id: order.operational_status,
+      isActive: true,
+      isDone: true,
+      label: getStatusLabel(order.operational_status, operationalStatuses)
+    };
 
   return {
     events: eventSteps,
+    currentStep,
     steps: statusSteps
   };
 }

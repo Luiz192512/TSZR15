@@ -37,7 +37,7 @@ export default async function SignInPage({ searchParams }) {
       <SiteHeader user={user} />
 
       <section className="auth-shell">
-        <form action={signInAction} className="auth-card">
+        <form action={signInAction} className="auth-card login-card">
           <p className="section-label">Conta TSZR15</p>
           <h1>Entrar para comprar mais rapido.</h1>
           <p className="helper-text">
