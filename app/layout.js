@@ -1,5 +1,7 @@
 import "./globals.css";
 
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 import { AuthHashBridge } from "@/src/auth/auth-hash-bridge.js";
 import { NavigationLoadingOverlay } from "@/src/components/loading/navigation-loading-overlay.js";
 
@@ -19,6 +21,7 @@ export default function RootLayout({ children }) {
         <AuthHashBridge />
         <NavigationLoadingOverlay />
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );

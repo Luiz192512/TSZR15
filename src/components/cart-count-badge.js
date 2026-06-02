@@ -40,5 +40,5 @@ export function CartCountBadge() {
     };
   }, []);
 
-  return <span>{count}</span>;
+  return <span className="cart-count-badge">{count}</span>;
 }
