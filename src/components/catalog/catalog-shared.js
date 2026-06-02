@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import { AccountNavLink } from "@/src/components/account-nav-link.js";
+import { CartIcon } from "@/src/components/cart-icon.js";
 export const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
 export const cartStorageKey = "tszr15-cart";
 export const brandLogoSrc = "/brand/logo-tszr15-store.png";
@@ -246,10 +247,14 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
         </Link>
 
         <div className="mobile-nav-actions">
-          <Link className="cart-nav-link mobile-cart-link" href="/pedido">
-            <span aria-hidden="true" className="cart-link-icon" />
-            Carrinho
-            <span>{cartCount}</span>
+          <Link
+            aria-label="Abrir carrinho"
+            className="cart-nav-link mobile-cart-link"
+            href="/pedido"
+          >
+            <CartIcon />
+            <span className="sr-only">Carrinho</span>
+            <span className="cart-count-badge">{cartCount}</span>
           </Link>
           <details className="mobile-nav-details">
             <summary className="mobile-menu-button" aria-label="Abrir menu da loja">
@@ -290,10 +295,10 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
         <Link href="/catalogo#produtos">Produtos</Link>
         <Link href="/#lancamentos">Lancamentos</Link>
         <Link href="/#sobre">Sobre nos</Link>
-        <Link className="cart-nav-link" href="/pedido">
-          <span aria-hidden="true" className="cart-link-icon" />
-          Carrinho
-          <span>{cartCount}</span>
+        <Link aria-label="Abrir carrinho" className="cart-nav-link" href="/pedido">
+          <CartIcon />
+          <span className="sr-only">Carrinho</span>
+          <span className="cart-count-badge">{cartCount}</span>
         </Link>
         <AccountNavLink
           authenticatedClassName="profile-link store-profile-link desktop-account-link"
