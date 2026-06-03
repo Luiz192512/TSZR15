@@ -262,11 +262,11 @@ Motivos iniciais:
 - Substituir geometria base por modelos GLB reais.
 - Medir impacto em conversão antes de expandir.
 
-## Revisão do Catálogo R15 baseada na SandimR15, sem Vestuário
+## Revisão do Catálogo R15 baseada em referências públicas, sem Vestuário
 
 ### Resumo
 
-- Em `28/04/2026`, a [home](https://sandimr15.store/), [Suporte & Sliders](https://sandimr15.store/collections/suporte-sliders), [Estética](https://sandimr15.store/collections/estetica), [Escapamentos](https://sandimr15.store/collections/escapamentos), [Adesivagem](https://sandimr15.store/collections/adesivos), [Manutenção](https://sandimr15.store/collections/manutencao) e [Todos os produtos](https://sandimr15.store/collections/all) mostram uma base de catálogo boa para o projeto.
+- Em `28/04/2026`, referências públicas do mercado R15 mostraram uma base de catálogo boa para o projeto.
 - O projeto deve usar as categorias visíveis `Suporte & Sliders`, `Estética`, `Escapamentos`, `Adesivagem` e `Manutenção`.
 - `Vestuário` sai completamente do escopo: não entra no menu, não entra no catálogo importado e não participa da regra de negócio.
 
@@ -283,7 +283,7 @@ Motivos iniciais:
 
 - Adotar exatamente os rótulos de menu `Suporte & Sliders`, `Estética`, `Escapamentos`, `Adesivagem`, `Manutenção`.
 - Criar `familia_tecnica` separada para regra de compatibilidade e futura renderização: `aero_front`, `iluminacao`, `retrovisor`, `controles`, `slider`, `protecao`, `escapamento`, `adesivo_full`, `adesivo_detalhe`, `tanque`, `cockpit`, `manutencao`.
-- Cada SKU passa a ter os campos `storefrontCategoryIds[]`, `productFamily`, `renderSlot`, `bikeModelScope`, `is3DEligible`, `compatibilityRules`, `supplierSource`.
+- Cada SKU passa a ter os campos públicos `storefrontCategoryIds[]`, `productFamily`, `renderSlot`, `bikeModelScope`, `is3DEligible` e `compatibilityRules`.
 - Produtos cruzados não devem virar SKUs duplicados. Exemplo: `Filtro de AR Esportivo` pode aparecer em `Escapamentos` e `Manutenção`; `Protetor de Tanque` pode aparecer em `Adesivagem` e `Estética`.
 - Produtos sem slot visual continuam vendáveis. Exemplos: `óleo`, `pastilhas`, `filtro de óleo`, `kit reparo`, `cavalete`, `kit chave`.
 - Qualquer item de `vestuário` deve ser ignorado no importador e não pode ser publicado.

@@ -1,5 +1,8 @@
 node_modules/
 .venv/
+.codemap/
+.vercel/
+.mcp.json
 .DS_Store
 Thumbs.db
 .env
@@ -10,3 +13,5 @@ out/
 dist/
 coverage/
 test-results/
+supabase/.branches/
+supabase/.temp/

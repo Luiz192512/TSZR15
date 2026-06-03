@@ -29,6 +29,12 @@ test("every published SKU has storefront categories and a technical family", () 
   }
 });
 
+test("public catalog does not expose supplier sources", () => {
+  for (const product of catalogProducts) {
+    assert.equal(product.supplierSource, undefined, `${product.name} expos fornecedor`);
+  }
+});
+
 test("published catalog excludes vestuario and unsupported motorcycles", () => {
   const blockedNames = ["r3", "sbm 250s", "zx10", "vestuario"];
 

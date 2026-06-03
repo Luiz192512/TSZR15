@@ -116,9 +116,6 @@ export function CatalogExperience({ categories, products, title, description }) 
                 <span>
                   <strong>Slot:</strong> {product.renderSlot ?? "fora do configurador"}
                 </span>
-                <span>
-                  <strong>Fornecedor:</strong> {product.supplierSource.provider}
-                </span>
               </div>
 
               {product.is3DEligible ? (

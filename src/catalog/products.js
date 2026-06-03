@@ -35,11 +35,6 @@ function buildProduct({
           }
         ]
       : [],
-    supplierSource: {
-      provider: "sandimr15.store",
-      importMode: "manual-curated",
-      sourceCategoryIds: storefrontCategoryIds
-    },
     notes
   };
 }
