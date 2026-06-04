@@ -3,6 +3,8 @@ node_modules/
 .codemap/
 .vercel/
 .mcp.json
+.prettierignore
+.prettierrc.json
 .DS_Store
 Thumbs.db
 .env
