@@ -207,7 +207,7 @@ function AdminSetup({ message, mode = "env" }) {
 
   return (
     <main className="page-shell auth-page">
-      <SiteHeader />
+      <SiteHeader showAccountNav={false} />
       <section className="setup-panel">
         <p className="section-label">{isDatabaseIssue ? "Banco pendente" : "Configuracao pendente"}</p>
         <h1>{isDatabaseIssue ? "Aplique a migration do Supabase." : "Ative o painel administrativo."}</h1>
@@ -1223,12 +1223,13 @@ function CouponForm({ categories, coupon, products }) {
             <span>Status</span>
             <label className="admin-toggle-row">
               <input
-                defaultChecked={coupon?.isActive ?? true}
+                defaultChecked={coupon?.isActive ?? false}
                 name="couponIsActive"
                 type="checkbox"
               />
               <span>Cupom ativo</span>
             </label>
+            <small>Ative somente quando a regra estiver revisada e pronta para uso.</small>
           </div>
           <label className="span-all">
             <span>Descricao interna</span>
@@ -1484,7 +1485,7 @@ export default async function AdminPage({ searchParams }) {
 
   return (
     <main className="page-shell auth-page admin-page">
-      <SiteHeader />
+      <SiteHeader showAccountNav={false} />
 
       <section className="admin-toolbar">
         <div>
