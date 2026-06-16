@@ -4014,9 +4014,9 @@ body::before {
 
 .admin-product-link {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
   padding: 12px;
 }
 
@@ -4079,6 +4079,13 @@ body::before {
 .admin-item-row strong,
 .admin-item-row em {
   overflow-wrap: anywhere;
+}
+
+.admin-product-link strong,
+.admin-product-link em,
+.admin-product-link small {
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .admin-order-link em,
@@ -4682,6 +4689,26 @@ body::before {
 .admin-operation-form input {
   min-height: 42px;
   padding: 9px 10px;
+}
+
+.admin-operation-form select option {
+  background: #111;
+  color: #fff;
+}
+
+.admin-operation-form select option:checked {
+  background: var(--red);
+  color: #fff;
+}
+
+.admin-operation-form .admin-checkbox-grid input[type="checkbox"],
+.admin-operation-form .admin-toggle-row input[type="checkbox"] {
+  flex: 0 0 18px;
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
 }
 
 .admin-operation-form textarea {
