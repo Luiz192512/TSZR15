@@ -5982,7 +5982,27 @@ body::before {
 }
 
 .admin-product-form .form-grid {
+  align-items: start;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.admin-product-form .form-grid > label,
+.admin-product-form .form-grid > fieldset,
+.admin-product-form .form-grid > .admin-profit-preview {
+  align-self: start;
+}
+
+.admin-product-form .admin-product-identity-grid {
+  grid-template-columns: minmax(260px, 1.2fr) minmax(220px, 1fr) minmax(220px, 1fr);
+}
+
+.admin-product-form .admin-product-pricing-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.admin-product-form .admin-product-pricing-grid > label,
+.admin-product-form .admin-product-pricing-grid > .admin-profit-preview {
+  grid-column: span 2;
 }
 
 .admin-marketplace-uploader,
@@ -6009,9 +6029,27 @@ body::before {
   .admin-products-shell .admin-detail-panel {
     max-height: none;
   }
+
+  .admin-product-form .admin-product-identity-grid,
+  .admin-product-form .admin-product-pricing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-product-form .admin-product-pricing-grid > label {
+    grid-column: auto;
+  }
+
+  .admin-product-form .admin-product-pricing-grid > .admin-profit-preview {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 620px) {
+  .admin-product-form .admin-product-identity-grid,
+  .admin-product-form .admin-product-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
   .account-panel,
   .account-order-card,
   .account-order-item,

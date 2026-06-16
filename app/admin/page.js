@@ -991,7 +991,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             ? "Identificacao do produto"
             : `Novo produto${draftIndex ? ` #${draftIndex}` : ""}`}
         </h2>
-        <div className="form-grid">
+        <div className="form-grid admin-product-identity-grid">
           <label>
             <span>Nome <RequiredMark /></span>
             <input
@@ -1027,7 +1027,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
 
       <div className="admin-form-block">
         <h2>Preco e operacao</h2>
-        <div className="form-grid">
+        <div className="form-grid admin-product-pricing-grid">
           <label>
             <span>Preco do cliente <RequiredMark /></span>
             <input
