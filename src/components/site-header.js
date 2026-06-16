@@ -4,7 +4,7 @@ import { AccountNavLink } from "@/src/components/account-nav-link.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
 import { CartCountBadge } from "@/src/components/cart-count-badge.js";
 
-export function SiteHeader({ user } = {}) {
+export function SiteHeader({ showAccountNav = true, user } = {}) {
   return (
     <header className="store-header store-header-compact">
       <div className="store-header-top">
@@ -37,12 +37,14 @@ export function SiteHeader({ user } = {}) {
               <Link href="/#lancamentos">Lancamentos</Link>
               <Link href="/#sobre">Sobre nos</Link>
               <Link href="/rastreio">Rastreio</Link>
-              <AccountNavLink
-                authenticatedClassName=""
-                unauthenticatedClassName=""
-                user={user}
-                variant="text"
-              />
+              {showAccountNav ? (
+                <AccountNavLink
+                  authenticatedClassName=""
+                  unauthenticatedClassName=""
+                  user={user}
+                  variant="text"
+                />
+              ) : null}
             </nav>
           </details>
         </div>
@@ -59,11 +61,13 @@ export function SiteHeader({ user } = {}) {
           <CartCountBadge />
         </Link>
         <Link href="/rastreio">Rastreio</Link>
-        <AccountNavLink
-          authenticatedClassName="profile-link store-profile-link desktop-account-link"
-          unauthenticatedClassName="button button-secondary"
-          user={user}
-        />
+        {showAccountNav ? (
+          <AccountNavLink
+            authenticatedClassName="profile-link store-profile-link desktop-account-link"
+            unauthenticatedClassName="button button-secondary"
+            user={user}
+          />
+        ) : null}
       </nav>
     </header>
   );
