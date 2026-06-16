@@ -14,7 +14,8 @@
     "sync:catalog": "node scripts/sync-supabase-catalog.mjs",
     "sync:catalog:preview": "node scripts/sync-supabase-catalog.mjs --target preview",
     "test": "node --test",
-    "validate": "node scripts/validate-catalog.mjs"
+    "validate": "node scripts/validate-catalog.mjs",
+    "validate:supabase": "node scripts/validate-supabase-catalog.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
