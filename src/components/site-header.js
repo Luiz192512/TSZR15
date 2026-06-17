@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { AccountNavLink } from "@/src/components/account-nav-link.js";
@@ -9,7 +10,14 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
     <header className="store-header store-header-compact">
       <div className="store-header-top">
         <Link className="store-brand" href="/">
-          <img alt="TSZ Store" className="store-logo-image" src="/brand/logo-tszr15-store.png" />
+          <Image
+            alt="TSZ Store"
+            className="store-logo-image"
+            height={2000}
+            sizes="154px"
+            src="/brand/logo-tszr15-store.png"
+            width={2000}
+          />
           <span>
             <strong>TSZR15</strong>
             <small>Performance parts R15</small>

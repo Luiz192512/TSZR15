@@ -12,6 +12,14 @@ export const dynamic = "force-static";
 export const dynamicParams = true;
 export const revalidate = 3600;
 
+export async function generateStaticParams() {
+  const catalog = await getPublicCatalogProductsForStorefront();
+
+  return catalog.products.map((product) => ({
+    slug: product.slug
+  }));
+}
+
 async function getSafeReviewState(productId) {
   try {
     return await getApprovedProductReviews({ productId });

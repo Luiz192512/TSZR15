@@ -1,9 +1,11 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
+import { getProductImageVariants } from "@/src/catalog/image-variants.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import { AccountNavLink } from "@/src/components/account-nav-link.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
@@ -21,6 +23,12 @@ const featuredProductIds = [
   "farol-led-drl-predator-eye",
   "protetor-de-radiador-aluminio"
 ];
+
+const productImageSizes = {
+  card: "(max-width: 720px) 92vw, 366px",
+  detail: "(max-width: 720px) 92vw, 650px",
+  feature: "(max-width: 920px) 92vw, 460px"
+};
 
 const emptyCustomer = {
   address: "",
@@ -107,6 +115,13 @@ export function getProductImages(product) {
     : [];
 }
 
+export function getProductVisualImage(product, size = "card") {
+  const [coverImage] = getProductImages(product);
+  const variants = getProductImageVariants(coverImage);
+
+  return size === "card" ? variants.card : variants.detail;
+}
+
 export function getFeaturedProducts(products) {
   const productsById = new Map(products.map((product) => [product.id, product]));
   const selectedProducts = featuredProductIds
@@ -181,10 +196,11 @@ export function useCartCount() {
   return count;
 }
 
-export function ProductVisual({ product, size = "card" }) {
+export function ProductVisual({ priority = false, product, size = "card" }) {
   const categoryLabel = formatCategoryLabels(product.storefrontCategoryIds)[0] ?? "R15";
   const familyClass = `family-${product.productFamily}`;
-  const [coverImage] = getProductImages(product);
+  const coverImage = getProductVisualImage(product, size);
+  const imageLoadingProps = priority ? { priority: true } : { loading: "lazy" };
 
   return (
     <div
@@ -193,10 +209,25 @@ export function ProductVisual({ product, size = "card" }) {
       }`}
     >
       {coverImage ? (
-        <img className="product-photo" src={coverImage} alt={product.name} />
+        <Image
+          alt={product.name}
+          className="product-photo"
+          fill
+          sizes={productImageSizes[size] ?? productImageSizes.card}
+          src={coverImage}
+          {...imageLoadingProps}
+        />
       ) : (
         <>
-          <img alt="" aria-hidden="true" className="product-image-logo" src={brandLogoSrc} />
+          <Image
+            alt=""
+            aria-hidden="true"
+            className="product-image-logo"
+            height={2000}
+            sizes="120px"
+            src={brandLogoSrc}
+            width={2000}
+          />
           <span>{categoryLabel}</span>
           <strong>{getProductCode(product)}</strong>
         </>
@@ -239,7 +270,14 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
     <header className={`store-header ${showSearch ? "" : "store-header-compact"}`}>
       <div className="store-header-top">
         <Link className="store-brand" href="/">
-          <img className="store-logo-image" src={brandLogoSrc} alt="TSZ Store" />
+          <Image
+            alt="TSZ Store"
+            className="store-logo-image"
+            height={2000}
+            sizes="154px"
+            src={brandLogoSrc}
+            width={2000}
+          />
           <span>
             <strong>TSZR15</strong>
             <small>Performance parts R15</small>

@@ -2,14 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const cropAspectRatio = 16 / 9;
+const outputAspectRatio = 4 / 3;
 const maxProductImages = 12;
-const outputWidth = 1600;
-const outputHeight = Math.round(outputWidth / cropAspectRatio);
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
+const outputWidth = 1200;
+const outputHeight = Math.round(outputWidth / outputAspectRatio);
 
 function createDraft(file) {
   return {
@@ -42,39 +38,37 @@ async function cropDraftToFile(draft, index) {
 
   const sourceWidth = image.naturalWidth || image.width;
   const sourceHeight = image.naturalHeight || image.height;
-  const sourceAspectRatio = sourceWidth / sourceHeight;
-  const baseCropWidth =
-    sourceAspectRatio > cropAspectRatio ? sourceHeight * cropAspectRatio : sourceWidth;
-  const baseCropHeight =
-    sourceAspectRatio > cropAspectRatio ? sourceHeight : sourceWidth / cropAspectRatio;
-  const cropWidth = baseCropWidth / draft.zoom;
-  const cropHeight = baseCropHeight / draft.zoom;
-  const minX = cropWidth / 2;
-  const maxX = sourceWidth - cropWidth / 2;
-  const minY = cropHeight / 2;
-  const maxY = sourceHeight - cropHeight / 2;
-  const centerX = minX + ((maxX - minX) * draft.positionX) / 100;
-  const centerY = minY + ((maxY - minY) * draft.positionY) / 100;
-  const sourceX = clamp(centerX - cropWidth / 2, 0, sourceWidth - cropWidth);
-  const sourceY = clamp(centerY - cropHeight / 2, 0, sourceHeight - cropHeight);
+  const scale = Math.min(outputWidth / sourceWidth, outputHeight / sourceHeight) * draft.zoom;
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  const offsetX =
+    drawWidth > outputWidth
+      ? -((drawWidth - outputWidth) * draft.positionX) / 100
+      : ((outputWidth - drawWidth) * draft.positionX) / 100;
+  const offsetY =
+    drawHeight > outputHeight
+      ? -((drawHeight - outputHeight) * draft.positionY) / 100
+      : ((outputHeight - drawHeight) * draft.positionY) / 100;
 
   canvas.width = outputWidth;
   canvas.height = outputHeight;
+  context.fillStyle = "#050505";
+  context.fillRect(0, 0, outputWidth, outputHeight);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
   context.drawImage(
     image,
-    sourceX,
-    sourceY,
-    cropWidth,
-    cropHeight,
     0,
     0,
-    outputWidth,
-    outputHeight
+    sourceWidth,
+    sourceHeight,
+    offsetX,
+    offsetY,
+    drawWidth,
+    drawHeight
   );
 
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.9));
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.86));
 
   if (!blob) {
     throw new Error("Nao foi possivel gerar a imagem recortada.");
@@ -239,7 +233,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
     }
 
     try {
-      setFeedback("Gerando recorte da imagem...");
+      setFeedback("Gerando enquadramento da imagem...");
       const file = await cropDraftToFile(activeDraft, croppedImages.length);
       const previewUrl = URL.createObjectURL(file);
       objectUrlsRef.current.add(previewUrl);
@@ -305,8 +299,8 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
       <div className="admin-uploader-dropzone">
         <div>
           <span>Imagens do produto</span>
-          <strong>Selecione, recorte e envie varias fotos.</strong>
-          <small>O recorte usa o mesmo formato fixo dos cards da vitrine.</small>
+          <strong>Selecione, enquadre e envie varias fotos.</strong>
+          <small>O enquadramento preserva a peça no mesmo formato dos cards da vitrine.</small>
         </div>
         <button className="button button-secondary" onClick={openPicker} type="button">
           Selecionar imagens
@@ -315,7 +309,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
 
       {activeDraft ? (
         <div className="admin-image-cropper">
-          <div className="admin-image-crop-stage" aria-label="Area de recorte 16:9">
+          <div className="admin-image-crop-stage" aria-label="Area de enquadramento 4:3">
             <img
               alt=""
               src={activeDraft.objectUrl}
@@ -359,7 +353,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
             </label>
             <div className="admin-image-crop-actions">
               <button className="button button-primary" onClick={addCroppedImage} type="button">
-                Adicionar recorte
+                Adicionar enquadramento
               </button>
               <button className="button button-secondary" onClick={closeActiveDraft} type="button">
                 Pular imagem
@@ -376,7 +370,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
               <img alt="" src={item.previewUrl} />
               <figcaption>
                 <span>{index + 1}</span>
-                <strong>{item.kind === "new" ? "Novo recorte" : "Atual"}</strong>
+                <strong>{item.kind === "new" ? "Novo enquadramento" : "Atual"}</strong>
               </figcaption>
               <button
                 aria-label={`Remover imagem ${index + 1}`}

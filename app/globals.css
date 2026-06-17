@@ -3516,17 +3516,21 @@ body::before {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
 .product-image.has-product-photo .product-photo {
   min-height: inherit;
+  object-fit: contain;
 }
 
 .hub-product-card .product-image.has-product-photo,
 .category-carousel-track .product-image.has-product-photo {
   min-height: 0;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08), transparent 62%),
+    #050505;
 }
 
 .category-carousel-list {
@@ -3603,6 +3607,8 @@ body::before {
 
 .product-photo-main img {
   min-height: inherit;
+  object-fit: contain;
+  background: #050505;
 }
 
 .product-photo-controls {
@@ -3635,6 +3641,7 @@ body::before {
 }
 
 .product-photo-thumbs button {
+  position: relative;
   min-height: 76px;
   padding: 0;
   opacity: 0.68;
@@ -3644,6 +3651,10 @@ body::before {
 .product-photo-thumbs button.is-active {
   border-color: var(--red);
   opacity: 1;
+}
+
+.product-photo-thumbs img {
+  object-fit: cover;
 }
 
 .featured-slide-copy {
@@ -4498,7 +4509,7 @@ body::before {
 
 .admin-image-crop-stage {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   min-height: 220px;
   overflow: hidden;
   border: 1px solid rgba(242, 7, 16, 0.42);
@@ -4516,7 +4527,7 @@ body::before {
 .admin-image-crop-stage img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transform-origin: center;
 }
 
@@ -4560,8 +4571,8 @@ body::before {
 
 .admin-upload-preview img {
   width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
   background: #050505;
 }
 

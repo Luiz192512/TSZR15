@@ -19,10 +19,29 @@ export function toCatalogProduct(row) {
   };
 }
 
+const publicCatalogProductColumns = `
+  id,
+  slug,
+  name,
+  storefront_category_ids,
+  product_family,
+  bike_model_scope,
+  price_cents,
+  currency,
+  variations,
+  availability,
+  lead_time_days,
+  shipping_class,
+  image_urls,
+  checkout_channel,
+  internal_purchase_source,
+  notes
+`;
+
 export async function readCatalogProductsFromSupabase(client) {
   const { data, error } = await client
     .from("catalog_products")
-    .select("*")
+    .select(publicCatalogProductColumns)
     .eq("is_published", true)
     .order("name", { ascending: true });
 
