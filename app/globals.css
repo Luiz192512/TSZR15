@@ -2814,7 +2814,7 @@ body::before {
 
 .category-token.is-active span,
 .category-strip .category-token.is-active span {
-  background: var(--red);
+  background: #c8050c;
 }
 
 .product-grid {

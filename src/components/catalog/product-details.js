@@ -25,7 +25,8 @@ function ProductImageCarousel({ product }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex];
   const activeImageVariants = getProductImageVariants(activeImage);
-  const mainImageLoadingProps = activeIndex === 0 ? { priority: true } : { loading: "eager" };
+  const mainImageLoadingProps =
+    activeIndex === 0 ? { fetchPriority: "high", priority: true } : { loading: "eager" };
 
   if (!activeImage) {
     return <ProductVisual product={product} size="detail" />;
