@@ -1,9 +1,11 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
+import { getProductImageVariants } from "@/src/catalog/image-variants.js";
 import { getCartItemKey } from "@/src/cart/cart-items.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import {
@@ -22,6 +24,8 @@ function ProductImageCarousel({ product }) {
   const images = getProductImages(product);
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex];
+  const activeImageVariants = getProductImageVariants(activeImage);
+  const mainImageLoadingProps = activeIndex === 0 ? { priority: true } : { loading: "eager" };
 
   if (!activeImage) {
     return <ProductVisual product={product} size="detail" />;
@@ -38,7 +42,14 @@ function ProductImageCarousel({ product }) {
   return (
     <div className="product-photo-carousel">
       <div className="product-photo-main">
-        <img src={activeImage} alt={product.name} />
+        <Image
+          alt={product.name}
+          fill
+          key={activeImageVariants.detail}
+          sizes="(max-width: 900px) 94vw, 651px"
+          src={activeImageVariants.detail}
+          {...mainImageLoadingProps}
+        />
         {images.length > 1 ? (
           <div className="product-photo-controls" aria-label="Controles das imagens do produto">
             <button aria-label="Imagem anterior" onClick={goToPrevious} type="button">
@@ -61,7 +72,13 @@ function ProductImageCarousel({ product }) {
               onClick={() => setActiveIndex(index)}
               type="button"
             >
-              <img src={imageUrl} alt="" />
+              <Image
+                alt=""
+                fill
+                loading="lazy"
+                sizes="123px"
+                src={getProductImageVariants(imageUrl).thumb}
+              />
             </button>
           ))}
         </div>

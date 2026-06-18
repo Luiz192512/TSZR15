@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { startTransition, useDeferredValue, useMemo, useRef, useState } from "react";
 
@@ -81,26 +82,21 @@ function FeaturedProductCarousel({ products }) {
       </div>
 
       <div className="featured-carousel-window">
-        <div
-          className="featured-carousel-track"
-          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
-        >
-          {products.map((product) => (
-            <article className="featured-slide" key={product.id}>
-              <ProductVisual product={product} size="feature" />
-              <div className="featured-slide-copy">
-                <span>{getProductFamilyLabel(product.productFamily)}</span>
-                <h3>{product.name}</h3>
-                <p>{getProductSummary(product)}</p>
-                <div className="featured-slide-footer">
-                  <strong>{formatCurrency(product.priceCents)}</strong>
-                  <Link className="button button-primary" href={getProductHref(product)}>
-                    Ver detalhes
-                  </Link>
-                </div>
+        <div className="featured-carousel-track">
+          <article className="featured-slide" key={activeProduct.id}>
+            <ProductVisual product={activeProduct} size="feature" />
+            <div className="featured-slide-copy">
+              <span>{getProductFamilyLabel(activeProduct.productFamily)}</span>
+              <h3>{activeProduct.name}</h3>
+              <p>{getProductSummary(activeProduct)}</p>
+              <div className="featured-slide-footer">
+                <strong>{formatCurrency(activeProduct.priceCents)}</strong>
+                <Link className="button button-primary" href={getProductHref(activeProduct)}>
+                  Ver detalhes
+                </Link>
               </div>
-            </article>
-          ))}
+            </div>
+          </article>
         </div>
       </div>
 
@@ -205,7 +201,14 @@ export function CatalogHub({ categories, currentUser, products }) {
       <section className="brand-hero">
         <div className="brand-hero-copy">
           <div className="hero-brand-row">
-            <img className="hero-logo" src={brandLogoSrc} alt="TSZ Store" />
+            <Image
+              alt="TSZ Store"
+              className="hero-logo"
+              height={2000}
+              sizes="188px"
+              src={brandLogoSrc}
+              width={2000}
+            />
             <p className="hero-kicker">Performance parts for Yamaha R15</p>
           </div>
           <h1>
@@ -227,7 +230,13 @@ export function CatalogHub({ categories, currentUser, products }) {
 
         <div className="brand-hero-media">
           <div className="hero-media-frame">
-            <img src={heroBoardSrc} alt="Yamaha R15 preta em arte promocional TSZ Store" />
+            <Image
+              alt="Yamaha R15 preta em arte promocional TSZ Store"
+              fill
+              priority
+              sizes="100vw"
+              src={heroBoardSrc}
+            />
           </div>
         </div>
       </section>

@@ -141,7 +141,11 @@ function createSupabaseCatalogStub({ data = [], error = null } = {}) {
 
       return {
         select(columns) {
-          assert.equal(columns, "*");
+          assert.notEqual(columns, "*");
+          assert.match(columns, /\bid\b/);
+          assert.match(columns, /\bslug\b/);
+          assert.match(columns, /\bimage_urls\b/);
+          assert.match(columns, /\binternal_purchase_source\b/);
           return this;
         },
         eq(column, value) {
