@@ -26,7 +26,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
 
         <div className="mobile-nav-actions">
           <Link
-            aria-label="Abrir carrinho"
+            aria-label="Carrinho - abrir pedido"
             className="cart-nav-link mobile-cart-link"
             href="/pedido"
           >
@@ -63,7 +63,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
         <Link href="/catalogo#produtos">Produtos</Link>
         <Link href="/#lancamentos">Lancamentos</Link>
         <Link href="/#sobre">Sobre nos</Link>
-        <Link aria-label="Abrir carrinho" className="cart-nav-link" href="/pedido">
+        <Link aria-label="Carrinho - abrir pedido" className="cart-nav-link" href="/pedido">
           <CartIcon />
           <span className="sr-only">Carrinho</span>
           <CartCountBadge />

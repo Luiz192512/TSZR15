@@ -232,6 +232,7 @@ export function CatalogHub({ categories, currentUser, products }) {
           <div className="hero-media-frame">
             <Image
               alt="Yamaha R15 preta em arte promocional TSZ Store"
+              fetchPriority="high"
               fill
               priority
               sizes="100vw"

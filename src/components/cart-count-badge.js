@@ -40,5 +40,9 @@ export function CartCountBadge() {
     };
   }, []);
 
-  return <span className="cart-count-badge">{count}</span>;
+  return (
+    <span aria-hidden="true" className="cart-count-badge">
+      {count}
+    </span>
+  );
 }

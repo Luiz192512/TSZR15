@@ -27,7 +27,7 @@ const featuredProductIds = [
 const productImageSizes = {
   card: "(max-width: 720px) 92vw, 366px",
   detail: "(max-width: 720px) 92vw, 650px",
-  feature: "(max-width: 920px) 92vw, 460px"
+  feature: "(max-width: 620px) 325px, (max-width: 920px) 460px, 460px"
 };
 
 const emptyCustomer = {
@@ -200,7 +200,9 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
   const categoryLabel = formatCategoryLabels(product.storefrontCategoryIds)[0] ?? "R15";
   const familyClass = `family-${product.productFamily}`;
   const coverImage = getProductVisualImage(product, size);
-  const imageLoadingProps = priority ? { priority: true } : { loading: "lazy" };
+  const imageLoadingProps = priority
+    ? { fetchPriority: "high", priority: true }
+    : { loading: "lazy" };
 
   return (
     <div
@@ -286,13 +288,15 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
 
         <div className="mobile-nav-actions">
           <Link
-            aria-label="Abrir carrinho"
+            aria-label={`Carrinho ${cartCount} ${cartCount === 1 ? "item" : "itens"} - abrir pedido`}
             className="cart-nav-link mobile-cart-link"
             href="/pedido"
           >
             <CartIcon />
             <span className="sr-only">Carrinho</span>
-            <span className="cart-count-badge">{cartCount}</span>
+            <span aria-hidden="true" className="cart-count-badge">
+              {cartCount}
+            </span>
           </Link>
           <details className="mobile-nav-details">
             <summary className="mobile-menu-button" aria-label="Abrir menu da loja">
@@ -333,10 +337,16 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
         <Link href="/catalogo#produtos">Produtos</Link>
         <Link href="/#lancamentos">Lancamentos</Link>
         <Link href="/#sobre">Sobre nos</Link>
-        <Link aria-label="Abrir carrinho" className="cart-nav-link" href="/pedido">
+        <Link
+          aria-label={`Carrinho ${cartCount} ${cartCount === 1 ? "item" : "itens"} - abrir pedido`}
+          className="cart-nav-link"
+          href="/pedido"
+        >
           <CartIcon />
           <span className="sr-only">Carrinho</span>
-          <span className="cart-count-badge">{cartCount}</span>
+          <span aria-hidden="true" className="cart-count-badge">
+            {cartCount}
+          </span>
         </Link>
         <AccountNavLink
           authenticatedClassName="profile-link store-profile-link desktop-account-link"
