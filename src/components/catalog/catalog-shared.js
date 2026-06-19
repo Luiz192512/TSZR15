@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { getProductImageVariants } from "@/src/catalog/image-variants.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
-import { AccountNavLink } from "@/src/components/account-nav-link.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
 export const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
 export const cartStorageKey = "tszr15-cart";
@@ -196,6 +195,70 @@ export function useCartCount() {
   return count;
 }
 
+function DeferredAccountNavLink({
+  authenticatedClassName = "profile-link",
+  resolveAccount = true,
+  unauthenticatedClassName = "nav-link nav-link-auth",
+  user,
+  variant = "icon"
+}) {
+  const [AccountNavLinkComponent, setAccountNavLinkComponent] = useState(null);
+  const [shouldResolveAccount, setShouldResolveAccount] = useState(Boolean(user));
+
+  useEffect(() => {
+    if (!resolveAccount || user || shouldResolveAccount || typeof window === "undefined") {
+      return undefined;
+    }
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(() => setShouldResolveAccount(true), {
+        timeout: 6000
+      });
+
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(() => setShouldResolveAccount(true), 3500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [resolveAccount, shouldResolveAccount, user]);
+
+  useEffect(() => {
+    if (!shouldResolveAccount || AccountNavLinkComponent) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    import("@/src/components/account-nav-link.js").then((module) => {
+      if (isMounted) {
+        setAccountNavLinkComponent(() => module.AccountNavLink);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [AccountNavLinkComponent, shouldResolveAccount]);
+
+  if (AccountNavLinkComponent) {
+    return (
+      <AccountNavLinkComponent
+        authenticatedClassName={authenticatedClassName}
+        unauthenticatedClassName={unauthenticatedClassName}
+        user={user}
+        variant={variant}
+      />
+    );
+  }
+
+  return (
+    <Link className={unauthenticatedClassName} data-auth-loading="true" href="/entrar">
+      Entrar
+    </Link>
+  );
+}
+
 export function ProductVisual({ priority = false, product, size = "card" }) {
   const categoryLabel = formatCategoryLabels(product.storefrontCategoryIds)[0] ?? "R15";
   const familyClass = `family-${product.productFamily}`;
@@ -265,7 +328,13 @@ export function ReviewStars({ rating = 0 }) {
   );
 }
 
-export function StoreHeader({ currentUser, onSearchChange, query = "", showSearch = true }) {
+export function StoreHeader({
+  currentUser,
+  onSearchChange,
+  query = "",
+  resolveAccount = true,
+  showSearch = true
+}) {
   const cartCount = useCartCount();
 
   return (
@@ -309,8 +378,9 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
               <Link href="/#lancamentos">Lancamentos</Link>
               <Link href="/#sobre">Sobre nos</Link>
               <Link href="/rastreio">Rastreio</Link>
-              <AccountNavLink
+              <DeferredAccountNavLink
                 authenticatedClassName=""
+                resolveAccount={resolveAccount}
                 unauthenticatedClassName=""
                 user={currentUser}
                 variant="text"
@@ -348,8 +418,9 @@ export function StoreHeader({ currentUser, onSearchChange, query = "", showSearc
             {cartCount}
           </span>
         </Link>
-        <AccountNavLink
+        <DeferredAccountNavLink
           authenticatedClassName="profile-link store-profile-link desktop-account-link"
+          resolveAccount={resolveAccount}
           unauthenticatedClassName="button button-secondary"
           user={currentUser}
         />

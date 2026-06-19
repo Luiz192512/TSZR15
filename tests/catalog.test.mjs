@@ -18,6 +18,7 @@ import {
   buildCatalogProductRows
 } from "../src/catalog/supabase-rows.js";
 import { readCatalogProductsFromSupabase } from "../src/catalog/supabase-catalog-core.js";
+import { getProductVariationImageIndex } from "../src/catalog/variation-images.js";
 import {
   removeCartItem,
   sanitizeCartItems,
@@ -270,6 +271,49 @@ test("catalog products can carry image URL arrays through Supabase rows", () => 
     "https://cdn.example.com/r15/frente-1.jpg",
     "/brand/tszr15-hero-r15-dark.png"
   ]);
+});
+
+test("product variation image resolver matches color names in optimized image filenames", () => {
+  const product = {
+    imageUrls: [
+      "https://cdn.example.com/product/01-carbono-detail.webp",
+      "https://cdn.example.com/product/02-azul-detail.webp",
+      "https://cdn.example.com/product/03-vermelho-detail.webp",
+      "https://cdn.example.com/product/04-preto-detail.webp"
+    ],
+    variations: ["Carbono", "Azul", "Vermelho", "Preto"]
+  };
+
+  assert.equal(getProductVariationImageIndex(product, "Carbono"), 0);
+  assert.equal(getProductVariationImageIndex(product, "Azul"), 1);
+  assert.equal(getProductVariationImageIndex(product, "Vermelho"), 2);
+  assert.equal(getProductVariationImageIndex(product, "Preto"), 3);
+});
+
+test("product variation image resolver handles gendered color filenames", () => {
+  const product = {
+    imageUrls: [
+      "https://cdn.example.com/product/01-bolha-prata-detail.webp",
+      "https://cdn.example.com/product/02-bolha-preta-detail.webp"
+    ],
+    variations: ["Prata", "Preto"]
+  };
+
+  assert.equal(getProductVariationImageIndex(product, "Preto"), 1);
+});
+
+test("product variation image resolver falls back to variation order", () => {
+  const product = {
+    imageUrls: [
+      "https://cdn.example.com/product/01-detail.webp",
+      "https://cdn.example.com/product/02-detail.webp",
+      "https://cdn.example.com/product/03-detail.webp"
+    ],
+    variations: ["Prata", "Fume", "Transparente"]
+  };
+
+  assert.equal(getProductVariationImageIndex(product, "Fume"), 1);
+  assert.equal(getProductVariationImageIndex(product, "Transparente"), 2);
 });
 
 test("configured Supabase catalog can return an empty storefront without local fallback", async () => {

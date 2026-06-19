@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { getProductImageVariants } from "@/src/catalog/image-variants.js";
+import { getProductVariationImageIndex } from "@/src/catalog/variation-images.js";
 import { getCartItemKey } from "@/src/cart/cart-items.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import {
@@ -20,9 +21,9 @@ import {
   StoreHeader,
   writeStoredCart
 } from "./catalog-shared.js";
-function ProductImageCarousel({ product }) {
+
+function ProductImageCarousel({ activeIndex, onActiveIndexChange, product }) {
   const images = getProductImages(product);
-  const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex];
   const activeImageVariants = getProductImageVariants(activeImage);
   const mainImageLoadingProps =
@@ -33,11 +34,15 @@ function ProductImageCarousel({ product }) {
   }
 
   function goToPrevious() {
-    setActiveIndex((currentIndex) => (currentIndex === 0 ? images.length - 1 : currentIndex - 1));
+    onActiveIndexChange((currentIndex) =>
+      currentIndex === 0 ? images.length - 1 : currentIndex - 1
+    );
   }
 
   function goToNext() {
-    setActiveIndex((currentIndex) => (currentIndex === images.length - 1 ? 0 : currentIndex + 1));
+    onActiveIndexChange((currentIndex) =>
+      currentIndex === images.length - 1 ? 0 : currentIndex + 1
+    );
   }
 
   return (
@@ -70,7 +75,7 @@ function ProductImageCarousel({ product }) {
               aria-label={`Ver imagem ${index + 1}`}
               className={index === activeIndex ? "is-active" : ""}
               key={imageUrl}
-              onClick={() => setActiveIndex(index)}
+              onClick={() => onActiveIndexChange(index)}
               type="button"
             >
               <Image
@@ -139,6 +144,9 @@ export function ProductDetails({
   reviewSummary = { averageRating: 0, reviewCount: 0 }
 }) {
   const [selectedVariation, setSelectedVariation] = useState(product.variations[0]);
+  const [activeImageIndex, setActiveImageIndex] = useState(() =>
+    getProductVariationImageIndex(product, product.variations[0])
+  );
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState("");
   const categoryLabels = formatCategoryLabels(product.storefrontCategoryIds);
@@ -170,13 +178,22 @@ export function ProductDetails({
     setFeedback("Produto adicionado ao carrinho.");
   }
 
+  function selectVariation(variation) {
+    setSelectedVariation(variation);
+    setActiveImageIndex(getProductVariationImageIndex(product, variation));
+  }
+
   return (
     <>
-      <StoreHeader currentUser={currentUser} showSearch={false} />
+      <StoreHeader currentUser={currentUser} resolveAccount={false} showSearch={false} />
 
       <section className="product-detail-layout">
         <div className="product-detail-media">
-          <ProductImageCarousel product={product} />
+          <ProductImageCarousel
+            activeIndex={activeImageIndex}
+            onActiveIndexChange={setActiveImageIndex}
+            product={product}
+          />
           <div className="detail-assist-box">
             <strong>Compra assistida</strong>
             <span>
@@ -222,7 +239,7 @@ export function ProductDetails({
                   aria-pressed={selectedVariation === variation}
                   className={selectedVariation === variation ? "is-active" : ""}
                   key={variation}
-                  onClick={() => setSelectedVariation(variation)}
+                  onClick={() => selectVariation(variation)}
                   type="button"
                 >
                   {variation}
