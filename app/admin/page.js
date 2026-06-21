@@ -83,6 +83,16 @@ function arrayToTextarea(values) {
   return Array.isArray(values) ? values.join("\n") : "";
 }
 
+function variationStockToTextarea(variations, variationStock) {
+  const quantities = new Map(
+    (variationStock ?? []).map((stock) => [stock.variation, stock.quantity])
+  );
+
+  return (variations ?? [])
+    .map((variation) => `${variation}=${quantities.get(variation) ?? ""}`)
+    .join("\n");
+}
+
 function productPriceToInput(cents) {
   return centsToInput(cents) || "";
 }
@@ -169,7 +179,11 @@ function StatusSelect({ items, name, value }) {
 }
 
 function RequiredMark() {
-  return <span className="required-field-mark" aria-hidden="true">*</span>;
+  return (
+    <span className="required-field-mark" aria-hidden="true">
+      *
+    </span>
+  );
 }
 
 function AdminTabs({ activeTab }) {
@@ -178,22 +192,13 @@ function AdminTabs({ activeTab }) {
       <Link className={activeTab === "pedidos" ? "is-active" : ""} href="/admin">
         Pedidos
       </Link>
-      <Link
-        className={activeTab === "produtos" ? "is-active" : ""}
-        href="/admin?tab=produtos"
-      >
+      <Link className={activeTab === "produtos" ? "is-active" : ""} href="/admin?tab=produtos">
         Produtos
       </Link>
-      <Link
-        className={activeTab === "analise" ? "is-active" : ""}
-        href="/admin?tab=analise"
-      >
+      <Link className={activeTab === "analise" ? "is-active" : ""} href="/admin?tab=analise">
         Analise
       </Link>
-      <Link
-        className={activeTab === "cupons" ? "is-active" : ""}
-        href="/admin?tab=cupons"
-      >
+      <Link className={activeTab === "cupons" ? "is-active" : ""} href="/admin?tab=cupons">
         Cupons
       </Link>
     </nav>
@@ -209,8 +214,12 @@ function AdminSetup({ message, mode = "env" }) {
     <main className="page-shell auth-page">
       <SiteHeader showAccountNav={false} />
       <section className="setup-panel">
-        <p className="section-label">{isDatabaseIssue ? "Banco pendente" : "Configuracao pendente"}</p>
-        <h1>{isDatabaseIssue ? "Aplique a migration do Supabase." : "Ative o painel administrativo."}</h1>
+        <p className="section-label">
+          {isDatabaseIssue ? "Banco pendente" : "Configuracao pendente"}
+        </p>
+        <h1>
+          {isDatabaseIssue ? "Aplique a migration do Supabase." : "Ative o painel administrativo."}
+        </h1>
         {isDatabaseIssue ? (
           <>
             <p>
@@ -218,7 +227,7 @@ function AdminSetup({ message, mode = "env" }) {
               nao existem no projeto conectado.
             </p>
             <pre className="setup-command-block">
-{`npx supabase login
+              {`npx supabase login
 npx supabase link --project-ref ${projectRef}
 npx supabase db push`}
             </pre>
@@ -435,7 +444,8 @@ function OrderDetail({ selected }) {
           <p className="section-label">Pedido interno</p>
           <h1>{order.order_number}</h1>
           <p>
-            {order.customer_name} - {order.customer_whatsapp || order.customer_phone || "sem contato"}
+            {order.customer_name} -{" "}
+            {order.customer_whatsapp || order.customer_phone || "sem contato"}
           </p>
         </div>
         <div className="admin-total-box">
@@ -477,8 +487,7 @@ function OrderDetail({ selected }) {
                   <em>{item.variation}</em>
                   {Number.isInteger(item.subtotal_cost_cents) ? (
                     <em>
-                      Custo: {formatCurrency(item.subtotal_cost_cents, item.currency)} - Lucro:
-                      {" "}
+                      Custo: {formatCurrency(item.subtotal_cost_cents, item.currency)} - Lucro:{" "}
                       {formatCurrency(
                         item.subtotal_cents - item.subtotal_cost_cents,
                         item.currency
@@ -523,7 +532,11 @@ function OrderDetail({ selected }) {
           <div className="form-grid">
             <label>
               <span>Status de pagamento</span>
-              <StatusSelect items={paymentStatuses} name="paymentStatus" value={order.payment_status} />
+              <StatusSelect
+                items={paymentStatuses}
+                name="paymentStatus"
+                value={order.payment_status}
+              />
             </label>
             <label>
               <span>Status operacional</span>
@@ -547,7 +560,11 @@ function OrderDetail({ selected }) {
             </label>
             <label className="span-all">
               <span>Observacoes internas do pedido</span>
-              <textarea defaultValue={order.internal_notes ?? ""} name="orderInternalNotes" rows={3} />
+              <textarea
+                defaultValue={order.internal_notes ?? ""}
+                name="orderInternalNotes"
+                rows={3}
+              />
             </label>
           </div>
         </div>
@@ -573,19 +590,31 @@ function OrderDetail({ selected }) {
             </label>
             <label>
               <span>Loja/vendedor origem</span>
-              <input defaultValue={supplierPurchase?.source_store_name ?? ""} name="sourceStoreName" />
+              <input
+                defaultValue={supplierPurchase?.source_store_name ?? ""}
+                name="sourceStoreName"
+              />
             </label>
             <label>
               <span>Pedido na origem</span>
-              <input defaultValue={supplierPurchase?.source_order_number ?? ""} name="sourceOrderNumber" />
+              <input
+                defaultValue={supplierPurchase?.source_order_number ?? ""}
+                name="sourceOrderNumber"
+              />
             </label>
             <label className="span-all">
               <span>Link interno do produto</span>
-              <input defaultValue={supplierPurchase?.source_product_url ?? ""} name="sourceProductUrl" />
+              <input
+                defaultValue={supplierPurchase?.source_product_url ?? ""}
+                name="sourceProductUrl"
+              />
             </label>
             <label>
               <span>Conta operacional</span>
-              <input defaultValue={supplierPurchase?.operational_account ?? ""} name="operationalAccount" />
+              <input
+                defaultValue={supplierPurchase?.operational_account ?? ""}
+                name="operationalAccount"
+              />
             </label>
             <label>
               <span>Comprado em</span>
@@ -597,11 +626,17 @@ function OrderDetail({ selected }) {
             </label>
             <label>
               <span>Custo produto</span>
-              <input defaultValue={centsToInput(supplierPurchase?.product_cost_cents)} name="productCost" />
+              <input
+                defaultValue={centsToInput(supplierPurchase?.product_cost_cents)}
+                name="productCost"
+              />
             </label>
             <label>
               <span>Custo frete</span>
-              <input defaultValue={centsToInput(supplierPurchase?.shipping_cost_cents)} name="shippingCost" />
+              <input
+                defaultValue={centsToInput(supplierPurchase?.shipping_cost_cents)}
+                name="shippingCost"
+              />
             </label>
             <label>
               <span>Moeda</span>
@@ -629,7 +664,11 @@ function OrderDetail({ selected }) {
             </label>
             <label className="span-all">
               <span>Notas da origem</span>
-              <textarea defaultValue={supplierPurchase?.internal_notes ?? ""} name="supplierNotes" rows={3} />
+              <textarea
+                defaultValue={supplierPurchase?.internal_notes ?? ""}
+                name="supplierNotes"
+                rows={3}
+              />
             </label>
           </div>
         </div>
@@ -945,9 +984,7 @@ function ProductList({ newProductCount, products, selectedProductId }) {
 
         {products.map((product) => (
           <Link
-            className={`admin-product-link ${
-              selectedProductId === product.id ? "is-active" : ""
-            }`}
+            className={`admin-product-link ${selectedProductId === product.id ? "is-active" : ""}`}
             href={`/admin?tab=produtos&produto=${encodeURIComponent(product.id)}`}
             key={product.id}
           >
@@ -993,7 +1030,9 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         </h2>
         <div className="form-grid admin-product-identity-grid">
           <label>
-            <span>Nome <RequiredMark /></span>
+            <span>
+              Nome <RequiredMark />
+            </span>
             <input
               autoComplete="off"
               defaultValue={product?.name ?? ""}
@@ -1013,7 +1052,9 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             <small>Opcional. Se ficar vazio, o sistema gera pelo nome.</small>
           </label>
           <label>
-            <span>Familia tecnica <RequiredMark /></span>
+            <span>
+              Familia tecnica <RequiredMark />
+            </span>
             <select defaultValue={selectedFamily} name="productFamily" required>
               {families.map((family) => (
                 <option key={family} value={family}>
@@ -1029,7 +1070,9 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         <h2>Preco e operacao</h2>
         <div className="form-grid admin-product-pricing-grid">
           <label>
-            <span>Preco do cliente <RequiredMark /></span>
+            <span>
+              Preco do cliente <RequiredMark />
+            </span>
             <input
               defaultValue={productPriceToInput(product?.priceCents)}
               inputMode="decimal"
@@ -1055,10 +1098,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
           </label>
           <label>
             <span>Disponibilidade</span>
-            <input
-              defaultValue={product?.availability ?? "sob-consulta"}
-              name="availability"
-            />
+            <input defaultValue={product?.availability ?? "sob-consulta"} name="availability" />
           </label>
           <label>
             <span>Prazo em dias uteis</span>
@@ -1091,7 +1131,9 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         <h2>Categorias e compatibilidade</h2>
         <div className="form-grid">
           <fieldset className="span-all admin-checkbox-fieldset">
-            <legend>Categorias <RequiredMark /></legend>
+            <legend>
+              Categorias <RequiredMark />
+            </legend>
             <div className="admin-checkbox-grid">
               {categories.map((category) => (
                 <label key={category.id}>
@@ -1105,7 +1147,9 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
                 </label>
               ))}
             </div>
-            <p className="form-helper-text">Selecione pelo menos uma categoria para publicar na vitrine.</p>
+            <p className="form-helper-text">
+              Selecione pelo menos uma categoria para publicar na vitrine.
+            </p>
           </fieldset>
           <label className="span-all">
             <span>Escopo tecnico</span>
@@ -1121,7 +1165,9 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         <h2>Vitrine</h2>
         <div className="form-grid">
           <label className="span-all">
-            <span>Variacoes <RequiredMark /></span>
+            <span>
+              Variacoes <RequiredMark />
+            </span>
             <textarea
               defaultValue={arrayToTextarea(product?.variations) || "Padrao"}
               name="variations"
@@ -1130,13 +1176,29 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             />
             <small>Uma por linha ou separadas por virgula.</small>
           </label>
+          <label className="span-all">
+            <span>Estoque por variação</span>
+            <textarea
+              defaultValue={variationStockToTextarea(product?.variations, product?.variationStock)}
+              name="variationStock"
+              rows={3}
+            />
+            <small>
+              Use <code>Variação=quantidade</code>. Deixe depois do = vazio para “consultar
+              disponibilidade”; use 0 para esgotado.
+            </small>
+          </label>
           <ProductImageUploader existingImageUrls={product?.imageUrls ?? []} />
           <label className="span-all">
             <span>Notas</span>
             <textarea defaultValue={product?.notes ?? ""} name="notes" rows={4} />
           </label>
           <label className="admin-toggle-row span-all">
-            <input defaultChecked={product?.isPublished ?? true} name="isPublished" type="checkbox" />
+            <input
+              defaultChecked={product?.isPublished ?? true}
+              name="isPublished"
+              type="checkbox"
+            />
             <span>Publicado na vitrine</span>
           </label>
         </div>
@@ -1208,7 +1270,9 @@ function CouponForm({ categories, coupon, products }) {
         <h2>{coupon ? `Cupom ${coupon.code}` : "Novo cupom"}</h2>
         <div className="form-grid">
           <label>
-            <span>Codigo <RequiredMark /></span>
+            <span>
+              Codigo <RequiredMark />
+            </span>
             <input
               autoComplete="off"
               defaultValue={coupon?.code ?? ""}
@@ -1246,7 +1310,9 @@ function CouponForm({ categories, coupon, products }) {
         <h2>Desconto</h2>
         <div className="form-grid">
           <label>
-            <span>Tipo <RequiredMark /></span>
+            <span>
+              Tipo <RequiredMark />
+            </span>
             <select defaultValue={discountType} name="discountType" required>
               <option value="percent">Percentual</option>
               <option value="fixed">Valor fixo</option>
@@ -1303,11 +1369,19 @@ function CouponForm({ categories, coupon, products }) {
         <div className="form-grid">
           <label>
             <span>Comeca em</span>
-            <input defaultValue={dateTimeToInput(coupon?.startsAt)} name="startsAt" type="datetime-local" />
+            <input
+              defaultValue={dateTimeToInput(coupon?.startsAt)}
+              name="startsAt"
+              type="datetime-local"
+            />
           </label>
           <label>
             <span>Expira em</span>
-            <input defaultValue={dateTimeToInput(coupon?.expiresAt)} name="expiresAt" type="datetime-local" />
+            <input
+              defaultValue={dateTimeToInput(coupon?.expiresAt)}
+              name="expiresAt"
+              type="datetime-local"
+            />
           </label>
           <fieldset className="span-all admin-checkbox-fieldset">
             <legend>Categorias aplicaveis</legend>

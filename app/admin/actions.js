@@ -4,10 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import {
-  clearAdminSession,
-  isAdminSessionValid
-} from "@/src/admin/admin-auth.js";
+import { clearAdminSession, isAdminSessionValid } from "@/src/admin/admin-auth.js";
 import {
   archiveAdminCoupon,
   archiveAdminCatalogProduct,
@@ -20,6 +17,7 @@ import {
   updateAdminOrderOperation
 } from "@/src/admin/order-admin.js";
 import { moderateOrderReview } from "@/src/reviews/order-reviews.js";
+import { revalidateCatalogPaths } from "@/src/catalog/revalidation.js";
 
 function formValue(formData, key) {
   return String(formData.get(key) ?? "").trim();
@@ -126,18 +124,6 @@ export async function createAdminOrderAction(formData) {
   redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=pedido-criado`);
 }
 
-function revalidateCatalogPaths(...slugs) {
-  revalidatePath("/");
-  revalidatePath("/catalogo");
-  revalidatePath("/api/catalog");
-  revalidatePath("/admin");
-  revalidatePath("/produto/[slug]", "page");
-
-  for (const slug of slugs.filter(Boolean)) {
-    revalidatePath(`/produto/${slug}`);
-  }
-}
-
 export async function upsertAdminProductAction(formData) {
   const previousSlug = formValue(formData, "previousSlug");
 
@@ -153,7 +139,8 @@ export async function upsertAdminProductAction(formData) {
 
   try {
     result = await upsertAdminCatalogProduct(formData);
-    revalidateCatalogPaths(previousSlug, result.slug);
+    revalidateCatalogPaths([previousSlug, result.slug]);
+    revalidatePath("/admin");
   } catch (error) {
     redirectWithError("/admin?tab=produtos", error.message);
   }
@@ -174,7 +161,8 @@ export async function archiveAdminProductAction(formData) {
 
   try {
     result = await archiveAdminCatalogProduct(formData);
-    revalidateCatalogPaths(result.slug);
+    revalidateCatalogPaths([result.slug]);
+    revalidatePath("/admin");
   } catch (error) {
     redirectWithError("/admin?tab=produtos", error.message);
   }
@@ -196,6 +184,7 @@ export async function upsertAdminCouponAction(formData) {
   try {
     result = await upsertAdminCoupon(formData);
     revalidateCatalogPaths();
+    revalidatePath("/admin");
   } catch (error) {
     redirectWithError("/admin?tab=cupons", error.message);
   }
@@ -215,6 +204,7 @@ export async function archiveAdminCouponAction(formData) {
   try {
     await archiveAdminCoupon(formData);
     revalidateCatalogPaths();
+    revalidatePath("/admin");
   } catch (error) {
     redirectWithError("/admin?tab=cupons", error.message);
   }

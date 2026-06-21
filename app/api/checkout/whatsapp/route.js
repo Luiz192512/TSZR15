@@ -1,4 +1,5 @@
 import { buildWhatsAppCheckoutUrl } from "@/src/checkout/whatsapp.js";
+import { sendOrderConfirmation } from "@/src/checkout/order-email.js";
 import {
   buildCheckoutOrderDraft,
   CheckoutPersistenceError,
@@ -7,7 +8,9 @@ import {
 } from "@/src/checkout/order-backend.js";
 import { markCouponRedeemed, resolveCheckoutCoupon } from "@/src/checkout/coupons.js";
 import { getSupabaseCatalogProducts } from "@/src/catalog/supabase-catalog.js";
+import { getVariationStockStatus } from "@/src/catalog/stock.js";
 import { logServerEvent } from "@/src/lib/logger.js";
+import { captureServerError } from "@/src/lib/monitoring.js";
 import { consumeRateLimit, getRequestIp, rateLimitProfiles } from "@/src/lib/rate-limit.js";
 import { createRateLimitResponse } from "@/src/lib/rate-limit-response.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
@@ -108,6 +111,23 @@ export async function POST(request) {
     });
 
     draft = coupon ? buildCheckoutOrderDraft(payload, { coupon, products, storeName }) : baseDraft;
+
+    const unavailableItems = draft.cartItems.filter((item) => {
+      const stock = getVariationStockStatus(
+        products.find((product) => product.id === item.id),
+        item.variation
+      );
+
+      return !stock.canAddToCart || (stock.quantity !== null && item.quantity > stock.quantity);
+    });
+
+    if (unavailableItems.length > 0) {
+      return errorResponse(
+        "Uma ou mais variações ficaram esgotadas antes de finalizar o pedido.",
+        409,
+        unavailableItems.map((item) => `${item.name} (${item.variation})`)
+      );
+    }
   } catch (error) {
     if (error instanceof CheckoutValidationError) {
       logServerEvent("warn", "checkout_validation_error", {
@@ -120,6 +140,7 @@ export async function POST(request) {
     logServerEvent("error", "checkout_unhandled_build_error", {
       reason: error instanceof Error ? error.message : "unknown"
     });
+    await captureServerError(error, { stage: "checkout-build" });
     throw error;
   }
   const {
@@ -146,11 +167,24 @@ export async function POST(request) {
     logServerEvent("error", "checkout_unhandled_persistence_error", {
       reason: error instanceof Error ? error.message : "unknown"
     });
+    await captureServerError(error, { stage: "checkout-persistence" });
     throw error;
   }
 
   if (order.saved && draft.coupon?.code) {
     await markCouponRedeemed({ code: draft.coupon.code, supabase: serviceSupabase });
+  }
+
+  if (order.saved) {
+    try {
+      await sendOrderConfirmation({ draft, order });
+    } catch (error) {
+      logServerEvent("error", "checkout_confirmation_email_failed", {
+        orderNumber: order.orderNumber,
+        reason: error instanceof Error ? error.message : "unknown"
+      });
+      await captureServerError(error, { orderNumber: order.orderNumber, stage: "checkout-email" });
+    }
   }
 
   logServerEvent(order.saved ? "info" : "warn", "checkout_order_processed", {

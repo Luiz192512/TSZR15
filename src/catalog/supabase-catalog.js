@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import { toPublicCatalogProduct } from "./index.js";
+import { attachVariationStock, readCatalogVariationStock } from "./stock.js";
 import { readCatalogProductsFromSupabase } from "./supabase-catalog-core.js";
 export {
   buildCatalogCategoryRows,
@@ -43,7 +44,22 @@ export async function getSupabaseCatalogProducts({ supabase } = {}) {
     };
   }
 
-  return readCatalogProductsFromSupabase(client);
+  const catalog = await readCatalogProductsFromSupabase(client);
+
+  if (catalog.error || catalog.products.length === 0) {
+    return catalog;
+  }
+
+  const stock = await readCatalogVariationStock(
+    client,
+    catalog.products.map((product) => product.id)
+  );
+
+  return {
+    ...catalog,
+    products: attachVariationStock(catalog.products, stock.rows),
+    stockError: stock.error
+  };
 }
 
 export async function getPublicCatalogProductsForStorefront(options = {}) {

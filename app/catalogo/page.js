@@ -6,7 +6,7 @@ export const metadata = {
   title: "Produtos R15 | TSZR15",
   description: "Produtos R15 com detalhes, variacoes e carrinho separado."
 };
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export default async function CatalogPage() {
   const catalog = await getPublicCatalogProductsForStorefront();

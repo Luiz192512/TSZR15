@@ -1,8 +1,4 @@
-import {
-  storefrontCategories,
-  storefrontCategoryMap,
-  technicalFamilies
-} from "./categories.js";
+import { storefrontCategories, storefrontCategoryMap, technicalFamilies } from "./categories.js";
 import { catalogProducts, rawCatalogProducts, rejectedCatalogProducts } from "./products.js";
 import { blockedMotorcycleKeywords, getImportDecision } from "./importRules.js";
 
@@ -18,20 +14,19 @@ export {
 export function getStorefrontMenu(products = catalogProducts) {
   return storefrontCategories.map((category) => ({
     ...category,
-    productCount: products.filter((product) =>
-      product.storefrontCategoryIds.includes(category.id)
-    ).length
+    productCount: products.filter((product) => product.storefrontCategoryIds.includes(category.id))
+      .length
   }));
 }
 
 export function toPublicCatalogProduct(product) {
   const {
-    costCents,
-    internalPurchaseCandidates,
-    internalPurchaseSource,
-    marginPercent,
-    profitCents,
-    supplierSource,
+    costCents: _costCents,
+    internalPurchaseCandidates: _internalPurchaseCandidates,
+    internalPurchaseSource: _internalPurchaseSource,
+    marginPercent: _marginPercent,
+    profitCents: _profitCents,
+    supplierSource: _supplierSource,
     ...publicProduct
   } = product;
 
@@ -65,7 +60,9 @@ export function groupProductsByCategory(products = catalogProducts) {
 }
 
 export function formatCategoryLabels(categoryIds) {
-  return categoryIds.map((categoryId) => storefrontCategoryMap.get(categoryId)?.label ?? categoryId);
+  return categoryIds.map(
+    (categoryId) => storefrontCategoryMap.get(categoryId)?.label ?? categoryId
+  );
 }
 
 export function formatCurrency(cents) {

@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { getProductImageVariants } from "@/src/catalog/image-variants.js";
 import { getProductVariationImageIndex } from "@/src/catalog/variation-images.js";
+import { getVariationStockStatus } from "@/src/catalog/stock.js";
 import { getCartItemKey } from "@/src/cart/cart-items.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import {
@@ -143,19 +144,47 @@ export function ProductDetails({
   reviews = [],
   reviewSummary = { averageRating: 0, reviewCount: 0 }
 }) {
-  const [selectedVariation, setSelectedVariation] = useState(product.variations[0]);
+  const initialVariation =
+    product.variations.find(
+      (variation) => getVariationStockStatus(product, variation).canAddToCart
+    ) ?? product.variations[0];
+  const [selectedVariation, setSelectedVariation] = useState(initialVariation);
   const [activeImageIndex, setActiveImageIndex] = useState(() =>
-    getProductVariationImageIndex(product, product.variations[0])
+    getProductVariationImageIndex(product, initialVariation)
   );
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState("");
+  const [wasAdded, setWasAdded] = useState(false);
   const categoryLabels = formatCategoryLabels(product.storefrontCategoryIds);
+  const stockStatus = getVariationStockStatus(product, selectedVariation);
   const totalCents = product.priceCents * quantity;
 
+  useEffect(() => {
+    if (!wasAdded) return undefined;
+
+    const timeout = window.setTimeout(() => setWasAdded(false), 1400);
+
+    return () => window.clearTimeout(timeout);
+  }, [wasAdded]);
+
   function addToCart() {
+    if (!stockStatus.canAddToCart) {
+      setFeedback("Esta variação está esgotada no momento.");
+      return;
+    }
+
     const currentCart = readStoredCart();
     const cartKey = getCartItemKey(product.id, selectedVariation);
     const existingItem = currentCart.find((item) => item.cartKey === cartKey);
+
+    if (
+      stockStatus.quantity !== null &&
+      (existingItem?.quantity ?? 0) + quantity > stockStatus.quantity
+    ) {
+      setFeedback(`O limite disponível para esta variação é ${stockStatus.quantity} unidade(s).`);
+      return;
+    }
+
     const nextItems = existingItem
       ? currentCart.map((item) =>
           item.cartKey === cartKey ? { ...item, quantity: item.quantity + quantity } : item
@@ -176,11 +205,17 @@ export function ProductDetails({
 
     writeStoredCart(nextItems);
     setFeedback("Produto adicionado ao carrinho.");
+    setWasAdded(true);
   }
 
   function selectVariation(variation) {
+    if (!getVariationStockStatus(product, variation).canAddToCart) {
+      return;
+    }
+
     setSelectedVariation(variation);
     setActiveImageIndex(getProductVariationImageIndex(product, variation));
+    setQuantity(1);
   }
 
   return (
@@ -233,18 +268,27 @@ export function ProductDetails({
           <div className="option-group">
             <span>Cor / variação</span>
             <div className="variation-grid" role="list">
-              {product.variations.map((variation) => (
-                <button
-                  aria-label={`Selecionar variacao ${variation}`}
-                  aria-pressed={selectedVariation === variation}
-                  className={selectedVariation === variation ? "is-active" : ""}
-                  key={variation}
-                  onClick={() => selectVariation(variation)}
-                  type="button"
-                >
-                  {variation}
-                </button>
-              ))}
+              {product.variations.map((variation) =>
+                (() => {
+                  const variationStock = getVariationStockStatus(product, variation);
+
+                  return (
+                    <button
+                      aria-label={`Selecionar variacao ${variation}`}
+                      aria-pressed={selectedVariation === variation}
+                      className={`${selectedVariation === variation ? "is-active" : ""} ${
+                        variationStock.status === "out" ? "is-unavailable" : ""
+                      }`}
+                      disabled={!variationStock.canAddToCart}
+                      key={variation}
+                      onClick={() => selectVariation(variation)}
+                      type="button"
+                    >
+                      {variationStock.status === "out" ? `${variation} — esgotado` : variation}
+                    </button>
+                  );
+                })()
+              )}
             </div>
           </div>
 
@@ -261,7 +305,10 @@ export function ProductDetails({
               <span>{quantity}</span>
               <button
                 aria-label="Aumentar quantidade"
-                onClick={() => setQuantity((current) => Math.min(current + 1, 99))}
+                disabled={stockStatus.quantity !== null && quantity >= stockStatus.quantity}
+                onClick={() =>
+                  setQuantity((current) => Math.min(current + 1, stockStatus.quantity ?? 99))
+                }
                 type="button"
               >
                 +
@@ -281,9 +328,7 @@ export function ProductDetails({
             </div>
             <div>
               <dt>Disponibilidade</dt>
-              <dd>
-                {product.availability === "sob-consulta" ? "Sob consulta" : product.availability}
-              </dd>
+              <dd>{stockStatus.label}</dd>
             </div>
             <div>
               <dt>Fechamento</dt>
@@ -298,8 +343,19 @@ export function ProductDetails({
           ) : null}
 
           <div className="detail-actions">
-            <button className="button button-primary" onClick={addToCart} type="button">
-              Adicionar ao carrinho
+            <button
+              className={`button button-primary ${wasAdded ? "is-added" : ""}`}
+              disabled={!stockStatus.canAddToCart}
+              onClick={addToCart}
+              type="button"
+            >
+              {stockStatus.canAddToCart
+                ? wasAdded
+                  ? "Adicionado ao carrinho"
+                  : stockStatus.status === "consult"
+                    ? "Adicionar e consultar"
+                    : "Adicionar ao carrinho"
+                : "Esgotado"}
             </button>
             <Link className="button button-secondary" href="/pedido">
               Ir para o carrinho

@@ -53,13 +53,13 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
 
     const controller = new AbortController();
 
-    setLookup({ message: "Buscando endereco pelo CEP...", status: "loading" });
+    setLookup({ message: "Buscando endereço pelo CEP...", status: "loading" });
 
     fetchCepAddress(values.cep, { signal: controller.signal })
       .then((address) => {
         if (!address) {
           setLookup({
-            message: "CEP nao encontrado. Confira o numero ou preencha o endereco manualmente.",
+            message: "CEP não encontrado. Confira o número ou preencha o endereço manualmente.",
             status: "error"
           });
           return;
@@ -79,7 +79,7 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
           };
         });
         setLookup({
-          message: "Endereco preenchido pelo CEP. Confira numero e complemento.",
+          message: "Endereço preenchido pelo CEP. Confira número e complemento.",
           status: "success"
         });
       })
@@ -89,7 +89,7 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
         }
 
         setLookup({
-          message: "Nao foi possivel consultar o CEP agora. Preencha o endereco manualmente.",
+          message: "Não foi possível consultar o CEP agora. Preencha o endereço manualmente.",
           status: "error"
         });
       });
@@ -121,7 +121,7 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
           pattern={cepPattern}
           required
           sanitizer="cep"
-          title="Use 8 numeros, com ou sem hifen."
+          title="Use 8 números, com ou sem hífen."
           value={values.cep}
         />
       </label>
@@ -147,7 +147,7 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
         />
       </label>
       <label>
-        <span>Numero</span>
+        <span>Número</span>
         <input
           name="number"
           onChange={(event) => updateValue("number", event.target.value)}
@@ -198,7 +198,7 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
         />
       </label>
       <label className={referencePointClassName}>
-        <span>Ponto de referencia</span>
+        <span>Ponto de referência</span>
         <input
           name="referencePoint"
           onChange={(event) => updateValue("referencePoint", event.target.value)}

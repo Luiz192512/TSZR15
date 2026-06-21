@@ -13,7 +13,9 @@ const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "ima
 const maxImageBytes = 5 * 1024 * 1024;
 
 function cleanString(value, maxLength = 500) {
-  return String(value ?? "").trim().slice(0, maxLength);
+  return String(value ?? "")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function slugify(value) {
@@ -82,10 +84,41 @@ function splitImageUrls(value) {
     .slice(0, 12);
 }
 
-function splitCouponCodes(value) {
-  return splitList(value, { maxItems: 60, maxLength: 40 })
-    .map(normalizeCouponCode)
-    .filter(Boolean);
+function parseVariationStock(value, variations) {
+  const quantitiesByVariation = new Map();
+
+  for (const line of cleanString(value, 5000).split(/\r?\n/)) {
+    const [rawVariation, rawQuantity = ""] = line.split("=", 2);
+    const variation = cleanString(rawVariation, 160);
+
+    if (!variation || !variations.includes(variation)) {
+      continue;
+    }
+
+    const quantityText = cleanString(rawQuantity, 20);
+
+    if (!quantityText) {
+      quantitiesByVariation.set(variation, null);
+      continue;
+    }
+
+    if (!/^\d+$/.test(quantityText)) {
+      throw new Error(`Estoque inválido para a variação ${variation}.`);
+    }
+
+    const quantity = Number(quantityText);
+
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      throw new Error(`Estoque inválido para a variação ${variation}.`);
+    }
+
+    quantitiesByVariation.set(variation, quantity);
+  }
+
+  return variations.map((variation) => ({
+    quantity: quantitiesByVariation.get(variation) ?? null,
+    variation
+  }));
 }
 
 function isValidImageUrl(value) {
@@ -128,6 +161,7 @@ function toAdminProduct(row) {
         : null,
     currency: row.currency ?? "BRL",
     variations: row.variations ?? [],
+    variationStock: row.variation_stock ?? [],
     availability: row.availability ?? "sob-consulta",
     leadTimeDays: row.lead_time_days ?? 2,
     shippingClass: row.shipping_class ?? "medium",
@@ -176,7 +210,10 @@ function safeFileName(value) {
 }
 
 function getFileExtension(file) {
-  const fromName = String(file.name ?? "").split(".").pop()?.toLowerCase();
+  const fromName = String(file.name ?? "")
+    .split(".")
+    .pop()
+    ?.toLowerCase();
 
   if (fromName && /^[a-z0-9]{2,5}$/.test(fromName)) {
     return fromName;
@@ -212,13 +249,11 @@ async function uploadProductImages({ formData, productId, supabase }) {
     const extension = getFileExtension(file);
     const filePath = `${productId}/${Date.now()}-${crypto.randomUUID()}-${safeFileName(file.name)}.${extension}`;
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { error } = await supabase.storage
-      .from(productImageBucket)
-      .upload(filePath, fileBuffer, {
-        cacheControl: "31536000",
-        contentType: file.type,
-        upsert: false
-      });
+    const { error } = await supabase.storage.from(productImageBucket).upload(filePath, fileBuffer, {
+      cacheControl: "31536000",
+      contentType: file.type,
+      upsert: false
+    });
 
     if (error) {
       throw new Error(`Upload de imagem falhou: ${error.message}`);
@@ -385,7 +420,8 @@ export async function getAdminCatalogState() {
   const [
     { data, error },
     { data: costRows, error: costError },
-    { data: couponRows, error: couponError }
+    { data: couponRows, error: couponError },
+    { data: stockRows, error: stockError }
   ] = await Promise.all([
     supabase
       .from("catalog_products")
@@ -399,19 +435,28 @@ export async function getAdminCatalogState() {
       .select("*")
       .order("is_active", { ascending: false })
       .order("updated_at", { ascending: false })
-      .order("code", { ascending: true })
+      .order("code", { ascending: true }),
+    supabase.from("catalog_variation_stock").select("product_id, variation, quantity")
   ]);
 
-  const firstError = error ?? costError ?? couponError;
+  const firstError = error ?? costError ?? couponError ?? stockError;
 
   if (firstError) {
     throw new Error(firstError.message);
   }
 
   const costsByProductId = new Map((costRows ?? []).map((row) => [row.product_id, row]));
+  const stockByProductId = new Map();
+
+  for (const stock of stockRows ?? []) {
+    const productStock = stockByProductId.get(stock.product_id) ?? [];
+    productStock.push({ quantity: stock.quantity, variation: stock.variation });
+    stockByProductId.set(stock.product_id, productStock);
+  }
   const productRows = (data ?? []).map((row) => ({
     ...row,
-    cost_cents: costsByProductId.get(row.id)?.cost_cents ?? null
+    cost_cents: costsByProductId.get(row.id)?.cost_cents ?? null,
+    variation_stock: stockByProductId.get(row.id) ?? []
   }));
 
   return {
@@ -440,6 +485,46 @@ export async function upsertAdminCatalogProduct(formData) {
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  const variationStock = parseVariationStock(formData.get("variationStock"), finalRow.variations);
+  const { data: currentStockRows, error: currentStockError } = await supabase
+    .from("catalog_variation_stock")
+    .eq("product_id", id)
+    .select("variation");
+
+  if (currentStockError) {
+    throw new Error(currentStockError.message);
+  }
+
+  const staleVariations = (currentStockRows ?? [])
+    .map((stock) => stock.variation)
+    .filter((variation) => !finalRow.variations.includes(variation));
+
+  if (staleVariations.length > 0) {
+    const staleDeletes = await Promise.all(
+      staleVariations.map((variation) =>
+        supabase
+          .from("catalog_variation_stock")
+          .delete()
+          .eq("product_id", id)
+          .eq("variation", variation)
+      )
+    );
+    const staleDeleteError = staleDeletes.find(({ error: deleteError }) => deleteError)?.error;
+
+    if (staleDeleteError) {
+      throw new Error(staleDeleteError.message);
+    }
+  }
+
+  const { error: stockError } = await supabase.from("catalog_variation_stock").upsert(
+    variationStock.map((stock) => ({ ...stock, product_id: id })),
+    { onConflict: "product_id,variation" }
+  );
+
+  if (stockError) {
+    throw new Error(stockError.message);
   }
 
   if (Number.isInteger(costCents)) {

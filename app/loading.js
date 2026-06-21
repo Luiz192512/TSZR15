@@ -1,5 +1,5 @@
-import { Tszr15Loader } from "@/src/components/loading/tszr15-loader.js";
+import { CatalogSkeleton } from "@/src/components/catalog/catalog-skeleton.js";
 
 export default function Loading() {
-  return <Tszr15Loader label="Carregando vitrine TSZR15" />;
+  return <CatalogSkeleton label="Carregando vitrine TSZR15" />;
 }
