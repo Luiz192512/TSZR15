@@ -1,6 +1,6 @@
 "use client";
 
-import globalStyles from "@/app/storefront.module.css";
+import globalStyles from "@/src/styles/storefront-styles.js";
 import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -138,6 +138,21 @@ export function CartCheckout({ currentUser, initialCustomer, isSupabaseConfigure
           Continuar comprando
         </Link>
       </section>
+
+      <ol className={cx(globalStyles, "checkout-steps")} aria-label="Etapas do pedido">
+        <li className={cx(globalStyles, "is-active")}>
+          <span>1</span>
+          Carrinho
+        </li>
+        <li>
+          <span>2</span>
+          Entrega
+        </li>
+        <li>
+          <span>3</span>
+          Confirmação
+        </li>
+      </ol>
 
       <section className={cx(globalStyles, "cart-page-layout")}>
         <CartItemsPanel

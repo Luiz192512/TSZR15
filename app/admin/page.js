@@ -1,4 +1,4 @@
-import globalStyles from "@/app/storefront.module.css";
+import globalStyles from "@/src/styles/storefront-styles.js";
 import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -190,7 +190,7 @@ function RequiredMark() {
 
 function AdminTabs({ activeTab }) {
   return (
-    <nav className={cx(globalStyles, "admin-tab-bar")} aria-label="Secoes do painel admin">
+    <nav className={cx(globalStyles, "admin-tab-bar")} aria-label="Seções do painel admin">
       <Link className={cx(globalStyles, activeTab === "pedidos" ? "is-active" : "")} href="/admin">
         Pedidos
       </Link>
@@ -198,13 +198,13 @@ function AdminTabs({ activeTab }) {
         className={cx(globalStyles, activeTab === "produtos" ? "is-active" : "")}
         href="/admin?tab=produtos"
       >
-        Produtos
+        Catálogo
       </Link>
       <Link
         className={cx(globalStyles, activeTab === "analise" ? "is-active" : "")}
         href="/admin?tab=analise"
       >
-        Analise
+        Dashboard e avaliações
       </Link>
       <Link
         className={cx(globalStyles, activeTab === "cupons" ? "is-active" : "")}
@@ -1031,7 +1031,7 @@ function ProductList({ newProductCount, products, selectedProductId }) {
   );
 }
 
-function ProductForm({ categories, draftIndex = 0, families, product }) {
+function ProductForm({ categories, draftIndex = 0, families, product = null }) {
   const selectedCategoryIds = new Set(
     product?.storefrontCategoryIds?.length
       ? product.storefrontCategoryIds
