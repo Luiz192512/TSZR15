@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { updatePasswordAction } from "@/app/auth/actions.js";
@@ -26,18 +28,18 @@ export default async function ChangePasswordPage({ searchParams }) {
   const message = getMessage(params, user);
 
   return (
-    <main className="page-shell auth-page">
+    <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader user={user} />
 
-      <section className="auth-shell">
-        <form action={updatePasswordAction} className="auth-card">
-          <p className="section-label">Trocar senha</p>
+      <section className={cx(globalStyles, "auth-shell")}>
+        <form action={updatePasswordAction} className={cx(globalStyles, "auth-card")}>
+          <p className={cx(globalStyles, "section-label")}>Trocar senha</p>
           <h1>Defina uma nova senha para sua conta.</h1>
-          <p className="helper-text">
+          <p className={cx(globalStyles, "helper-text")}>
             Use uma senha com pelo menos 6 caracteres. Depois voce entra novamente.
           </p>
 
-          {message ? <p className="form-alert">{message}</p> : null}
+          {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
 
           <PasswordInput
             autoComplete="new-password"
@@ -54,11 +56,15 @@ export default async function ChangePasswordPage({ searchParams }) {
             required
           />
 
-          <button className="button button-primary" disabled={!user} type="submit">
+          <button
+            className={cx(globalStyles, "button button-primary")}
+            disabled={!user}
+            type="submit"
+          >
             Salvar nova senha
           </button>
 
-          <p className="auth-switch">
+          <p className={cx(globalStyles, "auth-switch")}>
             Precisa de outro link? <Link href="/recuperar-senha">Recuperar senha</Link>
           </p>
         </form>

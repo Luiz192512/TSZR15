@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
 import { startTransition, useDeferredValue, useMemo, useRef, useState } from "react";
@@ -22,9 +24,12 @@ import {
 } from "./catalog-shared.js";
 function CategoryRail({ activeCategory, categories, products, setActiveCategory }) {
   return (
-    <nav className="category-strip" aria-label="Categorias">
+    <nav className={cx(globalStyles, "category-strip")} aria-label="Categorias">
       <button
-        className={`category-token ${activeCategory === "all" ? "is-active" : ""}`}
+        className={cx(
+          globalStyles,
+          `category-token ${activeCategory === "all" ? "is-active" : ""}`
+        )}
         onClick={() => startTransition(() => setActiveCategory("all"))}
         type="button"
       >
@@ -33,7 +38,10 @@ function CategoryRail({ activeCategory, categories, products, setActiveCategory 
       </button>
       {categories.map((category) => (
         <button
-          className={`category-token ${activeCategory === category.id ? "is-active" : ""}`}
+          className={cx(
+            globalStyles,
+            `category-token ${activeCategory === category.id ? "is-active" : ""}`
+          )}
           key={category.id}
           onClick={() => startTransition(() => setActiveCategory(category.id))}
           type="button"
@@ -63,15 +71,15 @@ function FeaturedProductCarousel({ products }) {
   }
 
   return (
-    <div className="featured-carousel">
-      <div className="featured-carousel-head">
+    <div className={cx(globalStyles, "featured-carousel")}>
+      <div className={cx(globalStyles, "featured-carousel-head")}>
         <div>
-          <p className="section-label">Principais produtos</p>
+          <p className={cx(globalStyles, "section-label")}>Principais produtos</p>
           <h2>
             Tudo o que sua <span>R15</span> precisa.
           </h2>
         </div>
-        <div className="carousel-controls" aria-label="Controles do carrossel">
+        <div className={cx(globalStyles, "carousel-controls")} aria-label="Controles do carrossel">
           <button aria-label="Produto anterior" onClick={goToPrevious} type="button">
             <ChevronIcon direction="left" />
           </button>
@@ -81,17 +89,20 @@ function FeaturedProductCarousel({ products }) {
         </div>
       </div>
 
-      <div className="featured-carousel-window">
-        <div className="featured-carousel-track">
-          <article className="featured-slide" key={activeProduct.id}>
+      <div className={cx(globalStyles, "featured-carousel-window")}>
+        <div className={cx(globalStyles, "featured-carousel-track")}>
+          <article className={cx(globalStyles, "featured-slide")} key={activeProduct.id}>
             <ProductVisual product={activeProduct} size="feature" />
-            <div className="featured-slide-copy">
+            <div className={cx(globalStyles, "featured-slide-copy")}>
               <span>{getProductFamilyLabel(activeProduct.productFamily)}</span>
               <h3>{activeProduct.name}</h3>
               <p>{getProductSummary(activeProduct)}</p>
-              <div className="featured-slide-footer">
+              <div className={cx(globalStyles, "featured-slide-footer")}>
                 <strong>{formatCurrency(activeProduct.priceCents)}</strong>
-                <Link className="button button-primary" href={getProductHref(activeProduct)}>
+                <Link
+                  className={cx(globalStyles, "button button-primary")}
+                  href={getProductHref(activeProduct)}
+                >
                   Ver detalhes
                 </Link>
               </div>
@@ -100,10 +111,10 @@ function FeaturedProductCarousel({ products }) {
         </div>
       </div>
 
-      <div className="featured-thumbs" aria-label="Produtos em destaque">
+      <div className={cx(globalStyles, "featured-thumbs")} aria-label="Produtos em destaque">
         {products.map((product, index) => (
           <button
-            className={index === activeIndex ? "is-active" : ""}
+            className={cx(globalStyles, index === activeIndex ? "is-active" : "")}
             key={product.id}
             onClick={() => setActiveIndex(index)}
             type="button"
@@ -134,15 +145,21 @@ function CategoryProductCarousel({ category }) {
   }
 
   return (
-    <section className="category-carousel-section" aria-labelledby={`category-${category.id}`}>
-      <div className="category-carousel-heading">
+    <section
+      className={cx(globalStyles, "category-carousel-section")}
+      aria-labelledby={`category-${category.id}`}
+    >
+      <div className={cx(globalStyles, "category-carousel-heading")}>
         <div>
-          <p className="section-label">Categoria</p>
+          <p className={cx(globalStyles, "section-label")}>Categoria</p>
           <h2 id={`category-${category.id}`}>{category.label}</h2>
         </div>
-        <div className="category-carousel-actions">
+        <div className={cx(globalStyles, "category-carousel-actions")}>
           <span>{category.products.length} itens</span>
-          <div className="carousel-controls" aria-label={`Controles de ${category.label}`}>
+          <div
+            className={cx(globalStyles, "carousel-controls")}
+            aria-label={`Controles de ${category.label}`}
+          >
             <button
               aria-label={`Ver itens anteriores de ${category.label}`}
               onClick={() => scrollByPage(-1)}
@@ -161,7 +178,7 @@ function CategoryProductCarousel({ category }) {
         </div>
       </div>
 
-      <div className="category-carousel-track" ref={trackRef}>
+      <div className={cx(globalStyles, "category-carousel-track")} ref={trackRef}>
         {category.products.map((product) => (
           <ProductCard key={`${category.id}-${product.id}`} product={product} />
         ))}
@@ -198,38 +215,38 @@ export function CatalogHub({ categories, currentUser, products }) {
     <>
       <StoreHeader currentUser={currentUser} onSearchChange={setSearchValue} query={query} />
 
-      <section className="brand-hero">
-        <div className="brand-hero-copy">
-          <div className="hero-brand-row">
+      <section className={cx(globalStyles, "brand-hero")}>
+        <div className={cx(globalStyles, "brand-hero-copy")}>
+          <div className={cx(globalStyles, "hero-brand-row")}>
             <Image
               alt="TSZ Store"
-              className="hero-logo"
+              className={cx(globalStyles, "hero-logo")}
               height={2000}
               sizes="188px"
               src={brandLogoSrc}
               width={2000}
             />
-            <p className="hero-kicker">Performance parts for Yamaha R15</p>
+            <p className={cx(globalStyles, "hero-kicker")}>Performance parts for Yamaha R15</p>
           </div>
           <h1>
             Sua R15 <span>em outro nivel</span>
           </h1>
-          <p className="hero-lead">
+          <p className={cx(globalStyles, "hero-lead")}>
             Peças e acessórios selecionados para quem exige visual agressivo, acabamento premium e
             atendimento direto no WhatsApp.
           </p>
-          <div className="hero-actions">
-            <a className="button button-primary" href="#produtos">
+          <div className={cx(globalStyles, "hero-actions")}>
+            <a className={cx(globalStyles, "button button-primary")} href="#produtos">
               Ver produtos
             </a>
-            <a className="button button-ghost" href="#lancamentos">
+            <a className={cx(globalStyles, "button button-ghost")} href="#lancamentos">
               Conferir lançamentos
             </a>
           </div>
         </div>
 
-        <div className="brand-hero-media">
-          <div className="hero-media-frame">
+        <div className={cx(globalStyles, "brand-hero-media")}>
+          <div className={cx(globalStyles, "hero-media-frame")}>
             <Image
               alt="Yamaha R15 preta em arte promocional TSZ Store"
               fetchPriority="high"
@@ -242,9 +259,11 @@ export function CatalogHub({ categories, currentUser, products }) {
         </div>
       </section>
 
-      <section className="product-band" id="lancamentos">
-        <div className="product-band-copy">
-          <p className="section-label">Estética + performance + exclusividade</p>
+      <section className={cx(globalStyles, "product-band")} id="lancamentos">
+        <div className={cx(globalStyles, "product-band-copy")}>
+          <p className={cx(globalStyles, "section-label")}>
+            Estética + performance + exclusividade
+          </p>
           <h2>Seleção principal TSZR15.</h2>
           <p>
             Escapamentos, sliders, manetes, pedaleiras, bolhas e iluminação em uma vitrine feita
@@ -254,7 +273,11 @@ export function CatalogHub({ categories, currentUser, products }) {
         <FeaturedProductCarousel products={featuredProducts} />
       </section>
 
-      <section className="brand-proof-strip" id="sobre" aria-label="Diferenciais da loja">
+      <section
+        className={cx(globalStyles, "brand-proof-strip")}
+        id="sobre"
+        aria-label="Diferenciais da loja"
+      >
         <div>
           <strong>Especialistas em Yamaha R15</strong>
           <span>catálogo focado no modelo certo</span>
@@ -273,9 +296,9 @@ export function CatalogHub({ categories, currentUser, products }) {
         </div>
       </section>
 
-      <section className="hub-intro" id="produtos">
+      <section className={cx(globalStyles, "hub-intro")} id="produtos">
         <div>
-          <p className="section-label">Produtos selecionados</p>
+          <p className={cx(globalStyles, "section-label")}>Produtos selecionados</p>
           <h1>Catálogo R15 com compra assistida TSZR15.</h1>
         </div>
         <p>
@@ -292,13 +315,16 @@ export function CatalogHub({ categories, currentUser, products }) {
       />
 
       {visibleProducts.length === 0 ? (
-        <div className="empty-state">
-          <p className="empty-copy">
+        <div className={cx(globalStyles, "empty-state")}>
+          <p className={cx(globalStyles, "empty-copy")}>
             Nenhum produto encontrado com esse filtro. Tente outro termo ou abra todos.
           </p>
         </div>
       ) : (
-        <div className="category-carousel-list" aria-label="Produtos TSZR15 por categoria">
+        <div
+          className={cx(globalStyles, "category-carousel-list")}
+          aria-label="Produtos TSZR15 por categoria"
+        >
           {visibleCategories.map((category) => (
             <CategoryProductCarousel category={category} key={category.id} />
           ))}

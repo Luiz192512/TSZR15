@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { signUpAction } from "@/app/auth/actions.js";
@@ -16,18 +18,23 @@ export default async function SignUpPage({ searchParams }) {
   const message = params?.error ? decodeURIComponent(params.error) : "";
 
   return (
-    <main className="page-shell auth-page">
+    <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader user={user} />
 
-      <section className="auth-shell wide">
-        <form action={signUpAction} className="auth-card account-form-card signup-card">
-          <p className="section-label">Cadastro de cliente</p>
+      <section className={cx(globalStyles, "auth-shell wide")}>
+        <form
+          action={signUpAction}
+          className={cx(globalStyles, "auth-card account-form-card signup-card")}
+        >
+          <p className={cx(globalStyles, "section-label")}>Cadastro de cliente</p>
           <h1>Crie sua conta TSZR15.</h1>
-          <p className="helper-text">O endereco fica no perfil, depois do cadastro.</p>
+          <p className={cx(globalStyles, "helper-text")}>
+            O endereco fica no perfil, depois do cadastro.
+          </p>
 
-          {message ? <p className="form-alert">{message}</p> : null}
+          {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
 
-          <div className="form-grid compact-signup-grid">
+          <div className={cx(globalStyles, "form-grid compact-signup-grid")}>
             <label>
               <span>Nome completo</span>
               <input autoComplete="name" name="fullName" required />
@@ -68,11 +75,11 @@ export default async function SignUpPage({ searchParams }) {
             />
           </div>
 
-          <button className="button button-primary" type="submit">
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
             Criar conta
           </button>
 
-          <p className="auth-switch">
+          <p className={cx(globalStyles, "auth-switch")}>
             Ja tem conta? <Link href="/entrar">Entrar</Link>
           </p>
         </form>

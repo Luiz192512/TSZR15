@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { useFormStatus } from "react-dom";
 
 export function PendingSubmitButton({
@@ -13,10 +15,15 @@ export function PendingSubmitButton({
   const { pending } = useFormStatus();
 
   return (
-    <button {...props} className={className} disabled={pending || disabled} type={type}>
+    <button
+      {...props}
+      className={cx(globalStyles, className)}
+      disabled={pending || disabled}
+      type={type}
+    >
       {pending ? (
         <>
-          <span aria-hidden="true" className="button-loader" />
+          <span aria-hidden="true" className={cx(globalStyles, "button-loader")} />
           {pendingLabel}
         </>
       ) : (

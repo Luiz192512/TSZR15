@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const outputAspectRatio = 4 / 3;
@@ -270,10 +272,10 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
   }
 
   return (
-    <div className="admin-marketplace-uploader span-all">
+    <div className={cx(globalStyles, "admin-marketplace-uploader span-all")}>
       <textarea
         aria-hidden="true"
-        className="visually-hidden-field"
+        className={cx(globalStyles, "visually-hidden-field")}
         name="imageUrls"
         readOnly
         tabIndex={-1}
@@ -281,7 +283,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
       />
       <input
         accept="image/jpeg,image/png,image/webp,image/gif"
-        className="visually-hidden-field"
+        className={cx(globalStyles, "visually-hidden-field")}
         multiple
         onChange={handleFilesChange}
         ref={fileInputRef}
@@ -289,27 +291,34 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
       />
       <input
         accept="image/webp"
-        className="visually-hidden-field"
+        className={cx(globalStyles, "visually-hidden-field")}
         multiple
         name="imageFiles"
         ref={croppedInputRef}
         type="file"
       />
 
-      <div className="admin-uploader-dropzone">
+      <div className={cx(globalStyles, "admin-uploader-dropzone")}>
         <div>
           <span>Imagens do produto</span>
           <strong>Selecione, enquadre e envie varias fotos.</strong>
           <small>O enquadramento preserva a peça no mesmo formato dos cards da vitrine.</small>
         </div>
-        <button className="button button-secondary" onClick={openPicker} type="button">
+        <button
+          className={cx(globalStyles, "button button-secondary")}
+          onClick={openPicker}
+          type="button"
+        >
           Selecionar imagens
         </button>
       </div>
 
       {activeDraft ? (
-        <div className="admin-image-cropper">
-          <div className="admin-image-crop-stage" aria-label="Area de enquadramento 4:3">
+        <div className={cx(globalStyles, "admin-image-cropper")}>
+          <div
+            className={cx(globalStyles, "admin-image-crop-stage")}
+            aria-label="Area de enquadramento 4:3"
+          >
             <img
               alt=""
               src={activeDraft.objectUrl}
@@ -319,7 +328,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
               }}
             />
           </div>
-          <div className="admin-image-crop-controls">
+          <div className={cx(globalStyles, "admin-image-crop-controls")}>
             <label>
               Zoom
               <input
@@ -351,11 +360,19 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
                 value={activeDraft.positionY}
               />
             </label>
-            <div className="admin-image-crop-actions">
-              <button className="button button-primary" onClick={addCroppedImage} type="button">
+            <div className={cx(globalStyles, "admin-image-crop-actions")}>
+              <button
+                className={cx(globalStyles, "button button-primary")}
+                onClick={addCroppedImage}
+                type="button"
+              >
                 Adicionar enquadramento
               </button>
-              <button className="button button-secondary" onClick={closeActiveDraft} type="button">
+              <button
+                className={cx(globalStyles, "button button-secondary")}
+                onClick={closeActiveDraft}
+                type="button"
+              >
                 Pular imagem
               </button>
             </div>
@@ -364,9 +381,12 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
       ) : null}
 
       {orderedPreviews.length > 0 ? (
-        <div className="admin-upload-preview-grid" aria-label="Preview das imagens do produto">
+        <div
+          className={cx(globalStyles, "admin-upload-preview-grid")}
+          aria-label="Preview das imagens do produto"
+        >
           {orderedPreviews.map((item, index) => (
-            <figure className="admin-upload-preview" key={item.id}>
+            <figure className={cx(globalStyles, "admin-upload-preview")} key={item.id}>
               <img alt="" src={item.previewUrl} />
               <figcaption>
                 <span>{index + 1}</span>
@@ -383,12 +403,12 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
           ))}
         </div>
       ) : (
-        <p className="form-helper-text">
+        <p className={cx(globalStyles, "form-helper-text")}>
           Nenhuma imagem selecionada. Produtos sem imagem usam o visual padrao TSZR15.
         </p>
       )}
 
-      {feedback ? <p className="form-helper-text">{feedback}</p> : null}
+      {feedback ? <p className={cx(globalStyles, "form-helper-text")}>{feedback}</p> : null}
     </div>
   );
 }

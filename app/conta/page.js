@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -63,9 +65,9 @@ function formatDate(value) {
 
 function Stars({ rating = 0 }) {
   return (
-    <span className="review-stars" aria-label={`${rating} de 5 estrelas`}>
+    <span className={cx(globalStyles, "review-stars")} aria-label={`${rating} de 5 estrelas`}>
       {Array.from({ length: 5 }).map((_, index) => (
-        <span className={index < rating ? "is-filled" : ""} key={index}>
+        <span className={cx(globalStyles, index < rating ? "is-filled" : "")} key={index}>
           {"\u2605"}
         </span>
       ))}
@@ -77,14 +79,14 @@ function ReviewForm({ item, order, profile }) {
   return (
     <form
       action={submitOrderItemReviewAction}
-      className="account-review-form"
+      className={cx(globalStyles, "account-review-form")}
       encType="multipart/form-data"
     >
       <input name="orderId" type="hidden" value={order.id} />
       <input name="orderItemId" type="hidden" value={item.id} />
       <input name="publicName" type="hidden" value={profile?.full_name ?? ""} />
 
-      <fieldset className="star-rating-field">
+      <fieldset className={cx(globalStyles, "star-rating-field")}>
         <legend>Nota do produto</legend>
         {[5, 4, 3, 2, 1].map((rating) => (
           <label data-rating={rating} key={rating}>
@@ -105,7 +107,7 @@ function ReviewForm({ item, order, profile }) {
         />
       </label>
 
-      <label className="review-photo-field">
+      <label className={cx(globalStyles, "review-photo-field")}>
         <span>Fotos opcionais</span>
         <input
           accept="image/jpeg,image/png,image/webp,image/gif"
@@ -128,8 +130,8 @@ function AccountOrderCard({ order, profile }) {
   const recentEvents = order.timeline?.events?.slice(0, 3) ?? [];
 
   return (
-    <article className="account-order-card">
-      <div className="account-order-head">
+    <article className={cx(globalStyles, "account-order-card")}>
+      <div className={cx(globalStyles, "account-order-head")}>
         <div>
           <strong>{order.orderNumber}</strong>
           <span>{formatDate(order.createdAt)}</span>
@@ -140,19 +142,19 @@ function AccountOrderCard({ order, profile }) {
         </div>
       </div>
 
-      <div className="account-order-meta">
+      <div className={cx(globalStyles, "account-order-meta")}>
         <span>{getStatusLabel(order.paymentStatus, paymentStatuses)}</span>
         <span>{order.items.length} item(ns)</span>
       </div>
 
       {canShowTracking ? (
-        <details className="account-order-tracking">
+        <details className={cx(globalStyles, "account-order-tracking")}>
           <summary>
             <span>Rastreio atual</span>
             <strong>{order.timeline.currentStep.label}</strong>
           </summary>
-          <div className="account-order-tracking-body">
-            <div className="tracking-current-step account-current-step">
+          <div className={cx(globalStyles, "account-order-tracking-body")}>
+            <div className={cx(globalStyles, "tracking-current-step account-current-step")}>
               <span>Agora</span>
               <strong>{order.timeline.currentStep.label}</strong>
               <small>
@@ -161,7 +163,7 @@ function AccountOrderCard({ order, profile }) {
                   : "Codigo ainda nao liberado"}
               </small>
             </div>
-            <div className="account-tracking-facts">
+            <div className={cx(globalStyles, "account-tracking-facts")}>
               <div>
                 <span>Transportadora</span>
                 <strong>{order.tracking?.carrier || "Aguardando"}</strong>
@@ -172,9 +174,9 @@ function AccountOrderCard({ order, profile }) {
               </div>
             </div>
             {recentEvents.length > 0 ? (
-              <div className="account-tracking-events">
+              <div className={cx(globalStyles, "account-tracking-events")}>
                 {recentEvents.map((event) => (
-                  <div className="tracking-event-row" key={event.id}>
+                  <div className={cx(globalStyles, "tracking-event-row")} key={event.id}>
                     <div>
                       <strong>{event.label}</strong>
                       <span>
@@ -187,20 +189,22 @@ function AccountOrderCard({ order, profile }) {
                 ))}
               </div>
             ) : (
-              <p className="helper-text">A primeira atualizacao aparece quando o envio andar.</p>
+              <p className={cx(globalStyles, "helper-text")}>
+                A primeira atualizacao aparece quando o envio andar.
+              </p>
             )}
           </div>
         </details>
       ) : null}
 
-      <div className="account-order-items">
+      <div className={cx(globalStyles, "account-order-items")}>
         {order.items.map((item) => {
           const canSubmitReview =
             order.isDelivered && (!item.review || item.review.status === "rejected");
 
           return (
-            <section className="account-order-item" key={item.id}>
-              <div className="account-order-item-head">
+            <section className={cx(globalStyles, "account-order-item")} key={item.id}>
+              <div className={cx(globalStyles, "account-order-item-head")}>
                 <div>
                   <strong>{item.productName}</strong>
                   <span>
@@ -211,14 +215,14 @@ function AccountOrderCard({ order, profile }) {
               </div>
 
               {item.review ? (
-                <div className={`account-review-status is-${item.review.status}`}>
+                <div className={cx(globalStyles, `account-review-status is-${item.review.status}`)}>
                   <div>
                     <Stars rating={item.review.rating} />
                     <strong>{getReviewStatusLabel(item.review.status)}</strong>
                   </div>
                   <p>{item.review.comment}</p>
                   {item.review.photos.length > 0 ? (
-                    <div className="account-review-photo-row">
+                    <div className={cx(globalStyles, "account-review-photo-row")}>
                       {item.review.photos.map((photo) => (
                         <img alt="" key={photo.id} src={photo.url} />
                       ))}
@@ -241,14 +245,16 @@ function AccountOrderCard({ order, profile }) {
 
 function AccountOrders({ accountOrders, profile }) {
   return (
-    <div className="account-orders-stack" id="pedidos">
-      <section className="account-panel">
-        <div className="account-panel-heading">
-          <p className="section-label">Pedidos em andamento</p>
+    <div className={cx(globalStyles, "account-orders-stack")} id="pedidos">
+      <section className={cx(globalStyles, "account-panel")}>
+        <div className={cx(globalStyles, "account-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>Pedidos em andamento</p>
           <h2>Acompanhe o que ainda esta em processo.</h2>
         </div>
         {accountOrders.inProgressOrders.length === 0 ? (
-          <p className="helper-text">Nao ha pedidos em andamento vinculados a esta conta.</p>
+          <p className={cx(globalStyles, "helper-text")}>
+            Nao ha pedidos em andamento vinculados a esta conta.
+          </p>
         ) : (
           accountOrders.inProgressOrders.map((order) => (
             <AccountOrderCard key={order.id} order={order} profile={profile} />
@@ -256,13 +262,13 @@ function AccountOrders({ accountOrders, profile }) {
         )}
       </section>
 
-      <section className="account-panel">
-        <div className="account-panel-heading">
-          <p className="section-label">Pedidos concluidos</p>
+      <section className={cx(globalStyles, "account-panel")}>
+        <div className={cx(globalStyles, "account-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>Pedidos concluidos</p>
           <h2>Avalie os itens entregues.</h2>
         </div>
         {accountOrders.completedOrders.length === 0 ? (
-          <p className="helper-text">
+          <p className={cx(globalStyles, "helper-text")}>
             Quando um pedido chegar em entregue, a avaliacao aparece aqui.
           </p>
         ) : (
@@ -277,11 +283,14 @@ function AccountOrders({ accountOrders, profile }) {
 
 function ClaimOrderForm() {
   return (
-    <form action={claimCustomerOrderAction} className="account-panel claim-order-form">
-      <div className="account-panel-heading">
-        <p className="section-label">Vincular pedido</p>
+    <form
+      action={claimCustomerOrderAction}
+      className={cx(globalStyles, "account-panel claim-order-form")}
+    >
+      <div className={cx(globalStyles, "account-panel-heading")}>
+        <p className={cx(globalStyles, "section-label")}>Vincular pedido</p>
         <h2>Comprou sem entrar na conta?</h2>
-        <p className="helper-text">
+        <p className={cx(globalStyles, "helper-text")}>
           Use o numero do pedido e o WhatsApp, CPF ou CNPJ usado na compra.
         </p>
       </div>
@@ -317,10 +326,10 @@ function AccountTabs({ activeTab }) {
   ];
 
   return (
-    <nav className="account-tab-bar" aria-label="Secoes da conta">
+    <nav className={cx(globalStyles, "account-tab-bar")} aria-label="Secoes da conta">
       {tabs.map(([tab, label]) => (
         <Link
-          className={activeTab === tab ? "is-active" : ""}
+          className={cx(globalStyles, activeTab === tab ? "is-active" : "")}
           href={tab === "inicio" ? "/conta" : `/conta?tab=${tab}`}
           key={tab}
         >
@@ -335,13 +344,13 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
   const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0];
 
   return (
-    <div className="account-main-stack">
-      <section className="account-panel account-overview-panel">
-        <div className="account-panel-heading">
-          <p className="section-label">Inicio</p>
+    <div className={cx(globalStyles, "account-main-stack")}>
+      <section className={cx(globalStyles, "account-panel account-overview-panel")}>
+        <div className={cx(globalStyles, "account-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>Inicio</p>
           <h2>Resumo da sua conta.</h2>
         </div>
-        <div className="account-overview-grid">
+        <div className={cx(globalStyles, "account-overview-grid")}>
           <div>
             <span>Cliente</span>
             <strong>{profile.full_name || "Nome pendente"}</strong>
@@ -363,15 +372,15 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
         </div>
       </section>
 
-      <section className="account-panel">
-        <div className="account-panel-heading">
-          <p className="section-label">Sugestoes</p>
+      <section className={cx(globalStyles, "account-panel")}>
+        <div className={cx(globalStyles, "account-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>Sugestoes</p>
           <h2>Itens que combinam com sua R15.</h2>
         </div>
-        <div className="account-suggestion-grid">
+        <div className={cx(globalStyles, "account-suggestion-grid")}>
           {suggestions.map((product) => (
             <Link
-              className="account-suggestion-card"
+              className={cx(globalStyles, "account-suggestion-card")}
               href={`/produto/${product.slug}`}
               key={product.id}
             >
@@ -391,13 +400,13 @@ function PersonalDataForm({ profile, user }) {
   return (
     <form
       action={saveAccountProfileAction}
-      className="auth-card account-form-card compact-account-form"
+      className={cx(globalStyles, "auth-card account-form-card compact-account-form")}
     >
-      <div className="account-panel-heading">
-        <p className="section-label">Dados pessoais</p>
+      <div className={cx(globalStyles, "account-panel-heading")}>
+        <p className={cx(globalStyles, "section-label")}>Dados pessoais</p>
         <h2>Atualize seus dados principais.</h2>
       </div>
-      <div className="form-grid">
+      <div className={cx(globalStyles, "form-grid")}>
         <label>
           <span>Nome completo</span>
           <input defaultValue={profile.full_name ?? ""} name="fullName" required />
@@ -456,27 +465,27 @@ function AddressBook({ addresses, selectedAddressId }) {
   const selectedAddress = addresses.find((address) => address.id === selectedAddressId) ?? null;
 
   return (
-    <div className="account-main-stack">
-      <section className="account-panel">
-        <div className="account-panel-heading">
-          <p className="section-label">Enderecos</p>
+    <div className={cx(globalStyles, "account-main-stack")}>
+      <section className={cx(globalStyles, "account-panel")}>
+        <div className={cx(globalStyles, "account-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>Enderecos</p>
           <h2>Cadastre varios enderecos.</h2>
-          <Link className="button button-secondary" href="/conta?tab=enderecos">
+          <Link className={cx(globalStyles, "button button-secondary")} href="/conta?tab=enderecos">
             Novo
           </Link>
         </div>
         {addresses.length === 0 ? (
-          <p className="helper-text">Nenhum endereco cadastrado.</p>
+          <p className={cx(globalStyles, "helper-text")}>Nenhum endereco cadastrado.</p>
         ) : (
-          <div className="account-address-grid">
+          <div className={cx(globalStyles, "account-address-grid")}>
             {addresses.map((address) => (
-              <article className="account-address-card" key={address.id}>
+              <article className={cx(globalStyles, "account-address-card")} key={address.id}>
                 <div>
                   <strong>{address.label}</strong>
                   {address.is_default ? <span>Padrao</span> : null}
                 </div>
                 <p>{buildAddressLine(address)}</p>
-                <div className="account-address-actions">
+                <div className={cx(globalStyles, "account-address-actions")}>
                   <Link href={`/conta?tab=enderecos&endereco=${encodeURIComponent(address.id)}`}>
                     Editar
                   </Link>
@@ -495,10 +504,12 @@ function AddressBook({ addresses, selectedAddressId }) {
 
       <form
         action={saveAccountAddressAction}
-        className="auth-card account-form-card compact-account-form"
+        className={cx(globalStyles, "auth-card account-form-card compact-account-form")}
       >
-        <div className="account-panel-heading">
-          <p className="section-label">{selectedAddress ? "Editar endereco" : "Novo endereco"}</p>
+        <div className={cx(globalStyles, "account-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>
+            {selectedAddress ? "Editar endereco" : "Novo endereco"}
+          </p>
           <h2>Dados de entrega.</h2>
         </div>
         <input name="addressId" type="hidden" value={selectedAddress?.id ?? ""} />
@@ -507,7 +518,7 @@ function AddressBook({ addresses, selectedAddressId }) {
           type="hidden"
           value={addresses.length === 0 ? "true" : "false"}
         />
-        <div className="form-grid">
+        <div className={cx(globalStyles, "form-grid")}>
           <label>
             <span>Apelido</span>
             <input
@@ -530,7 +541,7 @@ function AddressBook({ addresses, selectedAddressId }) {
             referencePointClassName="span-all"
           />
         </div>
-        <label className="admin-toggle-row span-all">
+        <label className={cx(globalStyles, "admin-toggle-row span-all")}>
           <input
             defaultChecked={selectedAddress?.is_default ?? addresses.length === 0}
             name="addressIsDefault"
@@ -538,7 +549,7 @@ function AddressBook({ addresses, selectedAddressId }) {
           />
           <span>Endereco padrao</span>
         </label>
-        <label className="consent-box account-consent">
+        <label className={cx(globalStyles, "consent-box account-consent")}>
           <input defaultChecked name="dataConsent" required type="checkbox" />
           <span>{ASSISTED_PURCHASE_CONSENT_TEXT}</span>
         </label>
@@ -552,18 +563,18 @@ function AddressBook({ addresses, selectedAddressId }) {
 
 function SettingsPanel() {
   return (
-    <div className="account-main-stack">
-      <section className="account-panel account-settings-panel">
-        <div className="account-panel-heading">
-          <p className="section-label">Configuracoes</p>
+    <div className={cx(globalStyles, "account-main-stack")}>
+      <section className={cx(globalStyles, "account-panel account-settings-panel")}>
+        <div className={cx(globalStyles, "account-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>Configuracoes</p>
           <h2>Acesso e seguranca.</h2>
         </div>
-        <div className="account-settings-actions">
-          <Link className="button button-secondary" href="/trocar-senha">
+        <div className={cx(globalStyles, "account-settings-actions")}>
+          <Link className={cx(globalStyles, "button button-secondary")} href="/trocar-senha">
             Trocar senha
           </Link>
           <form action={signOutAction}>
-            <button className="button button-secondary" type="submit">
+            <button className={cx(globalStyles, "button button-secondary")} type="submit">
               Sair
             </button>
           </form>
@@ -581,10 +592,10 @@ export default async function AccountPage({ searchParams }) {
 
   if (!snapshot.supabaseConfigured) {
     return (
-      <main className="page-shell auth-page">
+      <main className={cx(globalStyles, "page-shell auth-page")}>
         <SiteHeader />
-        <section className="setup-panel">
-          <p className="section-label">Supabase pendente</p>
+        <section className={cx(globalStyles, "setup-panel")}>
+          <p className={cx(globalStyles, "section-label")}>Supabase pendente</p>
           <h1>Configure o Supabase para ativar contas de cliente.</h1>
           <p>
             Preencha `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ou
@@ -621,19 +632,19 @@ export default async function AccountPage({ searchParams }) {
   const suggestions = suggestionsCatalog.products.slice(0, 4);
 
   return (
-    <main className="page-shell auth-page">
+    <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader user={snapshot.user} />
 
-      <section className="account-layout account-dashboard-layout">
-        <div className="account-summary">
-          <p className="section-label">Minha conta</p>
+      <section className={cx(globalStyles, "account-layout account-dashboard-layout")}>
+        <div className={cx(globalStyles, "account-summary")}>
+          <p className={cx(globalStyles, "section-label")}>Minha conta</p>
           <h1>Perfil TSZR15.</h1>
           <p>Acompanhe compras, enderecos, dados e avaliacoes.</p>
           <AccountTabs activeTab={activeTab} />
         </div>
 
-        <div className="account-main-stack">
-          {message ? <p className="form-alert">{message}</p> : null}
+        <div className={cx(globalStyles, "account-main-stack")}>
+          {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
 
           {activeTab === "dados" ? (
             <PersonalDataForm profile={profile} user={snapshot.user} />
@@ -642,10 +653,10 @@ export default async function AccountPage({ searchParams }) {
           ) : activeTab === "configuracoes" ? (
             <SettingsPanel />
           ) : accountOrderError ? (
-            <section className="account-panel">
-              <p className="section-label">Pedidos indisponiveis</p>
+            <section className={cx(globalStyles, "account-panel")}>
+              <p className={cx(globalStyles, "section-label")}>Pedidos indisponiveis</p>
               <h2>Rode a migration de avaliacoes para ativar esta area.</h2>
-              <p className="helper-text">{accountOrderError}</p>
+              <p className={cx(globalStyles, "helper-text")}>{accountOrderError}</p>
             </section>
           ) : (
             <AccountOverview

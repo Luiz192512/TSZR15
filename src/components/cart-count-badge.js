@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { useEffect, useState } from "react";
 
 const cartStorageKey = "tszr15-cart";
@@ -41,7 +43,7 @@ export function CartCountBadge() {
   }, []);
 
   return (
-    <span aria-hidden="true" className="cart-count-badge">
+    <span aria-hidden="true" className={cx(globalStyles, "cart-count-badge")}>
       {count}
     </span>
   );

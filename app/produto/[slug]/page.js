@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import nextDynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -134,7 +136,7 @@ export default async function ProductPage({ params }) {
   };
 
   return (
-    <main className="page-shell">
+    <main className={cx(globalStyles, "page-shell")}>
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema).replace(/</g, "\\u003c") }}
         type="application/ld+json"

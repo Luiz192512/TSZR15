@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
@@ -93,7 +95,7 @@ export function NavigationLoadingOverlay() {
     <div
       aria-hidden={!isLoading}
       aria-live="polite"
-      className={`navigation-loading-overlay ${isLoading ? "is-visible" : ""}`}
+      className={cx(globalStyles, `navigation-loading-overlay ${isLoading ? "is-visible" : ""}`)}
       role="status"
     >
       <Tszr15Loader label="Carregando proxima tela" />

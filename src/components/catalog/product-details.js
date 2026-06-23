@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -47,8 +49,8 @@ function ProductImageCarousel({ activeIndex, onActiveIndexChange, product }) {
   }
 
   return (
-    <div className="product-photo-carousel">
-      <div className="product-photo-main">
+    <div className={cx(globalStyles, "product-photo-carousel")}>
+      <div className={cx(globalStyles, "product-photo-main")}>
         <Image
           alt={product.name}
           fill
@@ -58,7 +60,10 @@ function ProductImageCarousel({ activeIndex, onActiveIndexChange, product }) {
           {...mainImageLoadingProps}
         />
         {images.length > 1 ? (
-          <div className="product-photo-controls" aria-label="Controles das imagens do produto">
+          <div
+            className={cx(globalStyles, "product-photo-controls")}
+            aria-label="Controles das imagens do produto"
+          >
             <button aria-label="Imagem anterior" onClick={goToPrevious} type="button">
               <ChevronIcon direction="left" />
             </button>
@@ -70,11 +75,14 @@ function ProductImageCarousel({ activeIndex, onActiveIndexChange, product }) {
       </div>
 
       {images.length > 1 ? (
-        <div className="product-photo-thumbs" aria-label="Miniaturas do produto">
+        <div
+          className={cx(globalStyles, "product-photo-thumbs")}
+          aria-label="Miniaturas do produto"
+        >
           {images.map((imageUrl, index) => (
             <button
               aria-label={`Ver imagem ${index + 1}`}
-              className={index === activeIndex ? "is-active" : ""}
+              className={cx(globalStyles, index === activeIndex ? "is-active" : "")}
               key={imageUrl}
               onClick={() => onActiveIndexChange(index)}
               type="button"
@@ -96,13 +104,13 @@ function ProductImageCarousel({ activeIndex, onActiveIndexChange, product }) {
 
 function ProductReviewSection({ reviews = [], summary = { averageRating: 0, reviewCount: 0 } }) {
   return (
-    <section className="product-reviews-section">
-      <div className="section-heading compact-heading">
+    <section className={cx(globalStyles, "product-reviews-section")}>
+      <div className={cx(globalStyles, "section-heading compact-heading")}>
         <div>
-          <p className="section-label">Avaliacoes</p>
+          <p className={cx(globalStyles, "section-label")}>Avaliacoes</p>
           <h2>Experiencia de quem ja recebeu.</h2>
         </div>
-        <div className="review-summary-pill">
+        <div className={cx(globalStyles, "review-summary-pill")}>
           <ReviewStars rating={summary.averageRating} />
           <strong>
             {summary.reviewCount > 0 ? `${summary.averageRating.toFixed(1)} / 5` : "Sem notas"}
@@ -112,18 +120,20 @@ function ProductReviewSection({ reviews = [], summary = { averageRating: 0, revi
       </div>
 
       {reviews.length === 0 ? (
-        <p className="empty-copy">As primeiras avaliacoes aprovadas deste produto aparecem aqui.</p>
+        <p className={cx(globalStyles, "empty-copy")}>
+          As primeiras avaliacoes aprovadas deste produto aparecem aqui.
+        </p>
       ) : (
-        <div className="product-review-grid">
+        <div className={cx(globalStyles, "product-review-grid")}>
           {reviews.map((review) => (
-            <article className="product-review-card" key={review.id}>
+            <article className={cx(globalStyles, "product-review-card")} key={review.id}>
               <div>
                 <ReviewStars rating={review.rating} />
                 <strong>{review.publicName}</strong>
               </div>
               <p>{review.comment}</p>
               {review.photos?.length ? (
-                <div className="product-review-photo-row">
+                <div className={cx(globalStyles, "product-review-photo-row")}>
                   {review.photos.map((photo) => (
                     <img alt="" key={photo.id} src={photo.url} />
                   ))}
@@ -222,14 +232,14 @@ export function ProductDetails({
     <>
       <StoreHeader currentUser={currentUser} resolveAccount={false} showSearch={false} />
 
-      <section className="product-detail-layout">
-        <div className="product-detail-media">
+      <section className={cx(globalStyles, "product-detail-layout")}>
+        <div className={cx(globalStyles, "product-detail-media")}>
           <ProductImageCarousel
             activeIndex={activeImageIndex}
             onActiveIndexChange={setActiveImageIndex}
             product={product}
           />
-          <div className="detail-assist-box">
+          <div className={cx(globalStyles, "detail-assist-box")}>
             <strong>Compra assistida</strong>
             <span>
               Você compra com a TSZR15. A operação interna valida disponibilidade e entrega antes de
@@ -238,24 +248,24 @@ export function ProductDetails({
           </div>
         </div>
 
-        <article className="product-detail-panel">
-          <Link className="back-link" href="/">
+        <article className={cx(globalStyles, "product-detail-panel")}>
+          <Link className={cx(globalStyles, "back-link")} href="/">
             Voltar para produtos
           </Link>
-          <div className="badge-row">
+          <div className={cx(globalStyles, "badge-row")}>
             {categoryLabels.map((label) => (
-              <span className="badge badge-category" key={label}>
+              <span className={cx(globalStyles, "badge badge-category")} key={label}>
                 {label}
               </span>
             ))}
-            <span className="badge badge-family">
+            <span className={cx(globalStyles, "badge badge-family")}>
               {getProductFamilyLabel(product.productFamily)}
             </span>
           </div>
 
           <h1>{product.name}</h1>
-          <p className="detail-summary">{getProductSummary(product)}</p>
-          <div className="detail-review-summary">
+          <p className={cx(globalStyles, "detail-summary")}>{getProductSummary(product)}</p>
+          <div className={cx(globalStyles, "detail-review-summary")}>
             <ReviewStars rating={reviewSummary.averageRating} />
             <span>
               {reviewSummary.reviewCount > 0
@@ -263,11 +273,13 @@ export function ProductDetails({
                 : "Ainda sem avaliacoes aprovadas"}
             </span>
           </div>
-          <strong className="detail-price">{formatCurrency(product.priceCents)}</strong>
+          <strong className={cx(globalStyles, "detail-price")}>
+            {formatCurrency(product.priceCents)}
+          </strong>
 
-          <div className="option-group">
+          <div className={cx(globalStyles, "option-group")}>
             <span>Cor / variação</span>
-            <div className="variation-grid" role="list">
+            <div className={cx(globalStyles, "variation-grid")} role="list">
               {product.variations.map((variation) =>
                 (() => {
                   const variationStock = getVariationStockStatus(product, variation);
@@ -276,9 +288,12 @@ export function ProductDetails({
                     <button
                       aria-label={`Selecionar variacao ${variation}`}
                       aria-pressed={selectedVariation === variation}
-                      className={`${selectedVariation === variation ? "is-active" : ""} ${
-                        variationStock.status === "out" ? "is-unavailable" : ""
-                      }`}
+                      className={cx(
+                        globalStyles,
+                        `${selectedVariation === variation ? "is-active" : ""} ${
+                          variationStock.status === "out" ? "is-unavailable" : ""
+                        }`
+                      )}
                       disabled={!variationStock.canAddToCart}
                       key={variation}
                       onClick={() => selectVariation(variation)}
@@ -292,9 +307,9 @@ export function ProductDetails({
             </div>
           </div>
 
-          <div className="quantity-row">
+          <div className={cx(globalStyles, "quantity-row")}>
             <span>Quantidade</span>
-            <div className="quantity-control">
+            <div className={cx(globalStyles, "quantity-control")}>
               <button
                 aria-label="Diminuir quantidade"
                 onClick={() => setQuantity((current) => Math.max(current - 1, 1))}
@@ -317,7 +332,7 @@ export function ProductDetails({
             <strong>{formatCurrency(totalCents)}</strong>
           </div>
 
-          <dl className="product-info-grid">
+          <dl className={cx(globalStyles, "product-info-grid")}>
             <div>
               <dt>Modelo</dt>
               <dd>Yamaha R15</dd>
@@ -337,14 +352,14 @@ export function ProductDetails({
           </dl>
 
           {feedback ? (
-            <p className="form-alert" aria-live="polite" role="status">
+            <p className={cx(globalStyles, "form-alert")} aria-live="polite" role="status">
               {feedback}
             </p>
           ) : null}
 
-          <div className="detail-actions">
+          <div className={cx(globalStyles, "detail-actions")}>
             <button
-              className={`button button-primary ${wasAdded ? "is-added" : ""}`}
+              className={cx(globalStyles, `button button-primary ${wasAdded ? "is-added" : ""}`)}
               disabled={!stockStatus.canAddToCart}
               onClick={addToCart}
               type="button"
@@ -357,7 +372,7 @@ export function ProductDetails({
                     : "Adicionar ao carrinho"
                 : "Esgotado"}
             </button>
-            <Link className="button button-secondary" href="/pedido">
+            <Link className={cx(globalStyles, "button button-secondary")} href="/pedido">
               Ir para o carrinho
             </Link>
           </div>
@@ -367,14 +382,14 @@ export function ProductDetails({
       <ProductReviewSection reviews={reviews} summary={reviewSummary} />
 
       {relatedProducts.length > 0 ? (
-        <section className="related-section">
-          <div className="section-heading compact-heading">
+        <section className={cx(globalStyles, "related-section")}>
+          <div className={cx(globalStyles, "section-heading compact-heading")}>
             <div>
-              <p className="section-label">Produtos relacionados</p>
+              <p className={cx(globalStyles, "section-label")}>Produtos relacionados</p>
               <h2>Continue vendo itens da mesma linha.</h2>
             </div>
           </div>
-          <div className="product-grid related-grid">
+          <div className={cx(globalStyles, "product-grid related-grid")}>
             {relatedProducts.map((relatedProduct) => (
               <ProductCard key={relatedProduct.id} product={relatedProduct} />
             ))}

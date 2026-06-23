@@ -1,13 +1,11 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { useEffect, useRef, useState } from "react";
 
 import { fetchCepAddress, getCepDigits } from "@/src/customer/cep-lookup.js";
-import {
-  cepPattern,
-  sanitizeCep,
-  statePattern
-} from "@/src/customer/field-validation.js";
+import { cepPattern, sanitizeCep, statePattern } from "@/src/customer/field-validation.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
 
 const emptyAddressValues = {
@@ -129,7 +127,7 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
       {lookup.message ? (
         <p
           aria-live="polite"
-          className="helper-text span-all"
+          className={cx(globalStyles, "helper-text span-all")}
           role={lookup.status === "error" ? "alert" : "status"}
         >
           {lookup.message}
@@ -197,7 +195,7 @@ export function CepAddressFields({ defaults = {}, referencePointClassName = "" }
           value={values.complement}
         />
       </label>
-      <label className={referencePointClassName}>
+      <label className={cx(globalStyles, referencePointClassName)}>
         <span>Ponto de referência</span>
         <input
           name="referencePoint"

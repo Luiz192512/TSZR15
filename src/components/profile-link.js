@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { getUserDisplayName, getUserInitials } from "@/src/auth/user-display.js";
@@ -9,11 +11,11 @@ export function ProfileLink({ className = "", user }) {
   return (
     <Link
       aria-label={label}
-      className={`profile-link ${className}`.trim()}
+      className={cx(globalStyles, `profile-link ${className}`.trim())}
       href="/conta"
       title="Minha conta"
     >
-      <span aria-hidden="true" className="profile-link-icon">
+      <span aria-hidden="true" className={cx(globalStyles, "profile-link-icon")}>
         {getUserInitials(user)}
       </span>
     </Link>

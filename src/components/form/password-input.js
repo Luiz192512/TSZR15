@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { useId, useState } from "react";
 
 import styles from "./password-input.module.css";
@@ -17,14 +19,14 @@ export function PasswordInput({
   const labelClassName = [className, styles.label].filter(Boolean).join(" ");
 
   return (
-    <label className={labelClassName} htmlFor={inputId}>
+    <label className={cx(globalStyles, labelClassName)} htmlFor={inputId}>
       <span>{label}</span>
-      <span className={styles.shell}>
+      <span className={cx(globalStyles, styles.shell)}>
         <input {...props} id={inputId} type={isVisible ? "text" : "password"} />
         <button
           aria-label={isVisible ? hideLabel : showLabel}
           aria-pressed={isVisible}
-          className={styles.toggle}
+          className={cx(globalStyles, styles.toggle)}
           onClick={() => setIsVisible((current) => !current)}
           type="button"
         >

@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -115,26 +117,26 @@ export function AccountNavLink({
 
     if (variant === "text") {
       return (
-        <Link className={authenticatedClassName} href="/conta">
+        <Link className={cx(globalStyles, authenticatedClassName)} href="/conta">
           Conta
         </Link>
       );
     }
 
     return (
-      <details className="account-menu">
+      <details className={cx(globalStyles, "account-menu")}>
         <summary
           aria-label="Abrir menu da conta"
-          className={authenticatedClassName}
+          className={cx(globalStyles, authenticatedClassName)}
           title="Minha conta"
         >
-          <span aria-hidden="true" className="profile-link-icon">
+          <span aria-hidden="true" className={cx(globalStyles, "profile-link-icon")}>
             {getUserInitials(currentUser)}
           </span>
         </summary>
-        <div className="account-menu-panel">
-          <div className="account-menu-user">
-            <span aria-hidden="true" className="profile-link-icon">
+        <div className={cx(globalStyles, "account-menu-panel")}>
+          <div className={cx(globalStyles, "account-menu-user")}>
+            <span aria-hidden="true" className={cx(globalStyles, "profile-link-icon")}>
               {getUserInitials(currentUser)}
             </span>
             <div>
@@ -157,14 +159,14 @@ export function AccountNavLink({
   if (!hasCheckedSession) {
     return (
       <Link
-        className={authenticatedClassName || unauthenticatedClassName}
+        className={cx(globalStyles, authenticatedClassName || unauthenticatedClassName)}
         data-auth-loading="true"
         href="/conta"
       >
         {variant === "text" ? (
           "Conta"
         ) : (
-          <span aria-hidden="true" className="profile-link-icon">
+          <span aria-hidden="true" className={cx(globalStyles, "profile-link-icon")}>
             C
           </span>
         )}
@@ -174,7 +176,7 @@ export function AccountNavLink({
 
   return (
     <Link
-      className={unauthenticatedClassName}
+      className={cx(globalStyles, unauthenticatedClassName)}
       data-auth-loading={hasCheckedSession ? "false" : "true"}
       href="/entrar"
     >

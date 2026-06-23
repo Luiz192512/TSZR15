@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -19,31 +21,31 @@ export function CartItemsPanel({
   syncFeedback
 }) {
   return (
-    <div className={styles.panel}>
-      <div className={styles.heading}>
+    <div className={cx(globalStyles, styles.panel)}>
+      <div className={cx(globalStyles, styles.heading)}>
         <h2>Itens no carrinho</h2>
         <strong>{formatCurrency(subtotalCents)}</strong>
       </div>
       {syncFeedback ? (
-        <p className={styles.syncNotice} role="status">
+        <p className={cx(globalStyles, styles.syncNotice)} role="status">
           {syncFeedback}
         </p>
       ) : null}
 
       {!hasLoadedCart ? (
-        <div className={styles.loader}>
-          <span aria-hidden="true" className="button-loader" />
+        <div className={cx(globalStyles, styles.loader)}>
+          <span aria-hidden="true" className={cx(globalStyles, "button-loader")} />
           <p>Carregando carrinho...</p>
         </div>
       ) : cartItems.length === 0 ? (
-        <div className={styles.empty}>
+        <div className={cx(globalStyles, styles.empty)}>
           <p>Seu carrinho ainda está vazio.</p>
-          <Link className="button button-primary" href="/">
+          <Link className={cx(globalStyles, "button button-primary")} href="/">
             Ver produtos
           </Link>
         </div>
       ) : (
-        <div className={styles.list}>
+        <div className={cx(globalStyles, styles.list)}>
           {cartItems.map((item) => {
             const product = productsById.get(item.id);
             const stock = getVariationStockStatus(product, item.variation);
@@ -51,12 +53,12 @@ export function CartItemsPanel({
             const imageUrl = product ? getProductVisualImage(product) : "";
 
             return (
-              <article className={styles.line} key={item.cartKey}>
-                <div className={`${styles.image} family-${item.productFamily}`}>
+              <article className={cx(globalStyles, styles.line)} key={item.cartKey}>
+                <div className={cx(globalStyles, `${styles.image} family-${item.productFamily}`)}>
                   {imageUrl ? (
                     <Image
                       alt={item.name}
-                      className={styles.photo}
+                      className={cx(globalStyles, styles.photo)}
                       fill
                       sizes="82px"
                       src={imageUrl}
@@ -70,10 +72,10 @@ export function CartItemsPanel({
                       .toUpperCase()
                   )}
                 </div>
-                <div className={styles.detail}>
+                <div className={cx(globalStyles, styles.detail)}>
                   <strong>{item.name}</strong>
                   {canChangeVariation ? (
-                    <label className={styles.variation}>
+                    <label className={cx(globalStyles, styles.variation)}>
                       <span>Variação</span>
                       <select
                         onChange={(event) => onVariation(item.cartKey, event.target.value)}
@@ -98,8 +100,11 @@ export function CartItemsPanel({
                     <span>{item.variation}</span>
                   )}
                 </div>
-                <div className={styles.controls}>
-                  <div className="quantity-control" aria-label={`Quantidade de ${item.name}`}>
+                <div className={cx(globalStyles, styles.controls)}>
+                  <div
+                    className={cx(globalStyles, "quantity-control")}
+                    aria-label={`Quantidade de ${item.name}`}
+                  >
                     <button
                       aria-label={`Remover uma unidade de ${item.name}`}
                       onClick={() => onQuantity(item.cartKey, item.quantity - 1)}
@@ -119,7 +124,7 @@ export function CartItemsPanel({
                   </div>
                   <button
                     aria-label={`Excluir ${item.name} do carrinho`}
-                    className={styles.delete}
+                    className={cx(globalStyles, styles.delete)}
                     onClick={() => onDelete(item.cartKey)}
                     type="button"
                   >
