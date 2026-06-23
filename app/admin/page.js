@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -180,7 +182,7 @@ function StatusSelect({ items, name, value }) {
 
 function RequiredMark() {
   return (
-    <span className="required-field-mark" aria-hidden="true">
+    <span className={cx(globalStyles, "required-field-mark")} aria-hidden="true">
       *
     </span>
   );
@@ -188,17 +190,26 @@ function RequiredMark() {
 
 function AdminTabs({ activeTab }) {
   return (
-    <nav className="admin-tab-bar" aria-label="Secoes do painel admin">
-      <Link className={activeTab === "pedidos" ? "is-active" : ""} href="/admin">
+    <nav className={cx(globalStyles, "admin-tab-bar")} aria-label="Secoes do painel admin">
+      <Link className={cx(globalStyles, activeTab === "pedidos" ? "is-active" : "")} href="/admin">
         Pedidos
       </Link>
-      <Link className={activeTab === "produtos" ? "is-active" : ""} href="/admin?tab=produtos">
+      <Link
+        className={cx(globalStyles, activeTab === "produtos" ? "is-active" : "")}
+        href="/admin?tab=produtos"
+      >
         Produtos
       </Link>
-      <Link className={activeTab === "analise" ? "is-active" : ""} href="/admin?tab=analise">
+      <Link
+        className={cx(globalStyles, activeTab === "analise" ? "is-active" : "")}
+        href="/admin?tab=analise"
+      >
         Analise
       </Link>
-      <Link className={activeTab === "cupons" ? "is-active" : ""} href="/admin?tab=cupons">
+      <Link
+        className={cx(globalStyles, activeTab === "cupons" ? "is-active" : "")}
+        href="/admin?tab=cupons"
+      >
         Cupons
       </Link>
     </nav>
@@ -211,10 +222,10 @@ function AdminSetup({ message, mode = "env" }) {
   const isDatabaseIssue = mode === "database";
 
   return (
-    <main className="page-shell auth-page">
+    <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader showAccountNav={false} />
-      <section className="setup-panel">
-        <p className="section-label">
+      <section className={cx(globalStyles, "setup-panel")}>
+        <p className={cx(globalStyles, "section-label")}>
           {isDatabaseIssue ? "Banco pendente" : "Configuracao pendente"}
         </p>
         <h1>
@@ -226,7 +237,7 @@ function AdminSetup({ message, mode = "env" }) {
               O token do admin esta aceito e o Supabase respondeu, mas as tabelas do painel ainda
               nao existem no projeto conectado.
             </p>
-            <pre className="setup-command-block">
+            <pre className={cx(globalStyles, "setup-command-block")}>
               {`npx supabase login
 npx supabase link --project-ref ${projectRef}
 npx supabase db push`}
@@ -242,7 +253,7 @@ npx supabase db push`}
             no ambiente do servidor.
           </p>
         )}
-        {message ? <p className="form-alert">{message}</p> : null}
+        {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
       </section>
     </main>
   );
@@ -275,7 +286,7 @@ function InternalOrderBadge({ status }) {
   }
 
   return (
-    <span className={`internal-order-badge is-${status}`}>
+    <span className={cx(globalStyles, `internal-order-badge is-${status}`)}>
       <span aria-hidden="true">{config.icon}</span>
       {config.label}
     </span>
@@ -284,24 +295,27 @@ function InternalOrderBadge({ status }) {
 
 function OrdersList({ orders, selectedOrderNumber }) {
   return (
-    <aside className="admin-list-panel">
-      <div className="admin-panel-heading">
-        <p className="section-label">Fila</p>
+    <aside className={cx(globalStyles, "admin-list-panel")}>
+      <div className={cx(globalStyles, "admin-panel-heading")}>
+        <p className={cx(globalStyles, "section-label")}>Fila</p>
         <strong>{orders.length} pedidos recentes</strong>
       </div>
 
-      <div className="admin-order-list">
+      <div className={cx(globalStyles, "admin-order-list")}>
         {orders.length === 0 ? (
-          <p className="helper-text">Nenhum pedido salvo ainda.</p>
+          <p className={cx(globalStyles, "helper-text")}>Nenhum pedido salvo ainda.</p>
         ) : (
           orders.map((order) => {
             const internalStatus = getEffectiveInternalOrderStatus(order);
 
             return (
               <Link
-                className={`admin-order-link ${
-                  selectedOrderNumber === order.order_number ? "is-active" : ""
-                } ${internalStatus ? `internal-order-${internalStatus}` : ""}`}
+                className={cx(
+                  globalStyles,
+                  `admin-order-link ${
+                    selectedOrderNumber === order.order_number ? "is-active" : ""
+                  } ${internalStatus ? `internal-order-${internalStatus}` : ""}`
+                )}
                 href={`/admin?pedido=${encodeURIComponent(order.order_number)}`}
                 key={order.id}
               >
@@ -325,24 +339,24 @@ function OrdersList({ orders, selectedOrderNumber }) {
 
 function NewOrderForm({ products }) {
   return (
-    <section className="admin-detail-panel">
-      <div className="admin-detail-header">
+    <section className={cx(globalStyles, "admin-detail-panel")}>
+      <div className={cx(globalStyles, "admin-detail-header")}>
         <div>
-          <p className="section-label">Novo pedido</p>
+          <p className={cx(globalStyles, "section-label")}>Novo pedido</p>
           <h1>Adicionar pedido.</h1>
           <p>Crie um pedido manual usando um produto publicado no catalogo.</p>
         </div>
       </div>
 
       {products.length === 0 ? (
-        <p className="helper-text">
+        <p className={cx(globalStyles, "helper-text")}>
           Cadastre ou publique um produto antes de criar um pedido manual.
         </p>
       ) : (
-        <form action={createAdminOrderAction} className="admin-operation-form">
-          <div className="admin-form-block">
+        <form action={createAdminOrderAction} className={cx(globalStyles, "admin-operation-form")}>
+          <div className={cx(globalStyles, "admin-form-block")}>
             <h2>Cliente</h2>
-            <div className="form-grid">
+            <div className={cx(globalStyles, "form-grid")}>
               <label>
                 <span>Nome</span>
                 <input name="customerName" required />
@@ -367,21 +381,21 @@ function NewOrderForm({ products }) {
                 <span>CEP</span>
                 <input name="customerCep" required />
               </label>
-              <label className="span-all">
+              <label className={cx(globalStyles, "span-all")}>
                 <span>Endereco de entrega</span>
                 <input name="customerAddress" required />
               </label>
-              <label className="span-all">
+              <label className={cx(globalStyles, "span-all")}>
                 <span>Observacoes do cliente</span>
                 <textarea name="customerNotes" rows={3} />
               </label>
             </div>
           </div>
 
-          <div className="admin-form-block">
+          <div className={cx(globalStyles, "admin-form-block")}>
             <h2>Produto e pagamento</h2>
-            <div className="form-grid">
-              <label className="span-all">
+            <div className={cx(globalStyles, "form-grid")}>
+              <label className={cx(globalStyles, "span-all")}>
                 <span>Produto</span>
                 <select name="productId" required>
                   <option value="">Selecione um produto</option>
@@ -408,14 +422,14 @@ function NewOrderForm({ products }) {
                 <span>Entrega</span>
                 <StatusSelect items={shippingOptions} name="shippingOptionId" value="combinar" />
               </label>
-              <label className="span-all">
+              <label className={cx(globalStyles, "span-all")}>
                 <span>Observacoes internas</span>
                 <textarea name="orderInternalNotes" rows={3} />
               </label>
             </div>
           </div>
 
-          <button className="button button-primary" type="submit">
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
             Criar pedido
           </button>
         </form>
@@ -427,8 +441,8 @@ function NewOrderForm({ products }) {
 function OrderDetail({ selected }) {
   if (!selected) {
     return (
-      <section className="admin-detail-panel">
-        <p className="section-label">Pedido</p>
+      <section className={cx(globalStyles, "admin-detail-panel")}>
+        <p className={cx(globalStyles, "section-label")}>Pedido</p>
         <h1>Nenhum pedido selecionado.</h1>
       </section>
     );
@@ -438,23 +452,23 @@ function OrderDetail({ selected }) {
   const internalStatus = getEffectiveInternalOrderStatus(order);
 
   return (
-    <section className="admin-detail-panel">
-      <div className="admin-detail-header">
+    <section className={cx(globalStyles, "admin-detail-panel")}>
+      <div className={cx(globalStyles, "admin-detail-header")}>
         <div>
-          <p className="section-label">Pedido interno</p>
+          <p className={cx(globalStyles, "section-label")}>Pedido interno</p>
           <h1>{order.order_number}</h1>
           <p>
             {order.customer_name} -{" "}
             {order.customer_whatsapp || order.customer_phone || "sem contato"}
           </p>
         </div>
-        <div className="admin-total-box">
+        <div className={cx(globalStyles, "admin-total-box")}>
           <span>Total cobrado</span>
           <strong>{formatCurrency(order.total_cents, order.currency)}</strong>
         </div>
       </div>
 
-      <div className="admin-status-grid">
+      <div className={cx(globalStyles, "admin-status-grid")}>
         <div>
           <span>Pagamento</span>
           <strong>{getStatusLabel(order.payment_status, paymentStatuses)}</strong>
@@ -467,7 +481,7 @@ function OrderDetail({ selected }) {
           <span>Criado em</span>
           <strong>{formatDateTime(order.created_at)}</strong>
         </div>
-        <div className={internalStatus ? `internal-order-${internalStatus}` : ""}>
+        <div className={cx(globalStyles, internalStatus ? `internal-order-${internalStatus}` : "")}>
           <span>Pedido interno</span>
           <strong>
             {internalStatus ? getStatusLabel(internalStatus, internalOrderStatuses) : "Sem decisao"}
@@ -476,12 +490,12 @@ function OrderDetail({ selected }) {
         </div>
       </div>
 
-      <div className="admin-content-grid">
-        <div className="admin-section">
+      <div className={cx(globalStyles, "admin-content-grid")}>
+        <div className={cx(globalStyles, "admin-section")}>
           <h2>Itens</h2>
-          <div className="admin-item-list">
+          <div className={cx(globalStyles, "admin-item-list")}>
             {items.map((item) => (
-              <div className="admin-item-row" key={item.id}>
+              <div className={cx(globalStyles, "admin-item-row")} key={item.id}>
                 <span>
                   <strong>{item.product_name}</strong>
                   <em>{item.variation}</em>
@@ -503,9 +517,9 @@ function OrderDetail({ selected }) {
           </div>
         </div>
 
-        <div className="admin-section">
+        <div className={cx(globalStyles, "admin-section")}>
           <h2>Cliente e entrega</h2>
-          <dl className="admin-definition-list">
+          <dl className={cx(globalStyles, "admin-definition-list")}>
             <div>
               <dt>Email</dt>
               <dd>{order.customer_email || "Nao informado"}</dd>
@@ -522,14 +536,14 @@ function OrderDetail({ selected }) {
         </div>
       </div>
 
-      <form action={updateAdminOrderAction} className="admin-operation-form">
+      <form action={updateAdminOrderAction} className={cx(globalStyles, "admin-operation-form")}>
         <input name="orderId" type="hidden" value={order.id} />
         <input name="orderNumber" type="hidden" value={order.order_number} />
         <input name="supplierPurchaseId" type="hidden" value={supplierPurchase?.id ?? ""} />
 
-        <div className="admin-form-block">
+        <div className={cx(globalStyles, "admin-form-block")}>
           <h2>Status do pedido</h2>
-          <div className="form-grid">
+          <div className={cx(globalStyles, "form-grid")}>
             <label>
               <span>Status de pagamento</span>
               <StatusSelect
@@ -554,11 +568,11 @@ function OrderDetail({ selected }) {
               <span>Provedor pagamento</span>
               <input defaultValue={payments[0]?.provider ?? "manual"} name="paymentProvider" />
             </label>
-            <label className="span-all">
+            <label className={cx(globalStyles, "span-all")}>
               <span>Referencia do pagamento</span>
               <input defaultValue={payments[0]?.provider_reference ?? ""} name="paymentReference" />
             </label>
-            <label className="span-all">
+            <label className={cx(globalStyles, "span-all")}>
               <span>Observacoes internas do pedido</span>
               <textarea
                 defaultValue={order.internal_notes ?? ""}
@@ -569,9 +583,9 @@ function OrderDetail({ selected }) {
           </div>
         </div>
 
-        <div className="admin-form-block">
+        <div className={cx(globalStyles, "admin-form-block")}>
           <h2>Origem interna e rastreio</h2>
-          <div className="form-grid">
+          <div className={cx(globalStyles, "form-grid")}>
             <label>
               <span>Canal interno</span>
               <StatusSelect
@@ -602,7 +616,7 @@ function OrderDetail({ selected }) {
                 name="sourceOrderNumber"
               />
             </label>
-            <label className="span-all">
+            <label className={cx(globalStyles, "span-all")}>
               <span>Link interno do produto</span>
               <input
                 defaultValue={supplierPurchase?.source_product_url ?? ""}
@@ -662,7 +676,7 @@ function OrderDetail({ selected }) {
               <span>Comprovante</span>
               <input defaultValue={supplierPurchase?.proof_url ?? ""} name="proofUrl" />
             </label>
-            <label className="span-all">
+            <label className={cx(globalStyles, "span-all")}>
               <span>Notas da origem</span>
               <textarea
                 defaultValue={supplierPurchase?.internal_notes ?? ""}
@@ -673,9 +687,9 @@ function OrderDetail({ selected }) {
           </div>
         </div>
 
-        <div className="admin-form-block">
+        <div className={cx(globalStyles, "admin-form-block")}>
           <h2>Novo evento de rastreio</h2>
-          <div className="form-grid">
+          <div className={cx(globalStyles, "form-grid")}>
             <label>
               <span>Status do evento</span>
               <input name="trackingStatus" placeholder="em_transito" />
@@ -688,26 +702,26 @@ function OrderDetail({ selected }) {
               <span>Local</span>
               <input name="trackingLocation" />
             </label>
-            <label className="span-all">
+            <label className={cx(globalStyles, "span-all")}>
               <span>Descricao publica</span>
               <textarea name="trackingDescription" rows={3} />
             </label>
           </div>
         </div>
 
-        <button className="button button-primary" type="submit">
+        <button className={cx(globalStyles, "button button-primary")} type="submit">
           Salvar operacao
         </button>
       </form>
 
-      <div className="admin-section">
+      <div className={cx(globalStyles, "admin-section")}>
         <h2>Eventos registrados</h2>
-        <div className="tracking-event-list">
+        <div className={cx(globalStyles, "tracking-event-list")}>
           {trackingEvents.length === 0 ? (
-            <p className="helper-text">Nenhum evento de rastreio registrado.</p>
+            <p className={cx(globalStyles, "helper-text")}>Nenhum evento de rastreio registrado.</p>
           ) : (
             trackingEvents.map((event) => (
-              <div className="tracking-event-row" key={event.id}>
+              <div className={cx(globalStyles, "tracking-event-row")} key={event.id}>
                 <strong>{getStatusLabel(event.event_status, operationalStatuses)}</strong>
                 <span>{formatDateTime(event.event_at ?? event.created_at)}</span>
                 <p>{event.description || "Sem descricao."}</p>
@@ -717,21 +731,21 @@ function OrderDetail({ selected }) {
         </div>
       </div>
 
-      <div className="admin-internal-decision">
+      <div className={cx(globalStyles, "admin-internal-decision")}>
         <div>
-          <p className="section-label">Decisao final</p>
+          <p className={cx(globalStyles, "section-label")}>Decisao final</p>
           <h2>Confirmar ou recusar pedido interno.</h2>
           <p>
             Confirmar libera o pedido para operacao interna. Recusar marca o pedido como recusado
             sem apagar historico.
           </p>
         </div>
-        <div className="admin-internal-decision-actions">
+        <div className={cx(globalStyles, "admin-internal-decision-actions")}>
           <form action={setAdminInternalOrderStatusAction}>
             <input name="orderId" type="hidden" value={order.id} />
             <input name="orderNumber" type="hidden" value={order.order_number} />
             <input name="internalOrderStatus" type="hidden" value="confirmado" />
-            <button className="button button-success" type="submit">
+            <button className={cx(globalStyles, "button button-success")} type="submit">
               <span aria-hidden="true">{"\u2713"}</span>
               Confirmar pedido interno
             </button>
@@ -740,7 +754,7 @@ function OrderDetail({ selected }) {
             <input name="orderId" type="hidden" value={order.id} />
             <input name="orderNumber" type="hidden" value={order.order_number} />
             <input name="internalOrderStatus" type="hidden" value="recusado" />
-            <button className="button button-danger" type="submit">
+            <button className={cx(globalStyles, "button button-danger")} type="submit">
               <span aria-hidden="true">X</span>
               Recusar pedido interno
             </button>
@@ -753,7 +767,7 @@ function OrderDetail({ selected }) {
 
 function MetricCard({ label, value, detail, tone = "" }) {
   return (
-    <div className={`admin-metric-card ${tone ? `is-${tone}` : ""}`}>
+    <div className={cx(globalStyles, `admin-metric-card ${tone ? `is-${tone}` : ""}`)}>
       <span>{label}</span>
       <strong>{value}</strong>
       {detail ? <small>{detail}</small> : null}
@@ -763,9 +777,9 @@ function MetricCard({ label, value, detail, tone = "" }) {
 
 function ReviewStars({ rating = 0 }) {
   return (
-    <span className="review-stars" aria-label={`${rating} de 5 estrelas`}>
+    <span className={cx(globalStyles, "review-stars")} aria-label={`${rating} de 5 estrelas`}>
       {Array.from({ length: 5 }).map((_, index) => (
-        <span className={index < rating ? "is-filled" : ""} key={index}>
+        <span className={cx(globalStyles, index < rating ? "is-filled" : "")} key={index}>
           {"\u2605"}
         </span>
       ))}
@@ -775,8 +789,8 @@ function ReviewStars({ rating = 0 }) {
 
 function PendingReviewCard({ review }) {
   return (
-    <article className="admin-review-card">
-      <div className="admin-review-head">
+    <article className={cx(globalStyles, "admin-review-card")}>
+      <div className={cx(globalStyles, "admin-review-head")}>
         <div>
           <strong>{review.productName}</strong>
           <span>Pedido {review.orderNumber || "sem numero"}</span>
@@ -790,18 +804,18 @@ function PendingReviewCard({ review }) {
       </small>
 
       {review.photos?.length ? (
-        <div className="admin-review-photo-row">
+        <div className={cx(globalStyles, "admin-review-photo-row")}>
           {review.photos.map((photo) => (
             <img alt="" key={photo.id} src={photo.url} />
           ))}
         </div>
       ) : null}
 
-      <div className="admin-review-actions">
+      <div className={cx(globalStyles, "admin-review-actions")}>
         <form action={moderateOrderReviewAction}>
           <input name="reviewId" type="hidden" value={review.id} />
           <input name="reviewStatus" type="hidden" value="approved" />
-          <button className="button button-success" type="submit">
+          <button className={cx(globalStyles, "button button-success")} type="submit">
             Aprovar
           </button>
         </form>
@@ -809,7 +823,7 @@ function PendingReviewCard({ review }) {
           <input name="reviewId" type="hidden" value={review.id} />
           <input name="reviewStatus" type="hidden" value="rejected" />
           <input name="moderationNote" type="hidden" value="Conteudo recusado pela moderacao." />
-          <button className="button button-danger" type="submit">
+          <button className={cx(globalStyles, "button button-danger")} type="submit">
             Recusar
           </button>
         </form>
@@ -822,8 +836,8 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
   const statusCounts = analytics.internalStatusCounts ?? {};
 
   return (
-    <section className="admin-analytics-shell">
-      <div className="admin-metric-grid">
+    <section className={cx(globalStyles, "admin-analytics-shell")}>
+      <div className={cx(globalStyles, "admin-metric-grid")}>
         <MetricCard
           detail={`${analytics.activeOrderCount} pedidos ativos`}
           label="Quantidade de vendas"
@@ -847,12 +861,12 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
         />
       </div>
 
-      <div className="admin-chart-grid">
-        <section className="admin-section">
+      <div className={cx(globalStyles, "admin-chart-grid")}>
+        <section className={cx(globalStyles, "admin-section")}>
           <h2>Vendas dos ultimos 7 dias</h2>
-          <div className="admin-bar-chart">
+          <div className={cx(globalStyles, "admin-bar-chart")}>
             {analytics.dailySales.map((day) => (
-              <div className="admin-bar-row" key={day.key}>
+              <div className={cx(globalStyles, "admin-bar-row")} key={day.key}>
                 <span>{day.label}</span>
                 <div>
                   <i style={{ width: `${Math.max(4, day.percentage)}%` }} />
@@ -863,14 +877,16 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
           </div>
         </section>
 
-        <section className="admin-section">
+        <section className={cx(globalStyles, "admin-section")}>
           <h2>Usuarios que mais compraram</h2>
-          <div className="admin-ranking-list">
+          <div className={cx(globalStyles, "admin-ranking-list")}>
             {analytics.topCustomers.length === 0 ? (
-              <p className="helper-text">Ainda nao ha compras confirmadas para ranking.</p>
+              <p className={cx(globalStyles, "helper-text")}>
+                Ainda nao ha compras confirmadas para ranking.
+              </p>
             ) : (
               analytics.topCustomers.map((customer, index) => (
-                <div className="admin-ranking-row" key={customer.key}>
+                <div className={cx(globalStyles, "admin-ranking-row")} key={customer.key}>
                   <span>{index + 1}</span>
                   <strong>{customer.name}</strong>
                   <small>
@@ -882,18 +898,18 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
           </div>
         </section>
 
-        <section className="admin-section">
+        <section className={cx(globalStyles, "admin-section")}>
           <h2>Status interno</h2>
-          <div className="admin-status-summary">
-            <div className="internal-order-confirmado">
+          <div className={cx(globalStyles, "admin-status-summary")}>
+            <div className={cx(globalStyles, "internal-order-confirmado")}>
               <strong>{statusCounts.confirmado ?? 0}</strong>
               <span>Confirmados</span>
             </div>
-            <div className="internal-order-pendente">
+            <div className={cx(globalStyles, "internal-order-pendente")}>
               <strong>{statusCounts.pendente ?? 0}</strong>
               <span>Pendentes</span>
             </div>
-            <div className="internal-order-recusado">
+            <div className={cx(globalStyles, "internal-order-recusado")}>
               <strong>{statusCounts.recusado ?? 0}</strong>
               <span>Recusados</span>
             </div>
@@ -904,12 +920,12 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
           </div>
         </section>
 
-        <section className="admin-section">
+        <section className={cx(globalStyles, "admin-section")}>
           <h2>Itens mais vendidos</h2>
-          <div className="admin-ranking-list">
+          <div className={cx(globalStyles, "admin-ranking-list")}>
             {analytics.topSoldItems?.length ? (
               analytics.topSoldItems.map((item, index) => (
-                <div className="admin-ranking-row" key={item.key}>
+                <div className={cx(globalStyles, "admin-ranking-row")} key={item.key}>
                   <span>{index + 1}</span>
                   <strong>{item.name}</strong>
                   <small>
@@ -918,17 +934,19 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
                 </div>
               ))
             ) : (
-              <p className="helper-text">Sem pedidos confirmados para ranking de produtos.</p>
+              <p className={cx(globalStyles, "helper-text")}>
+                Sem pedidos confirmados para ranking de produtos.
+              </p>
             )}
           </div>
         </section>
 
-        <section className="admin-section">
+        <section className={cx(globalStyles, "admin-section")}>
           <h2>Itens mais bem avaliados</h2>
-          <div className="admin-ranking-list">
+          <div className={cx(globalStyles, "admin-ranking-list")}>
             {analytics.topRatedItems?.length ? (
               analytics.topRatedItems.map((item, index) => (
-                <div className="admin-ranking-row" key={item.key}>
+                <div className={cx(globalStyles, "admin-ranking-row")} key={item.key}>
                   <span>{index + 1}</span>
                   <strong>{item.name}</strong>
                   <small>
@@ -937,21 +955,23 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
                 </div>
               ))
             ) : (
-              <p className="helper-text">Sem avaliacoes aprovadas para ranking.</p>
+              <p className={cx(globalStyles, "helper-text")}>
+                Sem avaliacoes aprovadas para ranking.
+              </p>
             )}
           </div>
         </section>
       </div>
 
-      <section className="admin-section admin-review-moderation">
-        <div className="admin-panel-heading">
-          <p className="section-label">Moderacao</p>
+      <section className={cx(globalStyles, "admin-section admin-review-moderation")}>
+        <div className={cx(globalStyles, "admin-panel-heading")}>
+          <p className={cx(globalStyles, "section-label")}>Moderacao</p>
           <h2>Avaliacoes pendentes</h2>
         </div>
         {pendingReviews.length === 0 ? (
-          <p className="helper-text">Nenhuma avaliacao aguardando aprovacao.</p>
+          <p className={cx(globalStyles, "helper-text")}>Nenhuma avaliacao aguardando aprovacao.</p>
         ) : (
-          <div className="admin-review-grid">
+          <div className={cx(globalStyles, "admin-review-grid")}>
             {pendingReviews.map((review) => (
               <PendingReviewCard key={review.id} review={review} />
             ))}
@@ -964,15 +984,18 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
 
 function ProductList({ newProductCount, products, selectedProductId }) {
   return (
-    <aside className="admin-list-panel">
-      <div className="admin-panel-heading">
-        <p className="section-label">Catalogo</p>
+    <aside className={cx(globalStyles, "admin-list-panel")}>
+      <div className={cx(globalStyles, "admin-panel-heading")}>
+        <p className={cx(globalStyles, "section-label")}>Catalogo</p>
         <strong>{products.length} produtos</strong>
       </div>
 
-      <div className="admin-product-list">
+      <div className={cx(globalStyles, "admin-product-list")}>
         <Link
-          className={`admin-product-link ${!selectedProductId ? "is-active" : ""}`}
+          className={cx(
+            globalStyles,
+            `admin-product-link ${!selectedProductId ? "is-active" : ""}`
+          )}
           href={buildAddProductHref({ newProductCount, selectedProductId })}
         >
           <span>
@@ -984,7 +1007,10 @@ function ProductList({ newProductCount, products, selectedProductId }) {
 
         {products.map((product) => (
           <Link
-            className={`admin-product-link ${selectedProductId === product.id ? "is-active" : ""}`}
+            className={cx(
+              globalStyles,
+              `admin-product-link ${selectedProductId === product.id ? "is-active" : ""}`
+            )}
             href={`/admin?tab=produtos&produto=${encodeURIComponent(product.id)}`}
             key={product.id}
           >
@@ -1016,19 +1042,19 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
   return (
     <form
       action={upsertAdminProductAction}
-      className="admin-operation-form admin-product-form"
+      className={cx(globalStyles, "admin-operation-form admin-product-form")}
       encType="multipart/form-data"
     >
       <input name="productId" type="hidden" value={product?.id ?? ""} />
       <input name="previousSlug" type="hidden" value={product?.slug ?? ""} />
 
-      <div className="admin-form-block">
+      <div className={cx(globalStyles, "admin-form-block")}>
         <h2>
           {product
             ? "Identificacao do produto"
             : `Novo produto${draftIndex ? ` #${draftIndex}` : ""}`}
         </h2>
-        <div className="form-grid admin-product-identity-grid">
+        <div className={cx(globalStyles, "form-grid admin-product-identity-grid")}>
           <label>
             <span>
               Nome <RequiredMark />
@@ -1066,9 +1092,9 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         </div>
       </div>
 
-      <div className="admin-form-block">
+      <div className={cx(globalStyles, "admin-form-block")}>
         <h2>Preco e operacao</h2>
-        <div className="form-grid admin-product-pricing-grid">
+        <div className={cx(globalStyles, "form-grid admin-product-pricing-grid")}>
           <label>
             <span>
               Preco do cliente <RequiredMark />
@@ -1113,7 +1139,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             <span>Frete</span>
             <input defaultValue={product?.shippingClass ?? "medium"} name="shippingClass" />
           </label>
-          <div className="admin-profit-preview span-all">
+          <div className={cx(globalStyles, "admin-profit-preview span-all")}>
             <span>Lucro estimado do produto</span>
             <strong>
               {Number.isInteger(product?.profitCents)
@@ -1127,14 +1153,14 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         </div>
       </div>
 
-      <div className="admin-form-block">
+      <div className={cx(globalStyles, "admin-form-block")}>
         <h2>Categorias e compatibilidade</h2>
-        <div className="form-grid">
-          <fieldset className="span-all admin-checkbox-fieldset">
+        <div className={cx(globalStyles, "form-grid")}>
+          <fieldset className={cx(globalStyles, "span-all admin-checkbox-fieldset")}>
             <legend>
               Categorias <RequiredMark />
             </legend>
-            <div className="admin-checkbox-grid">
+            <div className={cx(globalStyles, "admin-checkbox-grid")}>
               {categories.map((category) => (
                 <label key={category.id}>
                   <input
@@ -1147,11 +1173,11 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
                 </label>
               ))}
             </div>
-            <p className="form-helper-text">
+            <p className={cx(globalStyles, "form-helper-text")}>
               Selecione pelo menos uma categoria para publicar na vitrine.
             </p>
           </fieldset>
-          <label className="span-all">
+          <label className={cx(globalStyles, "span-all")}>
             <span>Escopo tecnico</span>
             <input
               defaultValue={arrayToTextarea(product?.bikeModelScope) || "yamaha-r15"}
@@ -1161,10 +1187,10 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         </div>
       </div>
 
-      <div className="admin-form-block">
+      <div className={cx(globalStyles, "admin-form-block")}>
         <h2>Vitrine</h2>
-        <div className="form-grid">
-          <label className="span-all">
+        <div className={cx(globalStyles, "form-grid")}>
+          <label className={cx(globalStyles, "span-all")}>
             <span>
               Variacoes <RequiredMark />
             </span>
@@ -1176,7 +1202,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             />
             <small>Uma por linha ou separadas por virgula.</small>
           </label>
-          <label className="span-all">
+          <label className={cx(globalStyles, "span-all")}>
             <span>Estoque por variação</span>
             <textarea
               defaultValue={variationStockToTextarea(product?.variations, product?.variationStock)}
@@ -1189,11 +1215,11 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
             </small>
           </label>
           <ProductImageUploader existingImageUrls={product?.imageUrls ?? []} />
-          <label className="span-all">
+          <label className={cx(globalStyles, "span-all")}>
             <span>Notas</span>
             <textarea defaultValue={product?.notes ?? ""} name="notes" rows={4} />
           </label>
-          <label className="admin-toggle-row span-all">
+          <label className={cx(globalStyles, "admin-toggle-row span-all")}>
             <input
               defaultChecked={product?.isPublished ?? true}
               name="isPublished"
@@ -1204,8 +1230,8 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         </div>
       </div>
 
-      <div className="admin-product-actions">
-        <button className="button button-primary" type="submit">
+      <div className={cx(globalStyles, "admin-product-actions")}>
+        <button className={cx(globalStyles, "button button-primary")} type="submit">
           Salvar produto
         </button>
       </div>
@@ -1215,15 +1241,18 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
 
 function CouponList({ coupons, selectedCouponCode }) {
   return (
-    <aside className="admin-list-panel">
-      <div className="admin-panel-heading">
-        <p className="section-label">Promocoes</p>
+    <aside className={cx(globalStyles, "admin-list-panel")}>
+      <div className={cx(globalStyles, "admin-panel-heading")}>
+        <p className={cx(globalStyles, "section-label")}>Promocoes</p>
         <strong>{coupons.length} cupons</strong>
       </div>
 
-      <div className="admin-product-list">
+      <div className={cx(globalStyles, "admin-product-list")}>
         <Link
-          className={`admin-product-link ${!selectedCouponCode ? "is-active" : ""}`}
+          className={cx(
+            globalStyles,
+            `admin-product-link ${!selectedCouponCode ? "is-active" : ""}`
+          )}
           href="/admin?tab=cupons"
         >
           <span>
@@ -1235,9 +1264,10 @@ function CouponList({ coupons, selectedCouponCode }) {
 
         {coupons.map((coupon) => (
           <Link
-            className={`admin-product-link ${
-              selectedCouponCode === coupon.code ? "is-active" : ""
-            }`}
+            className={cx(
+              globalStyles,
+              `admin-product-link ${selectedCouponCode === coupon.code ? "is-active" : ""}`
+            )}
             href={`/admin?tab=cupons&cupom=${encodeURIComponent(coupon.code)}`}
             key={coupon.id}
           >
@@ -1265,10 +1295,13 @@ function CouponForm({ categories, coupon, products }) {
   const discountType = coupon?.discountType ?? "percent";
 
   return (
-    <form action={upsertAdminCouponAction} className="admin-operation-form admin-product-form">
-      <div className="admin-form-block">
+    <form
+      action={upsertAdminCouponAction}
+      className={cx(globalStyles, "admin-operation-form admin-product-form")}
+    >
+      <div className={cx(globalStyles, "admin-form-block")}>
         <h2>{coupon ? `Cupom ${coupon.code}` : "Novo cupom"}</h2>
-        <div className="form-grid">
+        <div className={cx(globalStyles, "form-grid")}>
           <label>
             <span>
               Codigo <RequiredMark />
@@ -1283,9 +1316,9 @@ function CouponForm({ categories, coupon, products }) {
               title="Use letras, numeros, hifen ou underline."
             />
           </label>
-          <div className="admin-form-inline-field">
+          <div className={cx(globalStyles, "admin-form-inline-field")}>
             <span>Status</span>
-            <label className="admin-toggle-row">
+            <label className={cx(globalStyles, "admin-toggle-row")}>
               <input
                 defaultChecked={coupon?.isActive ?? false}
                 name="couponIsActive"
@@ -1295,7 +1328,7 @@ function CouponForm({ categories, coupon, products }) {
             </label>
             <small>Ative somente quando a regra estiver revisada e pronta para uso.</small>
           </div>
-          <label className="span-all">
+          <label className={cx(globalStyles, "span-all")}>
             <span>Descricao interna</span>
             <input
               defaultValue={coupon?.description ?? ""}
@@ -1306,9 +1339,9 @@ function CouponForm({ categories, coupon, products }) {
         </div>
       </div>
 
-      <div className="admin-form-block">
+      <div className={cx(globalStyles, "admin-form-block")}>
         <h2>Desconto</h2>
-        <div className="form-grid">
+        <div className={cx(globalStyles, "form-grid")}>
           <label>
             <span>
               Tipo <RequiredMark />
@@ -1364,9 +1397,9 @@ function CouponForm({ categories, coupon, products }) {
         </div>
       </div>
 
-      <div className="admin-form-block">
+      <div className={cx(globalStyles, "admin-form-block")}>
         <h2>Validade e aplicacao</h2>
-        <div className="form-grid">
+        <div className={cx(globalStyles, "form-grid")}>
           <label>
             <span>Comeca em</span>
             <input
@@ -1383,9 +1416,9 @@ function CouponForm({ categories, coupon, products }) {
               type="datetime-local"
             />
           </label>
-          <fieldset className="span-all admin-checkbox-fieldset">
+          <fieldset className={cx(globalStyles, "span-all admin-checkbox-fieldset")}>
             <legend>Categorias aplicaveis</legend>
-            <div className="admin-checkbox-grid">
+            <div className={cx(globalStyles, "admin-checkbox-grid")}>
               {categories.map((category) => (
                 <label key={category.id}>
                   <input
@@ -1398,13 +1431,18 @@ function CouponForm({ categories, coupon, products }) {
                 </label>
               ))}
             </div>
-            <p className="form-helper-text">
+            <p className={cx(globalStyles, "form-helper-text")}>
               Sem categoria e sem produto selecionado, o cupom vale para todo o carrinho.
             </p>
           </fieldset>
-          <fieldset className="span-all admin-checkbox-fieldset admin-product-coupon-fieldset">
+          <fieldset
+            className={cx(
+              globalStyles,
+              "span-all admin-checkbox-fieldset admin-product-coupon-fieldset"
+            )}
+          >
             <legend>Produtos aplicaveis</legend>
-            <div className="admin-checkbox-grid">
+            <div className={cx(globalStyles, "admin-checkbox-grid")}>
               {products.map((product) => (
                 <label key={product.id}>
                   <input
@@ -1421,8 +1459,8 @@ function CouponForm({ categories, coupon, products }) {
         </div>
       </div>
 
-      <div className="admin-product-actions">
-        <button className="button button-primary" type="submit">
+      <div className={cx(globalStyles, "admin-product-actions")}>
+        <button className={cx(globalStyles, "button button-primary")} type="submit">
           Salvar cupom
         </button>
       </div>
@@ -1434,10 +1472,10 @@ function AdminCoupons({ selectedCouponCode, state }) {
   const selectedCoupon = state.coupons.find((coupon) => coupon.code === selectedCouponCode);
 
   return (
-    <section className="admin-shell admin-products-shell">
+    <section className={cx(globalStyles, "admin-shell admin-products-shell")}>
       <CouponList coupons={state.coupons} selectedCouponCode={selectedCouponCode} />
 
-      <div className="admin-detail-panel admin-product-panel">
+      <div className={cx(globalStyles, "admin-detail-panel admin-product-panel")}>
         <CouponForm
           categories={state.categories}
           coupon={selectedCoupon}
@@ -1445,9 +1483,12 @@ function AdminCoupons({ selectedCouponCode, state }) {
         />
 
         {selectedCoupon ? (
-          <form action={archiveAdminCouponAction} className="admin-archive-form">
+          <form
+            action={archiveAdminCouponAction}
+            className={cx(globalStyles, "admin-archive-form")}
+          >
             <input name="couponCode" type="hidden" value={selectedCoupon.code} />
-            <button className="button button-secondary" type="submit">
+            <button className={cx(globalStyles, "button button-secondary")} type="submit">
               Desativar cupom
             </button>
             <p>O cupom fica no historico e deixa de validar no carrinho.</p>
@@ -1464,14 +1505,14 @@ function AdminProducts({ newProductCount, selectedProductId, state }) {
   const draftIndexes = Array.from({ length: draftCount }, (_, index) => index + 1);
 
   return (
-    <section className="admin-shell admin-products-shell">
+    <section className={cx(globalStyles, "admin-shell admin-products-shell")}>
       <ProductList
         newProductCount={newProductCount}
         products={state.products}
         selectedProductId={selectedProductId}
       />
 
-      <div className="admin-detail-panel admin-product-panel">
+      <div className={cx(globalStyles, "admin-detail-panel admin-product-panel")}>
         {selectedProduct ? (
           <ProductForm
             categories={state.categories}
@@ -1490,10 +1531,13 @@ function AdminProducts({ newProductCount, selectedProductId, state }) {
         ))}
 
         {selectedProduct ? (
-          <form action={archiveAdminProductAction} className="admin-archive-form">
+          <form
+            action={archiveAdminProductAction}
+            className={cx(globalStyles, "admin-archive-form")}
+          >
             <input name="productId" type="hidden" value={selectedProduct.id} />
             <input name="slug" type="hidden" value={selectedProduct.slug} />
-            <button className="button button-secondary" type="submit">
+            <button className={cx(globalStyles, "button button-secondary")} type="submit">
               Arquivar produto
             </button>
             <p>
@@ -1509,7 +1553,7 @@ function AdminProducts({ newProductCount, selectedProductId, state }) {
 
 function AdminOrders({ showNewOrder, state }) {
   return (
-    <section className="admin-shell">
+    <section className={cx(globalStyles, "admin-shell")}>
       <OrdersList
         orders={state.orders}
         selectedOrderNumber={state.selected?.order?.order_number ?? ""}
@@ -1558,23 +1602,23 @@ export default async function AdminPage({ searchParams }) {
   }
 
   return (
-    <main className="page-shell auth-page admin-page">
+    <main className={cx(globalStyles, "page-shell auth-page admin-page")}>
       <SiteHeader showAccountNav={false} />
 
-      <section className="admin-toolbar">
+      <section className={cx(globalStyles, "admin-toolbar")}>
         <div>
-          <p className="section-label">Painel admin</p>
+          <p className={cx(globalStyles, "section-label")}>Painel admin</p>
           <h1>Operacao manual TSZR15.</h1>
         </div>
-        <div className="admin-toolbar-actions">
+        <div className={cx(globalStyles, "admin-toolbar-actions")}>
           {activeTab === "pedidos" ? (
-            <Link className="button button-primary" href="/admin?novoPedido=1">
+            <Link className={cx(globalStyles, "button button-primary")} href="/admin?novoPedido=1">
               Adicionar pedido
             </Link>
           ) : null}
           {activeTab === "produtos" ? (
             <Link
-              className="button button-primary"
+              className={cx(globalStyles, "button button-primary")}
               href={buildAddProductHref({
                 newProductCount,
                 selectedProductId: params?.produto ?? ""
@@ -1584,12 +1628,12 @@ export default async function AdminPage({ searchParams }) {
             </Link>
           ) : null}
           {activeTab === "cupons" ? (
-            <Link className="button button-primary" href="/admin?tab=cupons">
+            <Link className={cx(globalStyles, "button button-primary")} href="/admin?tab=cupons">
               Criar cupom
             </Link>
           ) : null}
           <form action={adminSignOutAction}>
-            <button className="button button-secondary" type="submit">
+            <button className={cx(globalStyles, "button button-secondary")} type="submit">
               Sair
             </button>
           </form>
@@ -1598,7 +1642,7 @@ export default async function AdminPage({ searchParams }) {
 
       <AdminTabs activeTab={activeTab} />
 
-      {message ? <p className="form-alert admin-message">{message}</p> : null}
+      {message ? <p className={cx(globalStyles, "form-alert admin-message")}>{message}</p> : null}
 
       {activeTab === "produtos" ? (
         <AdminProducts

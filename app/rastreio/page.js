@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { formatCurrency } from "@/src/catalog/index.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
@@ -23,20 +25,24 @@ function formatDateTime(value) {
 function TrackingResult({ result }) {
   if (result.status === "setup-required") {
     return (
-      <section className="tracking-result-panel">
-        <p className="section-label">Rastreio indisponivel</p>
+      <section className={cx(globalStyles, "tracking-result-panel")}>
+        <p className={cx(globalStyles, "section-label")}>Rastreio indisponivel</p>
         <h2>Configure o Supabase server-side para consultar pedidos.</h2>
-        {result.message ? <p className="helper-text">{result.message}</p> : null}
+        {result.message ? (
+          <p className={cx(globalStyles, "helper-text")}>{result.message}</p>
+        ) : null}
       </section>
     );
   }
 
   if (result.status === "not-found") {
     return (
-      <section className="tracking-result-panel">
-        <p className="section-label">Nao encontrado</p>
+      <section className={cx(globalStyles, "tracking-result-panel")}>
+        <p className={cx(globalStyles, "section-label")}>Nao encontrado</p>
         <h2>Pedido nao localizado para os dados informados.</h2>
-        <p className="helper-text">Confira o numero do pedido e o WhatsApp usado na compra.</p>
+        <p className={cx(globalStyles, "helper-text")}>
+          Confira o numero do pedido e o WhatsApp usado na compra.
+        </p>
       </section>
     );
   }
@@ -48,22 +54,22 @@ function TrackingResult({ result }) {
   const { order, timeline } = result;
 
   return (
-    <section className="tracking-result-panel">
-      <div className="tracking-result-header">
+    <section className={cx(globalStyles, "tracking-result-panel")}>
+      <div className={cx(globalStyles, "tracking-result-header")}>
         <div>
-          <p className="section-label">Pedido {order.orderNumber}</p>
+          <p className={cx(globalStyles, "section-label")}>Pedido {order.orderNumber}</p>
           <h2>{order.operationalStatusLabel}</h2>
           <p>
             {order.customerName} - criado em {formatDateTime(order.createdAt)}
           </p>
         </div>
-        <div className="admin-total-box">
+        <div className={cx(globalStyles, "admin-total-box")}>
           <span>Total</span>
           <strong>{formatCurrency(order.totalCents)}</strong>
         </div>
       </div>
 
-      <div className="tracking-status-grid">
+      <div className={cx(globalStyles, "tracking-status-grid")}>
         <div>
           <span>Pagamento</span>
           <strong>{order.paymentStatusLabel}</strong>
@@ -82,7 +88,7 @@ function TrackingResult({ result }) {
         </div>
       </div>
 
-      <div className="tracking-current-step">
+      <div className={cx(globalStyles, "tracking-current-step")}>
         <span aria-hidden="true" />
         <div>
           <small>Status atual</small>
@@ -90,12 +96,15 @@ function TrackingResult({ result }) {
         </div>
       </div>
 
-      <div className="tracking-content-grid">
-        <div className="admin-section">
+      <div className={cx(globalStyles, "tracking-content-grid")}>
+        <div className={cx(globalStyles, "admin-section")}>
           <h3>Itens</h3>
-          <div className="admin-item-list">
+          <div className={cx(globalStyles, "admin-item-list")}>
             {order.items.map((item) => (
-              <div className="admin-item-row" key={`${item.product_name}-${item.variation}`}>
+              <div
+                className={cx(globalStyles, "admin-item-row")}
+                key={`${item.product_name}-${item.variation}`}
+              >
                 <span>
                   <strong>{item.product_name}</strong>
                   <em>{item.variation}</em>
@@ -106,14 +115,16 @@ function TrackingResult({ result }) {
           </div>
         </div>
 
-        <div className="admin-section">
+        <div className={cx(globalStyles, "admin-section")}>
           <h3>Eventos</h3>
-          <div className="tracking-event-list">
+          <div className={cx(globalStyles, "tracking-event-list")}>
             {timeline.events.length === 0 ? (
-              <p className="helper-text">O primeiro evento aparece quando a operacao liberar o rastreio.</p>
+              <p className={cx(globalStyles, "helper-text")}>
+                O primeiro evento aparece quando a operacao liberar o rastreio.
+              </p>
             ) : (
               timeline.events.map((event) => (
-                <div className="tracking-event-row" key={event.id}>
+                <div className={cx(globalStyles, "tracking-event-row")} key={event.id}>
                   <strong>{event.label}</strong>
                   <span>{formatDateTime(event.eventAt)}</span>
                   <p>{event.description || event.location || "Atualizacao registrada."}</p>
@@ -148,14 +159,16 @@ export default async function TrackingPage({ searchParams }) {
   }
 
   return (
-    <main className="page-shell auth-page tracking-page">
+    <main className={cx(globalStyles, "page-shell auth-page tracking-page")}>
       <SiteHeader user={snapshot.user} />
 
-      <section className="tracking-layout">
-        <form className="auth-card tracking-lookup-card" method="GET">
-          <p className="section-label">Rastreio TSZR15</p>
+      <section className={cx(globalStyles, "tracking-layout")}>
+        <form className={cx(globalStyles, "auth-card tracking-lookup-card")} method="GET">
+          <p className={cx(globalStyles, "section-label")}>Rastreio TSZR15</p>
           <h1>Acompanhe seu pedido.</h1>
-          <p className="helper-text">Use o numero gerado no checkout e o WhatsApp da compra.</p>
+          <p className={cx(globalStyles, "helper-text")}>
+            Use o numero gerado no checkout e o WhatsApp da compra.
+          </p>
 
           <label>
             <span>Numero do pedido</span>
@@ -167,7 +180,7 @@ export default async function TrackingPage({ searchParams }) {
             <input defaultValue={contact} name="contato" required />
           </label>
 
-          <button className="button button-primary" type="submit">
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
             Consultar rastreio
           </button>
         </form>

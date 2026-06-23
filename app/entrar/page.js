@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -33,24 +35,30 @@ export default async function SignInPage({ searchParams }) {
   }
 
   return (
-    <main className="page-shell auth-page">
+    <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader user={user} />
 
-      <section className="auth-shell">
-        <form action={signInAction} className="auth-card login-card">
-          <p className="section-label">Conta TSZR15</p>
+      <section className={cx(globalStyles, "auth-shell")}>
+        <form action={signInAction} className={cx(globalStyles, "auth-card login-card")}>
+          <p className={cx(globalStyles, "section-label")}>Conta TSZR15</p>
           <h1>Entrar para comprar mais rapido.</h1>
-          <p className="helper-text">
+          <p className={cx(globalStyles, "helper-text")}>
             Use sua conta para preencher dados de entrega e finalizar o pedido pelo WhatsApp.
           </p>
 
-          {message ? <p className="form-alert">{message}</p> : null}
+          {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
 
           <input name="next" type="hidden" value={nextPath} />
 
           <label>
             <span>E-mail ou admin</span>
-            <input autoComplete="username" name="email" placeholder="voce@email.com ou admin" required type="text" />
+            <input
+              autoComplete="username"
+              name="email"
+              placeholder="voce@email.com ou admin"
+              required
+              type="text"
+            />
           </label>
 
           <PasswordInput
@@ -61,14 +69,14 @@ export default async function SignInPage({ searchParams }) {
             required
           />
 
-          <button className="button button-primary" type="submit">
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
             Entrar
           </button>
 
-          <p className="auth-switch">
+          <p className={cx(globalStyles, "auth-switch")}>
             Ainda nao tem conta? <Link href="/cadastrar">Cadastrar Usuário</Link>
           </p>
-          <p className="auth-switch">
+          <p className={cx(globalStyles, "auth-switch")}>
             Esqueceu a senha? <Link href="/recuperar-senha">Recuperar acesso</Link>
           </p>
         </form>

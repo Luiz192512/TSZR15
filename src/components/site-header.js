@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -7,12 +9,12 @@ import { CartCountBadge } from "@/src/components/cart-count-badge.js";
 
 export function SiteHeader({ showAccountNav = true, user } = {}) {
   return (
-    <header className="store-header store-header-compact">
-      <div className="store-header-top">
-        <Link className="store-brand" href="/">
+    <header className={cx(globalStyles, "store-header store-header-compact")}>
+      <div className={cx(globalStyles, "store-header-top")}>
+        <Link className={cx(globalStyles, "store-brand")} href="/">
           <Image
             alt="TSZ Store"
-            className="store-logo-image"
+            className={cx(globalStyles, "store-logo-image")}
             height={2000}
             sizes="154px"
             src="/brand/logo-tszr15-store.png"
@@ -24,22 +26,25 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
           </span>
         </Link>
 
-        <div className="mobile-nav-actions">
+        <div className={cx(globalStyles, "mobile-nav-actions")}>
           <Link
             aria-label="Carrinho - abrir pedido"
-            className="cart-nav-link mobile-cart-link"
+            className={cx(globalStyles, "cart-nav-link mobile-cart-link")}
             href="/pedido"
           >
             <CartIcon />
-            <span className="sr-only">Carrinho</span>
+            <span className={cx(globalStyles, "sr-only")}>Carrinho</span>
             <CartCountBadge />
           </Link>
-          <details className="mobile-nav-details">
-            <summary className="mobile-menu-button" aria-label="Abrir menu da loja">
+          <details className={cx(globalStyles, "mobile-nav-details")}>
+            <summary
+              className={cx(globalStyles, "mobile-menu-button")}
+              aria-label="Abrir menu da loja"
+            >
               Menu
-              <span aria-hidden="true" className="mobile-menu-icon" />
+              <span aria-hidden="true" className={cx(globalStyles, "mobile-menu-icon")} />
             </summary>
-            <nav className="mobile-nav-panel" aria-label="Menu mobile da loja">
+            <nav className={cx(globalStyles, "mobile-nav-panel")} aria-label="Menu mobile da loja">
               <Link href="/">Inicio</Link>
               <Link href="/catalogo#produtos">Produtos</Link>
               <Link href="/#lancamentos">Lancamentos</Link>
@@ -58,14 +63,18 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
         </div>
       </div>
 
-      <nav className="store-nav" aria-label="Navegacao principal">
+      <nav className={cx(globalStyles, "store-nav")} aria-label="Navegacao principal">
         <Link href="/">Inicio</Link>
         <Link href="/catalogo#produtos">Produtos</Link>
         <Link href="/#lancamentos">Lancamentos</Link>
         <Link href="/#sobre">Sobre nos</Link>
-        <Link aria-label="Carrinho - abrir pedido" className="cart-nav-link" href="/pedido">
+        <Link
+          aria-label="Carrinho - abrir pedido"
+          className={cx(globalStyles, "cart-nav-link")}
+          href="/pedido"
+        >
           <CartIcon />
-          <span className="sr-only">Carrinho</span>
+          <span className={cx(globalStyles, "sr-only")}>Carrinho</span>
           <CartCountBadge />
         </Link>
         <Link href="/rastreio">Rastreio</Link>

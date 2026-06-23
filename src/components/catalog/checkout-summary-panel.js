@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { ASSISTED_PURCHASE_CONSENT_TEXT } from "@/src/customer/customer-data.js";
@@ -42,40 +44,40 @@ export function CheckoutSummaryPanel({
   whatsappMessage
 }) {
   return (
-    <aside className="cart-summary-panel">
-      <div className="checkout-header">
-        <p className="section-label">Resumo do pedido</p>
+    <aside className={cx(globalStyles, "cart-summary-panel")}>
+      <div className={cx(globalStyles, "checkout-header")}>
+        <p className={cx(globalStyles, "section-label")}>Resumo do pedido</p>
         <h2>{formatCurrency(totals.totalCents)}</h2>
       </div>
 
       {cartItems.length === 0 ? (
-        <div className="cart-summary-empty">
+        <div className={cx(globalStyles, "cart-summary-empty")}>
           <strong>Seu carrinho está vazio.</strong>
           <span>Escolha um produto para liberar dados de entrega, cupom e WhatsApp.</span>
-          <Link className="button button-primary" href="/catalogo#produtos">
+          <Link className={cx(globalStyles, "button button-primary")} href="/catalogo#produtos">
             Ver produtos
           </Link>
         </div>
       ) : (
         <>
           {!isAuthenticated ? (
-            <div className="account-nudge">
+            <div className={cx(globalStyles, "account-nudge")}>
               <strong>Compre mais rápido</strong>
               <span>Crie conta para salvar dados de entrega e preencher o checkout.</span>
               <Link href={isSupabaseConfigured ? "/cadastrar" : "/conta"}>Cadastrar cliente</Link>
             </div>
           ) : (
-            <div className="account-nudge is-signed">
+            <div className={cx(globalStyles, "account-nudge is-signed")}>
               <strong>Dados da sua conta carregados</strong>
               <span>Você pode editar qualquer campo antes de enviar ao atendimento.</span>
             </div>
           )}
 
-          <div className="checkout-form">
+          <div className={cx(globalStyles, "checkout-form")}>
             <label>
               <span>
                 Nome{" "}
-                <span className="required-field-mark" aria-hidden="true">
+                <span className={cx(globalStyles, "required-field-mark")} aria-hidden="true">
                   *
                 </span>
               </span>
@@ -109,7 +111,7 @@ export function CheckoutSummaryPanel({
             <label>
               <span>
                 WhatsApp ou telefone{" "}
-                <span className="required-field-mark" aria-hidden="true">
+                <span className={cx(globalStyles, "required-field-mark")} aria-hidden="true">
                   *
                 </span>
               </span>
@@ -139,7 +141,7 @@ export function CheckoutSummaryPanel({
             <label>
               <span>
                 CEP{" "}
-                <span className="required-field-mark" aria-hidden="true">
+                <span className={cx(globalStyles, "required-field-mark")} aria-hidden="true">
                   *
                 </span>
               </span>
@@ -156,16 +158,16 @@ export function CheckoutSummaryPanel({
             {cepLookup.message ? (
               <p
                 aria-live="polite"
-                className="checkout-note span-all"
+                className={cx(globalStyles, "checkout-note span-all")}
                 role={cepLookup.status === "error" ? "alert" : "status"}
               >
                 {cepLookup.message}
               </p>
             ) : null}
-            <label className="span-all">
+            <label className={cx(globalStyles, "span-all")}>
               <span>
                 Endereço completo{" "}
-                <span className="required-field-mark" aria-hidden="true">
+                <span className={cx(globalStyles, "required-field-mark")} aria-hidden="true">
                   *
                 </span>
               </span>
@@ -202,7 +204,7 @@ export function CheckoutSummaryPanel({
                 ))}
               </select>
             </label>
-            <label className="span-all">
+            <label className={cx(globalStyles, "span-all")}>
               <span>Observações</span>
               <textarea
                 onChange={(event) => onCustomerChange("notes", event.target.value)}
@@ -210,7 +212,7 @@ export function CheckoutSummaryPanel({
                 value={customer.notes}
               />
             </label>
-            <label className="consent-box span-all">
+            <label className={cx(globalStyles, "consent-box span-all")}>
               <input
                 checked={hasDataConsent}
                 onChange={(event) => onDataConsentChange(event.target.checked)}
@@ -219,14 +221,14 @@ export function CheckoutSummaryPanel({
               />
               <span>
                 {ASSISTED_PURCHASE_CONSENT_TEXT}{" "}
-                <span className="required-field-mark" aria-hidden="true">
+                <span className={cx(globalStyles, "required-field-mark")} aria-hidden="true">
                   *
                 </span>
               </span>
             </label>
           </div>
 
-          <div className="total-box">
+          <div className={cx(globalStyles, "total-box")}>
             <span>Subtotal</span>
             <strong>{formatCurrency(totals.subtotalCents)}</strong>
             <span>Desconto</span>
@@ -237,7 +239,7 @@ export function CheckoutSummaryPanel({
             <strong>{formatCurrency(totals.totalCents)}</strong>
           </div>
 
-          <div className="coupon-box">
+          <div className={cx(globalStyles, "coupon-box")}>
             <label>
               <span>Cupom de desconto</span>
               <input
@@ -248,14 +250,14 @@ export function CheckoutSummaryPanel({
             </label>
             <button
               aria-label="Aplicar cupom de desconto"
-              className="button button-secondary"
+              className={cx(globalStyles, "button button-secondary")}
               disabled={isValidatingCoupon || cartItems.length === 0}
               onClick={onApplyCoupon}
               type="button"
             >
               {isValidatingCoupon ? (
                 <>
-                  <span aria-hidden="true" className="button-loader" />
+                  <span aria-hidden="true" className={cx(globalStyles, "button-loader")} />
                   Validando...
                 </>
               ) : (
@@ -263,14 +265,18 @@ export function CheckoutSummaryPanel({
               )}
             </button>
             {couponFeedback ? (
-              <p className="checkout-note" aria-live="polite" role="status">
+              <p className={cx(globalStyles, "checkout-note")} aria-live="polite" role="status">
                 {couponFeedback}
               </p>
             ) : null}
           </div>
 
-          <textarea className="message-preview" readOnly value={whatsappMessage} />
-          <p className="checkout-note" aria-live="polite">
+          <textarea
+            className={cx(globalStyles, "message-preview")}
+            readOnly
+            value={whatsappMessage}
+          />
+          <p className={cx(globalStyles, "checkout-note")} aria-live="polite">
             {hasAutoFilledAddressPendingEdit
               ? "Complete o endereço com número antes de enviar."
               : !hasRequiredCustomerData
@@ -282,20 +288,23 @@ export function CheckoutSummaryPanel({
                     : "Confirme o aceite de dados para liberar o envio."}
           </p>
           {checkoutFeedback ? (
-            <p className="checkout-note" aria-live="polite" role="status">
+            <p className={cx(globalStyles, "checkout-note")} aria-live="polite" role="status">
               {checkoutFeedback}
             </p>
           ) : null}
           <button
             aria-label="Enviar pedido no WhatsApp"
-            className={`button button-success checkout-button ${!canCheckout || isSubmittingCheckout ? "is-disabled" : ""}`}
+            className={cx(
+              globalStyles,
+              `button button-success checkout-button ${!canCheckout || isSubmittingCheckout ? "is-disabled" : ""}`
+            )}
             disabled={!canCheckout || isSubmittingCheckout}
             onClick={onSubmitCheckout}
             type="button"
           >
             {isSubmittingCheckout ? (
               <>
-                <span aria-hidden="true" className="button-loader" />
+                <span aria-hidden="true" className={cx(globalStyles, "button-loader")} />
                 Salvando pedido...
               </>
             ) : (

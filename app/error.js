@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import { useEffect } from "react";
 
 import { captureClientError } from "@/src/lib/monitoring.js";
@@ -10,12 +12,12 @@ export default function GlobalError({ error, reset }) {
   }, [error]);
 
   return (
-    <main className="page-shell auth-page">
-      <section className="setup-panel" role="alert">
-        <p className="section-label">Não foi possível carregar esta página</p>
+    <main className={cx(globalStyles, "page-shell auth-page")}>
+      <section className={cx(globalStyles, "setup-panel")} role="alert">
+        <p className={cx(globalStyles, "section-label")}>Não foi possível carregar esta página</p>
         <h1>Ocorreu um erro temporário.</h1>
         <p>Tente novamente. Se o problema continuar, volte mais tarde.</p>
-        <button className="button" onClick={() => reset()} type="button">
+        <button className={cx(globalStyles, "button")} onClick={() => reset()} type="button">
           Tentar novamente
         </button>
       </section>

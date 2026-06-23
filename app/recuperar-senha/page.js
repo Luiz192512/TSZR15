@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { requestPasswordResetAction } from "@/app/auth/actions.js";
@@ -21,29 +23,35 @@ export default async function RecoverPasswordPage({ searchParams }) {
   const message = getMessage(params);
 
   return (
-    <main className="page-shell auth-page">
+    <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader user={user} />
 
-      <section className="auth-shell">
-        <form action={requestPasswordResetAction} className="auth-card">
-          <p className="section-label">Recuperar senha</p>
+      <section className={cx(globalStyles, "auth-shell")}>
+        <form action={requestPasswordResetAction} className={cx(globalStyles, "auth-card")}>
+          <p className={cx(globalStyles, "section-label")}>Recuperar senha</p>
           <h1>Receba um link para voltar a acessar.</h1>
-          <p className="helper-text">
+          <p className={cx(globalStyles, "helper-text")}>
             Informe o email da conta TSZR15. O link abre a tela de troca de senha.
           </p>
 
-          {message ? <p className="form-alert">{message}</p> : null}
+          {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
 
           <label>
             <span>Email</span>
-            <input autoComplete="email" name="email" placeholder="voce@email.com" required type="email" />
+            <input
+              autoComplete="email"
+              name="email"
+              placeholder="voce@email.com"
+              required
+              type="email"
+            />
           </label>
 
-          <button className="button button-primary" type="submit">
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
             Enviar link
           </button>
 
-          <p className="auth-switch">
+          <p className={cx(globalStyles, "auth-switch")}>
             Lembrou a senha? <Link href="/entrar">Entrar</Link>
           </p>
         </form>

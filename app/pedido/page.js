@@ -1,3 +1,5 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import nextDynamic from "next/dynamic";
 
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
@@ -18,7 +20,7 @@ export default async function CartPage() {
   const { isConfigured } = getSupabaseConfigStatus();
 
   return (
-    <main className="page-shell">
+    <main className={cx(globalStyles, "page-shell")}>
       <CartCheckout
         currentUser={null}
         initialCustomer={null}

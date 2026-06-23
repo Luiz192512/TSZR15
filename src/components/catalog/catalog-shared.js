@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -253,7 +255,11 @@ function DeferredAccountNavLink({
   }
 
   return (
-    <Link className={unauthenticatedClassName} data-auth-loading="true" href="/entrar">
+    <Link
+      className={cx(globalStyles, unauthenticatedClassName)}
+      data-auth-loading="true"
+      href="/entrar"
+    >
       Entrar
     </Link>
   );
@@ -269,14 +275,17 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
 
   return (
     <div
-      className={`product-image product-image-${size} ${familyClass} ${
-        coverImage ? "has-product-photo" : ""
-      }`}
+      className={cx(
+        globalStyles,
+        `product-image product-image-${size} ${familyClass} ${
+          coverImage ? "has-product-photo" : ""
+        }`
+      )}
     >
       {coverImage ? (
         <Image
           alt={product.name}
-          className="product-photo"
+          className={cx(globalStyles, "product-photo")}
           fill
           sizes={productImageSizes[size] ?? productImageSizes.card}
           src={coverImage}
@@ -287,7 +296,7 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
           <Image
             alt=""
             aria-hidden="true"
-            className="product-image-logo"
+            className={cx(globalStyles, "product-image-logo")}
             height={2000}
             sizes="120px"
             src={brandLogoSrc}
@@ -318,9 +327,12 @@ export function ChevronIcon({ direction }) {
 
 export function ReviewStars({ rating = 0 }) {
   return (
-    <span className="review-stars" aria-label={`${rating} de 5 estrelas`}>
+    <span className={cx(globalStyles, "review-stars")} aria-label={`${rating} de 5 estrelas`}>
       {Array.from({ length: 5 }).map((_, index) => (
-        <span className={index < Math.round(rating) ? "is-filled" : ""} key={index}>
+        <span
+          className={cx(globalStyles, index < Math.round(rating) ? "is-filled" : "")}
+          key={index}
+        >
           {"\u2605"}
         </span>
       ))}
@@ -338,12 +350,14 @@ export function StoreHeader({
   const cartCount = useCartCount();
 
   return (
-    <header className={`store-header ${showSearch ? "" : "store-header-compact"}`}>
-      <div className="store-header-top">
-        <Link className="store-brand" href="/">
+    <header
+      className={cx(globalStyles, `store-header ${showSearch ? "" : "store-header-compact"}`)}
+    >
+      <div className={cx(globalStyles, "store-header-top")}>
+        <Link className={cx(globalStyles, "store-brand")} href="/">
           <Image
             alt="TSZ Store"
-            className="store-logo-image"
+            className={cx(globalStyles, "store-logo-image")}
             height={2000}
             sizes="154px"
             src={brandLogoSrc}
@@ -355,24 +369,27 @@ export function StoreHeader({
           </span>
         </Link>
 
-        <div className="mobile-nav-actions">
+        <div className={cx(globalStyles, "mobile-nav-actions")}>
           <Link
             aria-label={`Carrinho ${cartCount} ${cartCount === 1 ? "item" : "itens"} - abrir pedido`}
-            className="cart-nav-link mobile-cart-link"
+            className={cx(globalStyles, "cart-nav-link mobile-cart-link")}
             href="/pedido"
           >
             <CartIcon />
-            <span className="sr-only">Carrinho</span>
-            <span aria-hidden="true" className="cart-count-badge">
+            <span className={cx(globalStyles, "sr-only")}>Carrinho</span>
+            <span aria-hidden="true" className={cx(globalStyles, "cart-count-badge")}>
               {cartCount}
             </span>
           </Link>
-          <details className="mobile-nav-details">
-            <summary className="mobile-menu-button" aria-label="Abrir menu da loja">
+          <details className={cx(globalStyles, "mobile-nav-details")}>
+            <summary
+              className={cx(globalStyles, "mobile-menu-button")}
+              aria-label="Abrir menu da loja"
+            >
               Menu
-              <span aria-hidden="true" className="mobile-menu-icon" />
+              <span aria-hidden="true" className={cx(globalStyles, "mobile-menu-icon")} />
             </summary>
-            <nav className="mobile-nav-panel" aria-label="Menu mobile da loja">
+            <nav className={cx(globalStyles, "mobile-nav-panel")} aria-label="Menu mobile da loja">
               <Link href="/">Inicio</Link>
               <Link href="/catalogo#produtos">Produtos</Link>
               <Link href="/#lancamentos">Lancamentos</Link>
@@ -391,7 +408,7 @@ export function StoreHeader({
       </div>
 
       {showSearch ? (
-        <label className="store-search" htmlFor="catalog-search">
+        <label className={cx(globalStyles, "store-search")} htmlFor="catalog-search">
           <span>Buscar</span>
           <input
             id="catalog-search"
@@ -402,19 +419,19 @@ export function StoreHeader({
         </label>
       ) : null}
 
-      <nav className="store-nav" aria-label="Navegacao principal">
+      <nav className={cx(globalStyles, "store-nav")} aria-label="Navegacao principal">
         <Link href="/">Inicio</Link>
         <Link href="/catalogo#produtos">Produtos</Link>
         <Link href="/#lancamentos">Lancamentos</Link>
         <Link href="/#sobre">Sobre nos</Link>
         <Link
           aria-label={`Carrinho ${cartCount} ${cartCount === 1 ? "item" : "itens"} - abrir pedido`}
-          className="cart-nav-link"
+          className={cx(globalStyles, "cart-nav-link")}
           href="/pedido"
         >
           <CartIcon />
-          <span className="sr-only">Carrinho</span>
-          <span aria-hidden="true" className="cart-count-badge">
+          <span className={cx(globalStyles, "sr-only")}>Carrinho</span>
+          <span aria-hidden="true" className={cx(globalStyles, "cart-count-badge")}>
             {cartCount}
           </span>
         </Link>
@@ -432,19 +449,23 @@ export function ProductCard({ product }) {
   const categoryLabels = formatCategoryLabels(product.storefrontCategoryIds);
 
   return (
-    <Link className="hub-product-card" href={getProductHref(product)}>
+    <Link className={cx(globalStyles, "hub-product-card")} href={getProductHref(product)}>
       <ProductVisual product={product} />
 
-      <div className="hub-product-copy">
-        <div className="badge-row">
-          <span className="badge badge-category">{categoryLabels[0] ?? "R15"}</span>
-          <span className="badge badge-family">{getProductFamilyLabel(product.productFamily)}</span>
+      <div className={cx(globalStyles, "hub-product-copy")}>
+        <div className={cx(globalStyles, "badge-row")}>
+          <span className={cx(globalStyles, "badge badge-category")}>
+            {categoryLabels[0] ?? "R15"}
+          </span>
+          <span className={cx(globalStyles, "badge badge-family")}>
+            {getProductFamilyLabel(product.productFamily)}
+          </span>
         </div>
 
         <h2>{product.name}</h2>
         <p>{getProductSummary(product)}</p>
 
-        <div className="card-price-row">
+        <div className={cx(globalStyles, "card-price-row")}>
           <strong>{formatCurrency(product.priceCents)}</strong>
           <span>Ver detalhes</span>
         </div>

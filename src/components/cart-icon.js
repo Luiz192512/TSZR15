@@ -1,8 +1,10 @@
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 export function CartIcon({ className = "cart-link-icon" }) {
   return (
     <svg
       aria-hidden="true"
-      className={className}
+      className={cx(globalStyles, className)}
       fill="none"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"

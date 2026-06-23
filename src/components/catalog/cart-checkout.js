@@ -1,5 +1,7 @@
 "use client";
 
+import globalStyles from "@/app/storefront.module.css";
+import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -127,17 +129,17 @@ export function CartCheckout({ currentUser, initialCustomer, isSupabaseConfigure
     <>
       <StoreHeader currentUser={resolvedUser} showSearch={false} />
 
-      <section className="cart-heading">
+      <section className={cx(globalStyles, "cart-heading")}>
         <div>
-          <p className="section-label">Carrinho de compra</p>
+          <p className={cx(globalStyles, "section-label")}>Carrinho de compra</p>
           <h1>Revise seu pedido.</h1>
         </div>
-        <Link className="button button-secondary" href="/">
+        <Link className={cx(globalStyles, "button button-secondary")} href="/">
           Continuar comprando
         </Link>
       </section>
 
-      <section className="cart-page-layout">
+      <section className={cx(globalStyles, "cart-page-layout")}>
         <CartItemsPanel
           cartItems={cart.cartItems}
           hasLoadedCart={cart.hasLoadedCart}
