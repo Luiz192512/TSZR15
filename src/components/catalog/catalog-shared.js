@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import globalStyles from "@/app/storefront.module.css";
+import globalStyles from "@/src/styles/storefront-styles.js";
 import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
@@ -212,14 +212,6 @@ function DeferredAccountNavLink({
       return undefined;
     }
 
-    if ("requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(() => setShouldResolveAccount(true), {
-        timeout: 6000
-      });
-
-      return () => window.cancelIdleCallback(idleId);
-    }
-
     const timeoutId = window.setTimeout(() => setShouldResolveAccount(true), 3500);
 
     return () => window.clearTimeout(timeoutId);
@@ -270,8 +262,8 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
   const familyClass = `family-${product.productFamily}`;
   const coverImage = getProductVisualImage(product, size);
   const imageLoadingProps = priority
-    ? { fetchPriority: "high", priority: true }
-    : { loading: "lazy" };
+    ? { fetchPriority: /** @type {"high"} */ ("high"), priority: true }
+    : { loading: /** @type {"lazy"} */ ("lazy") };
 
   return (
     <div
@@ -342,7 +334,7 @@ export function ReviewStars({ rating = 0 }) {
 
 export function StoreHeader({
   currentUser,
-  onSearchChange,
+  onSearchChange = /** @param {string} _value */ (_value) => {},
   query = "",
   resolveAccount = true,
   showSearch = true
@@ -390,10 +382,10 @@ export function StoreHeader({
               <span aria-hidden="true" className={cx(globalStyles, "mobile-menu-icon")} />
             </summary>
             <nav className={cx(globalStyles, "mobile-nav-panel")} aria-label="Menu mobile da loja">
-              <Link href="/">Inicio</Link>
+              <Link href="/">Início</Link>
               <Link href="/catalogo#produtos">Produtos</Link>
-              <Link href="/#lancamentos">Lancamentos</Link>
-              <Link href="/#sobre">Sobre nos</Link>
+              <Link href="/#lancamentos">Lançamentos</Link>
+              <Link href="/#sobre">Sobre nós</Link>
               <Link href="/rastreio">Rastreio</Link>
               <DeferredAccountNavLink
                 authenticatedClassName=""
@@ -419,11 +411,11 @@ export function StoreHeader({
         </label>
       ) : null}
 
-      <nav className={cx(globalStyles, "store-nav")} aria-label="Navegacao principal">
-        <Link href="/">Inicio</Link>
+      <nav className={cx(globalStyles, "store-nav")} aria-label="Navegação principal">
+        <Link href="/">Início</Link>
         <Link href="/catalogo#produtos">Produtos</Link>
-        <Link href="/#lancamentos">Lancamentos</Link>
-        <Link href="/#sobre">Sobre nos</Link>
+        <Link href="/#lancamentos">Lançamentos</Link>
+        <Link href="/#sobre">Sobre nós</Link>
         <Link
           aria-label={`Carrinho ${cartCount} ${cartCount === 1 ? "item" : "itens"} - abrir pedido`}
           className={cx(globalStyles, "cart-nav-link")}

@@ -1,4 +1,4 @@
-import globalStyles from "@/app/storefront.module.css";
+import globalStyles from "@/src/styles/storefront-styles.js";
 import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import globalStyles from "@/app/storefront.module.css";
+import globalStyles from "@/src/styles/storefront-styles.js";
 import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";

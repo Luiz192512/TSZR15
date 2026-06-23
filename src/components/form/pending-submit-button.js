@@ -1,6 +1,6 @@
 "use client";
 
-import globalStyles from "@/app/storefront.module.css";
+import globalStyles from "@/src/styles/storefront-styles.js";
 import { cx } from "@/src/lib/classnames";
 import { useFormStatus } from "react-dom";
 
@@ -9,7 +9,7 @@ export function PendingSubmitButton({
   className = "button button-primary",
   disabled = false,
   pendingLabel = "Processando...",
-  type = "submit",
+  type = /** @type {"submit" | "button" | "reset"} */ ("submit"),
   ...props
 }) {
   const { pending } = useFormStatus();
