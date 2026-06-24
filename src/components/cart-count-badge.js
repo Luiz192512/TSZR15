@@ -1,6 +1,6 @@
 "use client";
 
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import { useEffect, useState } from "react";
 
@@ -26,36 +26,24 @@ function readCartCount() {
 
 export function CartCountBadge() {
   const [count, setCount] = useState(0);
-  const [isBumping, setIsBumping] = useState(false);
 
   useEffect(() => {
     function refreshCount() {
       setCount(readCartCount());
     }
 
-    function animateAddedCart() {
-      refreshCount();
-      setIsBumping(true);
-      window.setTimeout(() => setIsBumping(false), 300);
-    }
-
     refreshCount();
     window.addEventListener("storage", refreshCount);
     window.addEventListener("tszr15-cart-changed", refreshCount);
-    window.addEventListener("tszr15-cart-added", animateAddedCart);
 
     return () => {
       window.removeEventListener("storage", refreshCount);
       window.removeEventListener("tszr15-cart-changed", refreshCount);
-      window.removeEventListener("tszr15-cart-added", animateAddedCart);
     };
   }, []);
 
   return (
-    <span
-      aria-hidden="true"
-      className={cx(globalStyles, `cart-count-badge ${isBumping ? "is-bumping" : ""}`)}
-    >
+    <span aria-hidden="true" className={cx(globalStyles, "cart-count-badge")}>
       {count}
     </span>
   );

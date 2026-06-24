@@ -1,4 +1,4 @@
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -28,11 +28,11 @@ import { getStatusLabel, operationalStatuses, paymentStatuses } from "@/src/orde
 
 function getStatusMessage(params) {
   if (params?.status === "cadastrado") {
-    return "Conta criada. Confira seus dados antes de fazer o próximo pedido.";
+    return "Conta criada. Confira seus dados antes de fazer o proximo pedido.";
   }
 
   if (params?.status === "salvo") {
-    return "Salvo ✓ Seus dados serão usados nos próximos pedidos.";
+    return "Dados salvos para preencher seus proximos pedidos.";
   }
 
   if (params?.status === "pedido-vinculado") {
@@ -40,7 +40,7 @@ function getStatusMessage(params) {
   }
 
   if (params?.status === "avaliacao-enviada") {
-    return "Avaliação enviada. Ela aparece publicamente depois da aprovação.";
+    return "Avaliacao enviada. Ela aparece publicamente depois da aprovacao.";
   }
 
   return params?.error ? decodeURIComponent(params.error) : "";
@@ -55,7 +55,7 @@ function formatCurrency(cents, currency = "BRL") {
 
 function formatDate(value) {
   if (!value) {
-    return "Data não informada";
+    return "Data nao informada";
   }
 
   return new Intl.DateTimeFormat("pt-BR", {
@@ -310,7 +310,7 @@ function ClaimOrderForm() {
 }
 
 function getActiveAccountTab(params) {
-  if (["dados", "enderecos", "pedidos", "avaliacoes", "configuracoes"].includes(params?.tab)) {
+  if (["dados", "enderecos", "configuracoes"].includes(params?.tab)) {
     return params.tab;
   }
 
@@ -319,12 +319,10 @@ function getActiveAccountTab(params) {
 
 function AccountTabs({ activeTab }) {
   const tabs = [
-    ["inicio", "Visão geral"],
-    ["dados", "Perfil"],
-    ["pedidos", "Pedidos"],
-    ["avaliacoes", "Avaliações"],
-    ["enderecos", "Endereços"],
-    ["configuracoes", "Configurações"]
+    ["inicio", "Inicio"],
+    ["dados", "Dados pessoais"],
+    ["enderecos", "Enderecos"],
+    ["configuracoes", "Configuracoes"]
   ];
 
   return (
@@ -340,18 +338,6 @@ function AccountTabs({ activeTab }) {
       ))}
     </nav>
   );
-}
-
-function getProfileInitials(profile, user) {
-  const source = profile.full_name || user.email || "TSZR15";
-  const initials = source
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-
-  return initials.toUpperCase();
 }
 
 function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
@@ -431,8 +417,6 @@ function PersonalDataForm({ profile, user }) {
             defaultValue={profile.tax_id ?? ""}
             inputMode="numeric"
             name="taxId"
-            onChange={() => {}}
-            onInput={() => {}}
             pattern={taxIdPattern}
             required
             sanitizer="taxId"
@@ -454,8 +438,6 @@ function PersonalDataForm({ profile, user }) {
             defaultValue={profile.whatsapp ?? ""}
             inputMode="tel"
             name="whatsapp"
-            onChange={() => {}}
-            onInput={() => {}}
             pattern={phonePattern}
             required
             sanitizer="phone"
@@ -468,8 +450,6 @@ function PersonalDataForm({ profile, user }) {
             defaultValue={profile.phone ?? ""}
             inputMode="tel"
             name="phone"
-            onChange={() => {}}
-            onInput={() => {}}
             pattern={phonePattern}
             sanitizer="phone"
             title="Use somente numeros e pontuacao de telefone."
@@ -634,7 +614,6 @@ export default async function AccountPage({ searchParams }) {
   const profile = snapshot.profile ?? {};
   const addresses = snapshot.addresses ?? [];
   const message = getStatusMessage(params);
-  const isSaved = params?.status === "salvo";
   const activeTab = getActiveAccountTab(params);
   let accountOrders = {
     completedOrders: [],
@@ -658,23 +637,14 @@ export default async function AccountPage({ searchParams }) {
 
       <section className={cx(globalStyles, "account-layout account-dashboard-layout")}>
         <div className={cx(globalStyles, "account-summary")}>
-          <div className={cx(globalStyles, "account-greeting-row")}>
-            <span className={cx(globalStyles, "account-avatar")} aria-hidden="true">
-              {getProfileInitials(profile, snapshot.user)}
-            </span>
-            <div>
-              <p className={cx(globalStyles, "section-label")}>Minha conta</p>
-              <h1>Olá, {profile.full_name?.split(" ")[0] || "piloto"}.</h1>
-            </div>
-          </div>
-          <p>Acompanhe compras, endereços, dados e avaliações.</p>
+          <p className={cx(globalStyles, "section-label")}>Minha conta</p>
+          <h1>Perfil TSZR15.</h1>
+          <p>Acompanhe compras, enderecos, dados e avaliacoes.</p>
           <AccountTabs activeTab={activeTab} />
         </div>
 
         <div className={cx(globalStyles, "account-main-stack")}>
-          {message ? (
-            <p className={cx(globalStyles, `form-alert ${isSaved ? "is-success" : ""}`)}>{message}</p>
-          ) : null}
+          {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
 
           {activeTab === "dados" ? (
             <PersonalDataForm profile={profile} user={snapshot.user} />
@@ -682,8 +652,6 @@ export default async function AccountPage({ searchParams }) {
             <AddressBook addresses={addresses} selectedAddressId={params?.endereco ?? ""} />
           ) : activeTab === "configuracoes" ? (
             <SettingsPanel />
-          ) : activeTab === "pedidos" || activeTab === "avaliacoes" ? (
-            <AccountOrders accountOrders={accountOrders} profile={profile} />
           ) : accountOrderError ? (
             <section className={cx(globalStyles, "account-panel")}>
               <p className={cx(globalStyles, "section-label")}>Pedidos indisponiveis</p>

@@ -1,4 +1,4 @@
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { signInAction } from "@/app/auth/actions.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
 import { PasswordInput } from "@/src/components/form/password-input.js";
-import { PendingSubmitButton } from "@/src/components/form/pending-submit-button.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
@@ -42,7 +41,7 @@ export default async function SignInPage({ searchParams }) {
       <section className={cx(globalStyles, "auth-shell")}>
         <form action={signInAction} className={cx(globalStyles, "auth-card login-card")}>
           <p className={cx(globalStyles, "section-label")}>Conta TSZR15</p>
-          <h1>Entre para continuar.</h1>
+          <h1>Entrar para comprar mais rapido.</h1>
           <p className={cx(globalStyles, "helper-text")}>
             Use sua conta para preencher dados de entrega e finalizar o pedido pelo WhatsApp.
           </p>
@@ -64,17 +63,18 @@ export default async function SignInPage({ searchParams }) {
 
           <PasswordInput
             autoComplete="current-password"
-            className=""
             label="Senha"
             name="password"
             placeholder="Sua senha"
             required
           />
 
-          <PendingSubmitButton pendingLabel="Entrando...">Entrar</PendingSubmitButton>
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
+            Entrar
+          </button>
 
           <p className={cx(globalStyles, "auth-switch")}>
-            Ainda não tem conta? <Link href="/cadastrar">Criar conta</Link>
+            Ainda nao tem conta? <Link href="/cadastrar">Cadastrar Usuário</Link>
           </p>
           <p className={cx(globalStyles, "auth-switch")}>
             Esqueceu a senha? <Link href="/recuperar-senha">Recuperar acesso</Link>

@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useMemo, useRef, useState } from "react";
 
 import { groupProductsByCategory } from "@/src/catalog/index.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
@@ -129,6 +129,21 @@ function FeaturedProductCarousel({ products }) {
 }
 
 function CategoryProductCarousel({ category }) {
+  const trackRef = useRef(null);
+
+  function scrollByPage(direction) {
+    const track = trackRef.current;
+
+    if (!track) {
+      return;
+    }
+
+    track.scrollBy({
+      left: direction * Math.max(track.clientWidth - 80, 260),
+      behavior: "smooth"
+    });
+  }
+
   return (
     <section
       className={cx(globalStyles, "category-carousel-section")}
@@ -136,14 +151,34 @@ function CategoryProductCarousel({ category }) {
     >
       <div className={cx(globalStyles, "category-carousel-heading")}>
         <div>
+          <p className={cx(globalStyles, "section-label")}>Categoria</p>
           <h2 id={`category-${category.id}`}>{category.label}</h2>
         </div>
         <div className={cx(globalStyles, "category-carousel-actions")}>
           <span>{category.products.length} itens</span>
+          <div
+            className={cx(globalStyles, "carousel-controls")}
+            aria-label={`Controles de ${category.label}`}
+          >
+            <button
+              aria-label={`Ver itens anteriores de ${category.label}`}
+              onClick={() => scrollByPage(-1)}
+              type="button"
+            >
+              <ChevronIcon direction="left" />
+            </button>
+            <button
+              aria-label={`Ver proximos itens de ${category.label}`}
+              onClick={() => scrollByPage(1)}
+              type="button"
+            >
+              <ChevronIcon direction="right" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className={cx(globalStyles, "category-carousel-track catalog-card-grid")}>
+      <div className={cx(globalStyles, "category-carousel-track")} ref={trackRef}>
         {category.products.map((product) => (
           <ProductCard key={`${category.id}-${product.id}`} product={product} />
         ))}
@@ -191,9 +226,10 @@ export function CatalogHub({ categories, currentUser, products }) {
               src={brandLogoSrc}
               width={2000}
             />
+            <p className={cx(globalStyles, "hero-kicker")}>Performance parts for Yamaha R15</p>
           </div>
           <h1>
-            Sua R15 <span>em outro nível</span>
+            Sua R15 <span>em outro nivel</span>
           </h1>
           <p className={cx(globalStyles, "hero-lead")}>
             Peças e acessórios selecionados para quem exige visual agressivo, acabamento premium e
@@ -277,10 +313,6 @@ export function CatalogHub({ categories, currentUser, products }) {
         products={products}
         setActiveCategory={setActiveCategory}
       />
-
-      <p className={cx(globalStyles, "catalog-result-count")} aria-live="polite">
-        {visibleProducts.length} {visibleProducts.length === 1 ? "produto disponível" : "produtos disponíveis"}
-      </p>
 
       {visibleProducts.length === 0 ? (
         <div className={cx(globalStyles, "empty-state")}>
