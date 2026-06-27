@@ -5996,3 +5996,232 @@ html[data-navigation-loading="true"] .navigation-loading-overlay {
 .variation-grid button.is-unavailable {
   text-decoration: line-through;
 }
+
+/* Checkout — logged-in delivery (identity summary + address cards) */
+.checkout-logged {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.checkout-identity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  padding: 12px 14px;
+}
+
+.checkout-identity > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.checkout-identity > div > span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.checkout-identity strong {
+  color: #fff;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.checkout-identity small {
+  color: #b9bcc2;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.checkout-edit-link {
+  flex: 0 0 auto;
+  color: #ff8a90;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.checkout-section {
+  display: grid;
+  gap: 10px;
+}
+
+.checkout-section-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.address-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.address-card {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.address-card:hover {
+  border-color: var(--line-strong);
+}
+
+.address-card.is-selected {
+  border-color: var(--red);
+  background: rgba(242, 7, 16, 0.1);
+}
+
+.address-card-radio {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 2px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.address-card.is-selected .address-card-radio {
+  border-color: var(--red);
+  box-shadow: inset 0 0 0 4px var(--red);
+}
+
+.address-card-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.address-card-body strong {
+  color: #fff;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+}
+
+.address-card-body span {
+  color: #b9bcc2;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.address-add-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: #d9dce2;
+  padding: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.address-add-card:hover {
+  border-color: var(--red);
+  color: #fff;
+}
+
+.address-new-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  cursor: default;
+}
+
+.address-new-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.address-new-grid .span-all {
+  grid-column: 1 / -1;
+}
+
+.address-new-grid label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.address-new-grid input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  padding: 0 10px;
+}
+
+.address-new-grid input:focus {
+  border-color: var(--red);
+  outline: none;
+}
+
+.checkout-add-note {
+  width: 100%;
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: #d9dce2;
+  padding: 11px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.checkout-add-note:hover {
+  border-color: var(--red);
+  color: #fff;
+}
+
+.checkout-notes-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.checkout-notes-field textarea {
+  width: 100%;
+  min-height: 78px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+@media (max-width: 620px) {
+  .address-new-grid {
+    grid-template-columns: 1fr;
+  }
+}
