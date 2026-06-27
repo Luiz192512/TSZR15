@@ -11,6 +11,7 @@ import { getProductImageVariants } from "@/src/catalog/image-variants.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
 export const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
+export const whatsappBusinessNumber = process.env.NEXT_PUBLIC_WHATSAPP_BUSINESS_NUMBER ?? "";
 export const cartStorageKey = "tszr15-cart";
 export const brandLogoSrc = "/brand/logo-tszr15-store.png";
 export const heroBoardSrc =
@@ -437,6 +438,65 @@ export function StoreHeader({
     </header>
   );
 }
+export function StoreFooter() {
+  const whatsappHref = whatsappBusinessNumber
+    ? `https://wa.me/${whatsappBusinessNumber}`
+    : "/pedido";
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className={cx(globalStyles, "store-footer")} aria-label="Rodapé da loja">
+      <div className={cx(globalStyles, "store-footer-grid")}>
+        <div className={cx(globalStyles, "store-footer-brand")}>
+          <Image
+            alt="TSZ Store"
+            className={cx(globalStyles, "store-footer-logo")}
+            height={2000}
+            sizes="150px"
+            src={brandLogoSrc}
+            width={2000}
+          />
+          <p>
+            Peças e acessórios selecionados para Yamaha R15, com atendimento direto e fechamento
+            pelo WhatsApp.
+          </p>
+        </div>
+
+        <nav className={cx(globalStyles, "store-footer-col")} aria-label="Navegação">
+          <strong>Loja</strong>
+          <Link href="/">Início</Link>
+          <Link href="/catalogo#produtos">Produtos</Link>
+          <Link href="/#lancamentos">Lançamentos</Link>
+          <Link href="/rastreio">Rastrear pedido</Link>
+        </nav>
+
+        <nav className={cx(globalStyles, "store-footer-col")} aria-label="Institucional">
+          <strong>Institucional</strong>
+          <Link href="/#sobre">Sobre nós</Link>
+          <Link href="/entrar">Minha conta</Link>
+          <Link href="/pedido">Carrinho</Link>
+        </nav>
+
+        <div className={cx(globalStyles, "store-footer-col")}>
+          <strong>Atendimento</strong>
+          <a href={whatsappHref} target="_blank" rel="noreferrer">
+            WhatsApp
+          </a>
+          <span>Seg. a sáb., 9h às 18h</span>
+          <span>Pedido revisado antes do envio</span>
+        </div>
+      </div>
+
+      <div className={cx(globalStyles, "store-footer-bottom")}>
+        <span>
+          © {currentYear} {storeName} · Performance parts for Yamaha R15
+        </span>
+        <span>Pagamento seguro · Envio para todo o Brasil</span>
+      </div>
+    </footer>
+  );
+}
+
 export function ProductCard({ product }) {
   const categoryLabels = formatCategoryLabels(product.storefrontCategoryIds);
 
@@ -454,7 +514,7 @@ export function ProductCard({ product }) {
           </span>
         </div>
 
-        <h2>{product.name}</h2>
+        <h3>{product.name}</h3>
         <p>{getProductSummary(product)}</p>
 
         <div className={cx(globalStyles, "card-price-row")}>

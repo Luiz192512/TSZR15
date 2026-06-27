@@ -1,20 +1,23 @@
+/* Dark racing theme is the global default so surfaces never depend on
+   module import order to override a stale light palette. */
 :root {
-  --page: #f6f7f8;
-  --paper: #ffffff;
-  --ink: #111827;
-  --muted: #667085;
-  --line: #dde3ea;
-  --line-strong: #b7c2cf;
-  --carbon: #111827;
-  --carbon-soft: #263241;
-  --red: #f06a00;
-  --red-dark: #b64800;
-  --blue: #0b7f78;
-  --green: #15803d;
-  --yellow: #f3b21a;
-  --purple: #6d28d9;
-  --shadow: 0 18px 38px rgba(17, 24, 39, 0.1);
-  --shadow-tight: 0 8px 20px rgba(17, 24, 39, 0.08);
+  --page: #050505;
+  --paper: #101010;
+  --panel: #151515;
+  --ink: #f8f8f8;
+  --muted: #a4a7ad;
+  --line: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.32);
+  --carbon: #070707;
+  --carbon-soft: #1b1c1f;
+  --red: #f20710;
+  --red-dark: #a90007;
+  --blue: #c6ccd6;
+  --green: #1fbf75;
+  --yellow: #f0b43c;
+  --purple: #6b7280;
+  --shadow: 0 26px 70px rgba(0, 0, 0, 0.58);
+  --shadow-tight: 0 14px 34px rgba(0, 0, 0, 0.36);
 }
 
 * {
@@ -49,4 +52,11 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+/* Always show a visible keyboard focus indicator (WCAG 2.4.7). */
+:focus-visible {
+  outline: 2px solid #ff5158;
+  outline-offset: 2px;
+  border-radius: 4px;
 }

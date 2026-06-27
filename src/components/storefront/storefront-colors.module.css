@@ -1,9 +1,10 @@
 /*
  * Final surface palette.
  *
- * The storefront uses a dark racing canvas with deliberately light cards. These
- * selectors keep foreground colours tied to the surface instead of inheriting
- * the dark-theme foreground into a white card.
+ * The storefront uses a dark racing canvas (see PR #32). Every card and panel
+ * sits on a near-black surface with light foreground text. These selectors keep
+ * surfaces dark instead of letting an earlier light-card experiment leak white
+ * backgrounds into the layout.
  */
 
 .auth-page .auth-card,
@@ -15,14 +16,15 @@
 .tracking-page .tracking-result-panel,
 .product-detail-panel,
 .cart-heading,
+.cart-items-panel,
 .cart-summary-panel,
 .admin-page .admin-detail-panel,
 .admin-page .admin-list-panel,
 .admin-page .admin-section,
 .admin-page .admin-metric-card {
-  border-color: #e5e7eb;
-  background: #fff;
-  color: #111827;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 32%), #0d0d0d;
+  color: #f4f4f5;
 }
 
 .auth-page .auth-card h1,
@@ -37,6 +39,8 @@
 .product-detail-panel h1,
 .product-detail-panel h2,
 .cart-heading h1,
+.cart-items-panel h2,
+.cart-items-panel strong,
 .cart-summary-panel h2,
 .admin-page .admin-detail-panel h1,
 .admin-page .admin-detail-panel h2,
@@ -44,7 +48,7 @@
 .admin-page .admin-section h2,
 .admin-page .admin-section h3,
 .admin-page .admin-metric-card strong {
-  color: #111827 !important;
+  color: #ffffff !important;
 }
 
 .auth-page .auth-card .helper-text,
@@ -60,11 +64,13 @@
 .product-detail-panel .detail-review-summary,
 .product-detail-panel .product-info-grid dd,
 .cart-heading p:last-child,
+.cart-items-panel .helper-text,
+.cart-items-panel span,
 .cart-summary-panel .cart-summary-empty span,
 .admin-page .admin-detail-panel p,
 .admin-page .admin-list-panel p,
 .admin-page .admin-section p {
-  color: #667085;
+  color: #b9bcc2;
 }
 
 .auth-page .auth-card input,
@@ -78,81 +84,65 @@
 .admin-page .admin-detail-panel input,
 .admin-page .admin-detail-panel select,
 .admin-page .admin-detail-panel textarea {
-  border-color: #d0d5dd;
-  background: #fff;
-  color: #111827;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f4f4f5;
 }
 
 .auth-page .auth-card input::placeholder,
 .tracking-page .tracking-lookup-card input::placeholder,
 .product-detail-panel input::placeholder,
 .admin-page .admin-detail-panel input::placeholder {
-  color: #98a2b3;
+  color: #8a8f98;
 }
 
 .auth-page .auth-card .auth-switch a,
 .tracking-page .tracking-lookup-card a,
 .product-detail-panel .back-link {
-  color: #6d28d9;
+  color: #ff8a90;
 }
 
 .product-detail-panel .detail-price,
 .cart-summary-panel .total-box strong,
 .cart-summary-panel .panel-heading strong {
-  color: #b64800;
+  color: #ff6a72;
 }
 
 .product-detail-panel .product-info-grid div,
 .product-detail-panel .quantity-row {
-  border-color: #e5e7eb;
-  background: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #161616;
 }
 
 .product-detail-panel .product-info-grid dt,
 .product-detail-panel .quantity-row > span {
-  color: #667085;
+  color: #b9bcc2;
 }
 
 .product-detail-panel .variation-grid button {
-  border-color: #d0d5dd;
-  background: #fff;
-  color: #111827;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f4f4f5;
 }
 
 .product-detail-panel .variation-grid button.is-active {
-  border-color: #111827;
-  background: #111827;
+  border-color: var(--red);
+  background: var(--red);
   color: #fff;
-}
-
-.cart-items-panel {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: #101114;
-  color: #f8fafc;
-}
-
-.cart-items-panel h2,
-.cart-items-panel strong {
-  color: #f8fafc;
-}
-
-.cart-items-panel .helper-text,
-.cart-items-panel span {
-  color: #cbd5e1;
 }
 
 .cart-summary-panel .cart-summary-empty strong,
 .cart-summary-panel .cart-summary-empty span {
-  color: #111827;
+  color: #f4f4f5;
 }
 
 .tracking-page .tracking-result-panel .tracking-current-step {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.12);
 }
 
 .tracking-page .tracking-result-panel .tracking-current-step strong {
-  color: #166534;
+  color: #86efac;
 }
 
 .admin-page .admin-list-panel a,
@@ -160,5 +150,5 @@
 .admin-page .admin-section label,
 .admin-page .admin-metric-card span,
 .admin-page .admin-metric-card small {
-  color: #475467;
+  color: #c2c5cc;
 }

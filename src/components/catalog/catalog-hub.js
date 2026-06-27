@@ -20,6 +20,7 @@ import {
   normalizeSearch,
   ProductCard,
   ProductVisual,
+  StoreFooter,
   StoreHeader
 } from "./catalog-shared.js";
 function CategoryRail({ activeCategory, categories, products, setActiveCategory }) {
@@ -263,7 +264,7 @@ export function CatalogHub({ categories, currentUser, products }) {
       <section className={cx(globalStyles, "hub-intro")} id="produtos">
         <div>
           <p className={cx(globalStyles, "section-label")}>Produtos selecionados</p>
-          <h1>Catálogo R15 com compra assistida TSZR15.</h1>
+          <h2>Catálogo R15 com compra assistida TSZR15.</h2>
         </div>
         <p>
           Consulte disponibilidade, escolha a variação no produto e finalize o pedido pelo carrinho
@@ -298,6 +299,8 @@ export function CatalogHub({ categories, currentUser, products }) {
           ))}
         </div>
       )}
+
+      <StoreFooter />
     </>
   );
 }
