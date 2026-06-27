@@ -1,11 +1,10 @@
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { signUpAction } from "@/app/auth/actions.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { PasswordInput } from "@/src/components/form/password-input.js";
-import { PendingSubmitButton } from "@/src/components/form/pending-submit-button.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
 import { phonePattern, taxIdPattern } from "@/src/customer/field-validation.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
@@ -30,7 +29,7 @@ export default async function SignUpPage({ searchParams }) {
           <p className={cx(globalStyles, "section-label")}>Cadastro de cliente</p>
           <h1>Crie sua conta TSZR15.</h1>
           <p className={cx(globalStyles, "helper-text")}>
-            O endereço fica no perfil, depois do cadastro.
+            O endereco fica no perfil, depois do cadastro.
           </p>
 
           {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
@@ -45,8 +44,6 @@ export default async function SignUpPage({ searchParams }) {
               <SanitizedInput
                 inputMode="numeric"
                 name="taxId"
-                onChange={() => {}}
-                onInput={() => {}}
                 pattern={taxIdPattern}
                 required
                 sanitizer="taxId"
@@ -63,17 +60,14 @@ export default async function SignUpPage({ searchParams }) {
                 autoComplete="tel"
                 inputMode="tel"
                 name="whatsapp"
-                onChange={() => {}}
-                onInput={() => {}}
                 pattern={phonePattern}
                 required
                 sanitizer="phone"
                 title="Use somente numeros e pontuacao de telefone."
               />
             </label>
-          <PasswordInput
-            autoComplete="new-password"
-            className=""
+            <PasswordInput
+              autoComplete="new-password"
               label="Senha"
               minLength={6}
               name="password"
@@ -81,10 +75,12 @@ export default async function SignUpPage({ searchParams }) {
             />
           </div>
 
-          <PendingSubmitButton pendingLabel="Criando conta...">Criar conta</PendingSubmitButton>
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
+            Criar conta
+          </button>
 
           <p className={cx(globalStyles, "auth-switch")}>
-            Já tem conta? <Link href="/entrar">Entrar</Link>
+            Ja tem conta? <Link href="/entrar">Entrar</Link>
           </p>
         </form>
       </section>

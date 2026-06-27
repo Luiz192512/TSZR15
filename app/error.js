@@ -1,6 +1,6 @@
 "use client";
 
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import { useEffect } from "react";
 

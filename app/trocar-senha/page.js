@@ -1,4 +1,4 @@
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
@@ -43,7 +43,6 @@ export default async function ChangePasswordPage({ searchParams }) {
 
           <PasswordInput
             autoComplete="new-password"
-            className=""
             label="Nova senha"
             minLength={6}
             name="password"
@@ -51,7 +50,6 @@ export default async function ChangePasswordPage({ searchParams }) {
           />
           <PasswordInput
             autoComplete="new-password"
-            className=""
             label="Confirmar senha"
             minLength={6}
             name="passwordConfirmation"
