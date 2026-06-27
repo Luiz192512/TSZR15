@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
@@ -30,9 +30,7 @@ function ProductImageCarousel({ activeIndex, onActiveIndexChange, product }) {
   const activeImage = images[activeIndex];
   const activeImageVariants = getProductImageVariants(activeImage);
   const mainImageLoadingProps =
-    activeIndex === 0
-      ? { fetchPriority: /** @type {"high"} */ ("high"), priority: true }
-      : { loading: /** @type {"eager"} */ ("eager") };
+    activeIndex === 0 ? { fetchPriority: "high", priority: true } : { loading: "eager" };
 
   if (!activeImage) {
     return <ProductVisual product={product} size="detail" />;
@@ -69,7 +67,7 @@ function ProductImageCarousel({ activeIndex, onActiveIndexChange, product }) {
             <button aria-label="Imagem anterior" onClick={goToPrevious} type="button">
               <ChevronIcon direction="left" />
             </button>
-            <button aria-label="Próxima imagem" onClick={goToNext} type="button">
+            <button aria-label="Proxima imagem" onClick={goToNext} type="button">
               <ChevronIcon direction="right" />
             </button>
           </div>
@@ -109,8 +107,8 @@ function ProductReviewSection({ reviews = [], summary = { averageRating: 0, revi
     <section className={cx(globalStyles, "product-reviews-section")}>
       <div className={cx(globalStyles, "section-heading compact-heading")}>
         <div>
-          <p className={cx(globalStyles, "section-label")}>Avaliações</p>
-          <h2>Experiência de quem já recebeu.</h2>
+          <p className={cx(globalStyles, "section-label")}>Avaliacoes</p>
+          <h2>Experiencia de quem ja recebeu.</h2>
         </div>
         <div className={cx(globalStyles, "review-summary-pill")}>
           <ReviewStars rating={summary.averageRating} />
@@ -123,7 +121,7 @@ function ProductReviewSection({ reviews = [], summary = { averageRating: 0, revi
 
       {reviews.length === 0 ? (
         <p className={cx(globalStyles, "empty-copy")}>
-          As primeiras avaliações aprovadas deste produto aparecem aqui.
+          As primeiras avaliacoes aprovadas deste produto aparecem aqui.
         </p>
       ) : (
         <div className={cx(globalStyles, "product-review-grid")}>
@@ -216,7 +214,6 @@ export function ProductDetails({
         ];
 
     writeStoredCart(nextItems);
-    window.dispatchEvent(new Event("tszr15-cart-added"));
     setFeedback("Produto adicionado ao carrinho.");
     setWasAdded(true);
   }
@@ -289,7 +286,7 @@ export function ProductDetails({
 
                   return (
                     <button
-                      aria-label={`Selecionar variação ${variation}`}
+                      aria-label={`Selecionar variacao ${variation}`}
                       aria-pressed={selectedVariation === variation}
                       className={cx(
                         globalStyles,
@@ -346,9 +343,7 @@ export function ProductDetails({
             </div>
             <div>
               <dt>Disponibilidade</dt>
-              <dd className={cx(globalStyles, `detail-stock-badge status-${stockStatus.status}`)}>
-                {stockStatus.label}
-              </dd>
+              <dd>{stockStatus.label}</dd>
             </div>
             <div>
               <dt>Fechamento</dt>

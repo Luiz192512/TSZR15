@@ -1,7 +1,6 @@
-import globalStyles from "@/src/styles/storefront-styles.js";
+import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import { SiteHeader } from "@/src/components/site-header.js";
-import { TrackingLookupForm } from "@/src/components/tracking-lookup-form.js";
 import { formatCurrency } from "@/src/catalog/index.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
@@ -14,7 +13,7 @@ export const metadata = {
 
 function formatDateTime(value) {
   if (!value) {
-    return "Não informado";
+    return "Nao informado";
   }
 
   return new Intl.DateTimeFormat("pt-BR", {
@@ -39,8 +38,8 @@ function TrackingResult({ result }) {
   if (result.status === "not-found") {
     return (
       <section className={cx(globalStyles, "tracking-result-panel")}>
-        <p className={cx(globalStyles, "section-label")}>Não encontrado</p>
-        <h2>Pedido não localizado para os dados informados.</h2>
+        <p className={cx(globalStyles, "section-label")}>Nao encontrado</p>
+        <h2>Pedido nao localizado para os dados informados.</h2>
         <p className={cx(globalStyles, "helper-text")}>
           Confira o numero do pedido e o WhatsApp usado na compra.
         </p>
@@ -81,7 +80,7 @@ function TrackingResult({ result }) {
         </div>
         <div>
           <span>Codigo</span>
-          <strong>{order.tracking.trackingCode || "Não liberado"}</strong>
+          <strong>{order.tracking.trackingCode || "Nao liberado"}</strong>
         </div>
         <div>
           <span>Prazo</span>
@@ -150,7 +149,7 @@ export default async function TrackingPage({ searchParams }) {
 
   if (hasLookup) {
     try {
-      result = await findPublicOrderTracking({ contact, orderNumber, supabase: undefined });
+      result = await findPublicOrderTracking({ contact, orderNumber });
     } catch (error) {
       result = {
         message: error.message,
@@ -164,7 +163,27 @@ export default async function TrackingPage({ searchParams }) {
       <SiteHeader user={snapshot.user} />
 
       <section className={cx(globalStyles, "tracking-layout")}>
-        <TrackingLookupForm contact={contact} orderNumber={orderNumber} />
+        <form className={cx(globalStyles, "auth-card tracking-lookup-card")} method="GET">
+          <p className={cx(globalStyles, "section-label")}>Rastreio TSZR15</p>
+          <h1>Acompanhe seu pedido.</h1>
+          <p className={cx(globalStyles, "helper-text")}>
+            Use o numero gerado no checkout e o WhatsApp da compra.
+          </p>
+
+          <label>
+            <span>Numero do pedido</span>
+            <input defaultValue={orderNumber} name="pedido" placeholder="TSZ-..." required />
+          </label>
+
+          <label>
+            <span>WhatsApp ou CPF/CNPJ</span>
+            <input defaultValue={contact} name="contato" required />
+          </label>
+
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
+            Consultar rastreio
+          </button>
+        </form>
 
         <TrackingResult result={result} />
       </section>
