@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { getUserDisplayName, getUserInitials } from "@/src/auth/user-display.js";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/client.js";
 
-async function getHeaderSessionUser() {
+async function fetchHeaderSessionUser() {
   try {
     const response = await fetch("/api/auth/me", {
       cache: "no-store",
@@ -25,6 +25,21 @@ async function getHeaderSessionUser() {
   } catch {
     return null;
   }
+}
+
+// The header mounts two account links (desktop + mobile nav) that each probe the
+// session. Sharing the in-flight request collapses the concurrent burst into a
+// single /api/auth/me call; it resets once settled so later checks stay fresh.
+let inFlightSessionRequest = null;
+
+function getHeaderSessionUser() {
+  if (!inFlightSessionRequest) {
+    inFlightSessionRequest = fetchHeaderSessionUser().finally(() => {
+      inFlightSessionRequest = null;
+    });
+  }
+
+  return inFlightSessionRequest;
 }
 
 export function AccountNavLink({
@@ -80,13 +95,6 @@ export function AccountNavLink({
           setHasCheckedSession(true);
         }
       });
-
-    getHeaderSessionUser().then((sessionUser) => {
-      if (isMounted && sessionUser) {
-        setCurrentUser(sessionUser);
-        setHasCheckedSession(true);
-      }
-    });
 
     const {
       data: { subscription }
