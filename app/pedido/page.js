@@ -27,6 +27,7 @@ export default async function CartPage() {
     <main className={cx(globalStyles, "page-shell")}>
       <CartCheckout
         currentUser={snapshot.user}
+        initialAddresses={snapshot.addresses ?? []}
         initialCustomer={snapshot.customer}
         isSupabaseConfigured={isConfigured}
         products={catalog.products}
