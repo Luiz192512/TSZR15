@@ -252,7 +252,7 @@ export function CatalogHub({ categories, currentUser, products }) {
               fetchPriority="high"
               fill
               priority
-              sizes="100vw"
+              sizes="(min-width: 1280px) 60vw, 100vw"
               src={heroBoardSrc}
             />
           </div>
