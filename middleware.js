@@ -37,7 +37,9 @@ function redirectToAdminLogin(request) {
   return addAdminSecurityHeaders(response);
 }
 
-export async function proxy(request) {
+// Kept as edge middleware (not Next 16 proxy.js): the Cloudflare OpenNext
+// adapter does not support the Node.js proxy runtime.
+export async function middleware(request) {
   const supabaseUrl = getSupabaseUrl();
   const supabaseKey = getSupabasePublishableKey();
   const isAdminRequest = isAdminPath(request.nextUrl.pathname);
