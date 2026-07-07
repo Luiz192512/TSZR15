@@ -21,6 +21,8 @@ next-env.d.ts
 
 # Deployment
 /.vercel
+/.open-next
+/.wrangler
 
 # Testing
 /coverage

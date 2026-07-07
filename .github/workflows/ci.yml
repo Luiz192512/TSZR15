@@ -24,4 +24,4 @@ jobs:
       - run: npm test
       - run: npm run test:unit
       - run: npm run typecheck
-      - run: npm run build
+      - run: npm run build:cf
