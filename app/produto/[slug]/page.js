@@ -51,14 +51,16 @@ export async function generateMetadata({ params }) {
 
   const canonicalUrl = `${siteUrl}/produto/${product.slug}`;
   const description = `Veja preço, variações e detalhes de ${product.name} para Yamaha R15.`;
-  const imageUrl = `/produto/${product.slug}/opengraph-image`;
+  // Foto real do produto no lugar da rota opengraph-image: o next/og embutia
+  // ~2 MiB de WASM (resvg/yoga) no worker, acima do limite do plano free.
+  const imageUrl = product.imageUrls?.[0] ?? `${siteUrl}/brand/tszr15-product-board.png`;
 
   return {
     alternates: { canonical: canonicalUrl },
     description,
     openGraph: {
       description,
-      images: [{ alt: `${product.name} | TSZR15`, height: 630, url: imageUrl, width: 1200 }],
+      images: [{ alt: `${product.name} | TSZR15`, url: imageUrl }],
       title: `${product.name} | TSZR15`,
       type: "website",
       url: canonicalUrl

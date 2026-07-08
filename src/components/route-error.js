@@ -4,7 +4,7 @@ import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import { useEffect } from "react";
 
-import { captureClientError } from "@/src/lib/monitoring.js";
+import { captureClientError } from "@/src/lib/monitoring-client.js";
 
 export function RouteError({ error, reset }) {
   useEffect(() => {
