@@ -25,7 +25,6 @@
     "validate:supabase": "node scripts/validate-supabase-catalog.mjs"
   },
   "dependencies": {
-    "@sentry/nextjs": "^10.59.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.0",
     "@vercel/analytics": "^2.0.1",

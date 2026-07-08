@@ -1,42 +1,15 @@
-let clientInitialized = false;
-let serverInitialized = false;
-
-async function getSentry({ dsn, runtime }) {
-  if (!dsn) return null;
-
-  const Sentry = await import("@sentry/nextjs");
-  const initialized = runtime === "client" ? clientInitialized : serverInitialized;
-
-  if (!initialized) {
-    Sentry.init({ dsn, enabled: true, tracesSampleRate: 0.1 });
-
-    if (runtime === "client") {
-      clientInitialized = true;
-    } else {
-      serverInitialized = true;
-    }
-  }
-
-  return Sentry;
-}
-
-export async function captureClientError(error, context = {}) {
-  const sentry = await getSentry({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    runtime: "client"
-  });
-
-  if (!sentry) return false;
-
-  sentry.captureException(error, { extra: context });
-  return true;
-}
-
+// Captura de erros do servidor. Mantido separado de monitoring-client.js de
+// propósito: importar @sentry/nextjs aqui arrasta o SDK inteiro para o bundle
+// do worker, que não roda em Cloudflare Workers (exige APIs Node/OTEL) e
+// estoura o limite de 3 MiB do plano free. Para Sentry no servidor, adotar
+// @sentry/cloudflare.
 export async function captureServerError(error, context = {}) {
-  const sentry = await getSentry({ dsn: process.env.SENTRY_DSN, runtime: "server" });
+  const { logger } = await import("./logger.js");
 
-  if (!sentry) return false;
+  logger.error(
+    { err: { message: error?.message, stack: error?.stack }, ...context },
+    "server error captured"
+  );
 
-  sentry.captureException(error, { extra: context });
-  return true;
+  return false;
 }
