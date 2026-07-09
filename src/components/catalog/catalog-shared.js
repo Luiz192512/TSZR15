@@ -12,9 +12,8 @@ import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
 export const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
 export const cartStorageKey = "tszr15-cart";
-export const brandLogoSrc = "/brand/logo-tszr15-store.png";
-export const heroBoardSrc =
-  "https://mckthvbwddxipghumrpw.supabase.co/storage/v1/object/public/brand-assets/tszr15-hero-r15-dark.png";
+export const brandLogoSrc = "/brand/logo-tszr15-store.webp";
+export const heroBoardSrc = "/brand/tszr15-hero-r15-dark.webp";
 
 const featuredProductIds = [
   "escapamento-sc-project-completo",
@@ -269,6 +268,15 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
   const categoryLabel = formatCategoryLabels(product.storefrontCategoryIds)[0] ?? "R15";
   const familyClass = `family-${product.productFamily}`;
   const coverImage = getProductVisualImage(product, size);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  // Se a URL mudar (componente reutilizado em outro produto), limpa o estado de
+  // falha para nao esconder uma imagem valida.
+  useEffect(() => {
+    setImageFailed(false);
+  }, [coverImage]);
+
+  const showPhoto = Boolean(coverImage) && !imageFailed;
   const imageLoadingProps = priority
     ? { fetchPriority: "high", priority: true }
     : { loading: "lazy" };
@@ -278,15 +286,16 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
       className={cx(
         globalStyles,
         `product-image product-image-${size} ${familyClass} ${
-          coverImage ? "has-product-photo" : ""
+          showPhoto ? "has-product-photo" : ""
         }`
       )}
     >
-      {coverImage ? (
+      {showPhoto ? (
         <Image
           alt={product.name}
           className={cx(globalStyles, "product-photo")}
           fill
+          onError={() => setImageFailed(true)}
           sizes={productImageSizes[size] ?? productImageSizes.card}
           src={coverImage}
           {...imageLoadingProps}

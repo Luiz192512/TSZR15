@@ -47,3 +47,6 @@ Thumbs.db
 # Tooling caches
 /.codemap
 /.codex-remote-attachments
+
+# Claude Code local (por maquina; launch.json fica versionado)
+.claude/settings.local.json

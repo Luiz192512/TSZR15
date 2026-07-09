@@ -1,0 +1,8 @@
+# Cloudflare Workers Static Assets - regras de cache
+# Chunks do Next tem hash no nome (imutaveis): cache agressivo de 1 ano.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Assets de marca (sem fingerprint no nome): cache moderado de 7 dias.
+/brand/*
+  Cache-Control: public, max-age=604800

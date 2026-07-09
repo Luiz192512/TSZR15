@@ -1,0 +1,3 @@
+# Dependencias Python para scripts/build-tech-guide-pdf.py
+# Instale com: pip install -r scripts/requirements.txt
+reportlab>=4.0

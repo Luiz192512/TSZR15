@@ -16,6 +16,7 @@
     "clone:preview": "node scripts/clone-supabase-preview.mjs",
     "sync:catalog": "node scripts/sync-supabase-catalog.mjs",
     "sync:catalog:preview": "node scripts/sync-supabase-catalog.mjs --target preview",
+    "optimize:brand-assets": "node scripts/optimize-brand-assets.mjs",
     "optimize:product-images": "node scripts/optimize-product-images.mjs --dry-run",
     "optimize:product-images:apply": "node scripts/optimize-product-images.mjs --apply",
     "test": "node --test",

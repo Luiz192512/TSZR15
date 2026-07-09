@@ -195,10 +195,10 @@ test("storefront menu keeps the five approved labels", () => {
 
   assert.deepEqual(labels, [
     "Suporte & Sliders",
-    "Estetica",
+    "Estética",
     "Escapamentos",
     "Adesivagem",
-    "Manutencao"
+    "Manutenção"
   ]);
 });
 

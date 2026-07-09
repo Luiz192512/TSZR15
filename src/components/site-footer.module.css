@@ -1,0 +1,106 @@
+.footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #050505;
+  color: #c9ccd2;
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1.1fr;
+  gap: 32px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 48px 24px 32px;
+}
+
+.brand {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.brandLogo {
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+}
+
+.brandText {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: #a4a7ad;
+}
+
+.column {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.columnTitle {
+  margin: 0 0 4px;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  /* #ff5158 mantem AA para texto pequeno sobre o fundo escuro. */
+  color: #ff5158;
+}
+
+.link {
+  color: #c9ccd2;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: #ffffff;
+}
+
+.whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 4px;
+  background: #1f8a4c;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.whatsapp:hover,
+.whatsapp:focus-visible {
+  background: #24a259;
+}
+
+.legal {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px 24px 28px;
+  max-width: 1240px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 0.76rem;
+  color: #7d8088;
+}
+
+@media (max-width: 860px) {
+  .inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 520px) {
+  .inner {
+    grid-template-columns: 1fr;
+  }
+}
