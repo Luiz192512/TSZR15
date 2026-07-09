@@ -74,12 +74,8 @@ export function SiteFooter() {
 
       <div className={cx(styles, "legal")}>
         <span>
-          © {new Date().getFullYear()} {storeName}
+          © {new Date().getFullYear()} {storeName} · Todos os direitos reservados
         </span>
-        {/* TODO: preencher com os dados reais da empresa. */}
-        <span>Razão social: {"{ razão social }"}</span>
-        <span>CNPJ: {"{ 00.000.000/0000-00 }"}</span>
-        <span>{"{ endereço completo }"}</span>
       </div>
     </footer>
   );
