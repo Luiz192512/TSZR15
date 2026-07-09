@@ -36,20 +36,22 @@ function CategoryRail({ activeCategory, categories, products, setActiveCategory 
         <span>{products.length}</span>
         Todos
       </button>
-      {categories.map((category) => (
-        <button
-          className={cx(
-            globalStyles,
-            `category-token ${activeCategory === category.id ? "is-active" : ""}`
-          )}
-          key={category.id}
-          onClick={() => startTransition(() => setActiveCategory(category.id))}
-          type="button"
-        >
-          <span>{category.productCount}</span>
-          {category.label}
-        </button>
-      ))}
+      {categories
+        .filter((category) => category.productCount > 0)
+        .map((category) => (
+          <button
+            className={cx(
+              globalStyles,
+              `category-token ${activeCategory === category.id ? "is-active" : ""}`
+            )}
+            key={category.id}
+            onClick={() => startTransition(() => setActiveCategory(category.id))}
+            type="button"
+          >
+            <span>{category.productCount}</span>
+            {category.label}
+          </button>
+        ))}
     </nav>
   );
 }
@@ -229,7 +231,7 @@ export function CatalogHub({ categories, currentUser, products }) {
             <p className={cx(globalStyles, "hero-kicker")}>Performance parts for Yamaha R15</p>
           </div>
           <h1>
-            Sua R15 <span>em outro nivel</span>
+            Sua R15 <span>em outro nível</span>
           </h1>
           <p className={cx(globalStyles, "hero-lead")}>
             Peças e acessórios selecionados para quem exige visual agressivo, acabamento premium e
@@ -299,7 +301,7 @@ export function CatalogHub({ categories, currentUser, products }) {
       <section className={cx(globalStyles, "hub-intro")} id="produtos">
         <div>
           <p className={cx(globalStyles, "section-label")}>Produtos selecionados</p>
-          <h1>Catálogo R15 com compra assistida TSZR15.</h1>
+          <h2>Catálogo R15 com compra assistida TSZR15.</h2>
         </div>
         <p>
           Consulte disponibilidade, escolha a variação no produto e finalize o pedido pelo carrinho

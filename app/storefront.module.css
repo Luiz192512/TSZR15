@@ -1596,9 +1596,13 @@
 
 .cart-page-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.58fr);
+  /* Coluna do resumo/formulario mais larga e layout centralizado com largura
+     maxima para reduzir o vazio a esquerda quando ha poucos itens. */
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
   gap: 18px;
   align-items: start;
+  max-width: 1180px;
+  margin-inline: auto;
 }
 
 .cart-items-panel,
@@ -2068,7 +2072,9 @@ body::before {
 
 .section-label,
 .eyebrow {
-  color: var(--red);
+  /* #ff5158 (~5.8:1 no fundo escuro) passa AA para texto pequeno; var(--red)
+     #f20710 fica ~4.2:1 e reprova em labels miudos. */
+  color: #ff5158;
   letter-spacing: 0.22em;
 }
 

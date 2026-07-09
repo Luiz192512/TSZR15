@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { AuthHashBridge } from "@/src/auth/auth-hash-bridge.js";
 import { NavigationLoadingOverlay } from "@/src/components/loading/navigation-loading-overlay.js";
+import { SiteFooter } from "@/src/components/site-footer.js";
 
 export const metadata = {
   metadataBase: new URL("https://www.tszr15-store.com.br"),
@@ -23,6 +24,7 @@ export default function RootLayout({ children }) {
         <AuthHashBridge />
         <NavigationLoadingOverlay />
         {children}
+        <SiteFooter />
         <Analytics />
         <SpeedInsights />
       </body>

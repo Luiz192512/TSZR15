@@ -17,7 +17,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
             className={cx(globalStyles, "store-logo-image")}
             height={2000}
             sizes="154px"
-            src="/brand/logo-tszr15-store.png"
+            src="/brand/logo-tszr15-store.webp"
             width={2000}
           />
           <span>
