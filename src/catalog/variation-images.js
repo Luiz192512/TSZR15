@@ -34,6 +34,44 @@ function getImageSearchValue(imageUrl) {
   }
 }
 
+// Cores de amostra (swatch) para nomes comuns de variacao pt-BR.
+// Retorna null quando o nome nao mapeia para uma cor visual.
+const variationSwatchColors = new Map([
+  ["preto", "#1c1f26"],
+  ["preta", "#1c1f26"],
+  ["prata", "#c9ccd4"],
+  ["aluminio", "#c9ccd4"],
+  ["fume", "#4a4f5a"],
+  ["transparente", "#aeb6c6"],
+  ["azul", "#3e6bff"],
+  ["vermelho", "#ff3742"],
+  ["vermelha", "#ff3742"],
+  ["carbono", "#2b2f38"],
+  ["carbon-look", "#2b2f38"],
+  ["dourado", "#d0a83e"],
+  ["amarelo", "#f0b43c"],
+  ["verde", "#1fbf75"],
+  ["branco", "#f3f4f6"],
+  ["laranja", "#ff7a30"],
+  ["titanio", "#8f96a3"]
+]);
+
+export function getVariationSwatchColor(variation) {
+  const token = normalizeVariationImageToken(variation);
+
+  if (variationSwatchColors.has(token)) {
+    return variationSwatchColors.get(token);
+  }
+
+  for (const [name, color] of variationSwatchColors) {
+    if (token.includes(name)) {
+      return color;
+    }
+  }
+
+  return null;
+}
+
 export function getProductVariationImageIndex(product, variation) {
   const images = Array.isArray(product?.imageUrls) ? product.imageUrls : [];
   const variations = Array.isArray(product?.variations) ? product.variations : [];

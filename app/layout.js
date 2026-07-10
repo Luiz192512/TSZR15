@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { AuthHashBridge } from "@/src/auth/auth-hash-bridge.js";
 import { NavigationLoadingOverlay } from "@/src/components/loading/navigation-loading-overlay.js";
+import { MobileTabBar } from "@/src/components/mobile-tab-bar.js";
 import { SiteFooter } from "@/src/components/site-footer.js";
 
 export const metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
         <NavigationLoadingOverlay />
         {children}
         <SiteFooter />
+        <MobileTabBar />
         <Analytics />
         <SpeedInsights />
       </body>

@@ -164,3 +164,33 @@
     justify-items: start;
   }
 }
+
+/* --- redesign 2026: cantos arredondados e superficies carbono --- */
+.panel {
+  border-radius: 16px;
+  background: linear-gradient(160deg, #1c2029, #15181f 58%);
+}
+
+.line {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.image {
+  border-radius: 11px;
+}
+
+.variation select,
+.delete {
+  border-radius: 10px;
+}
+
+.delete {
+  color: #ff8a8a;
+}
+
+.heading strong,
+.line > strong:last-child {
+  color: #ff5158;
+  font-variant-numeric: tabular-nums;
+}

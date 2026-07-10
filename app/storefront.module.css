@@ -1869,14 +1869,21 @@
   --line-strong: rgba(255, 255, 255, 0.32);
   --carbon: #070707;
   --carbon-soft: #1b1c1f;
-  --red: #f20710;
-  --red-dark: #a90007;
+  --red: #ff3742;
+  --red-dark: #c20e1a;
   --blue: #c6ccd6;
   --green: #1fbf75;
   --yellow: #f0b43c;
   --purple: #6b7280;
   --shadow: 0 26px 70px rgba(0, 0, 0, 0.58);
   --shadow-tight: 0 14px 34px rgba(0, 0, 0, 0.36);
+  /* redesign 2026 — azul-racing Yamaha, superfícies carbono e raios */
+  --racing-blue: #3e6bff;
+  --red-glow: rgba(255, 55, 66, 0.5);
+  --surf-1: #15181f;
+  --surf-2: #1c2029;
+  --r: 16px;
+  --r-sm: 12px;
 }
 
 body {
@@ -2138,12 +2145,48 @@ body::before {
 }
 
 .hero-kicker {
-  margin: -12px 0 0;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 7px 14px 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
   color: #dfe2e7;
-  font-size: 0.88rem;
-  font-weight: 900;
-  letter-spacing: 0.5em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+}
+
+.hero-kicker::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 0 var(--red-glow);
+  animation: hero-pulse 2.2s infinite;
+}
+
+@keyframes hero-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--red-glow);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-kicker::before {
+    animation: none;
+  }
 }
 
 .brand-hero h1 {
@@ -2160,7 +2203,10 @@ body::before {
 
 .brand-hero h1 span,
 .product-band h2 span {
-  color: var(--red);
+  background: linear-gradient(100deg, var(--red), #ff7a54);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .hero-lead {
@@ -6317,5 +6363,275 @@ html[data-navigation-loading="true"] .navigation-loading-overlay {
 @media (max-width: 620px) {
   .address-new-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   REDESIGN 2026 — mobile-first (cards arredondados, pilulas,
+   glows carbono/azul-racing). Bloco no fim do arquivo de
+   proposito: mesma especificidade, ultima regra vence.
+   ============================================================ */
+
+/* --- superficies: cantos arredondados + carbono azulado --- */
+.hub-product-card,
+.catalog-card,
+.product-detail-panel,
+.cart-items-panel,
+.cart-summary-panel,
+.cart-heading,
+.related-section,
+.detail-assist-box,
+.auth-card,
+.setup-panel,
+.account-summary,
+.surface-panel,
+.checkout-panel,
+.empty-state,
+.account-panel,
+.account-order-card,
+.account-order-item {
+  border-radius: var(--r);
+  border-color: var(--line);
+  background: linear-gradient(160deg, var(--surf-2), var(--surf-1) 58%);
+}
+
+/* cards de produto: fim do skew; hover com glow vermelho */
+.hub-product-card {
+  overflow: hidden;
+  transform: none;
+}
+
+.hub-product-card > * {
+  transform: none;
+}
+
+.hub-product-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 55, 66, 0.55);
+  box-shadow:
+    0 18px 44px -12px var(--red-glow),
+    var(--shadow-tight);
+}
+
+/* thumb do produto: glow radial azul + brilho diagonal sutil */
+.product-image {
+  background:
+    radial-gradient(90% 85% at 70% 18%, rgba(62, 107, 255, 0.15), transparent 62%),
+    linear-gradient(160deg, #1b1f27, #0c0e12);
+}
+
+.product-image::after {
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  transform: none;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.07) 50%, transparent 58%);
+}
+
+/* botoes: cantos arredondados no lugar dos paralelogramos */
+.button,
+.pill-button {
+  border-radius: 13px;
+  clip-path: none;
+}
+
+.quantity-control button {
+  border-radius: 10px;
+  clip-path: none;
+}
+
+.button-primary {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--red), var(--red-dark));
+  box-shadow:
+    0 12px 26px -8px var(--red-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.button-ghost {
+  border-radius: 13px;
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* chips de categoria: pilulas */
+.category-token,
+.category-strip .category-token {
+  border-radius: 999px;
+  clip-path: none;
+  border-color: var(--line);
+  background: var(--surf-1);
+  color: var(--muted);
+}
+
+.category-token span {
+  border-radius: 999px;
+  background: #232833;
+  color: var(--muted);
+}
+
+.category-token.is-active {
+  border-color: rgba(255, 55, 66, 0.5);
+  background: linear-gradient(180deg, rgba(255, 55, 66, 0.16), rgba(255, 55, 66, 0.05));
+  color: #fff;
+}
+
+.category-token.is-active span,
+.category-strip .category-token.is-active span {
+  background: var(--red);
+  color: #fff;
+}
+
+/* busca: campo em pilula suave */
+.store-search {
+  border-radius: 14px;
+  overflow: hidden;
+  border-color: var(--line);
+  background: var(--surf-1);
+}
+
+/* hero mobile: container arredondado com glows vermelho/azul */
+@media (max-width: 860px) {
+  .brand-hero {
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background:
+      radial-gradient(90% 70% at 78% 12%, rgba(62, 107, 255, 0.2), transparent 60%),
+      radial-gradient(120% 90% at 12% 95%, rgba(255, 55, 66, 0.24), transparent 55%),
+      linear-gradient(160deg, #191c24, #0b0c10 70%);
+  }
+
+  .brand-hero-media > img {
+    border-radius: 0 0 22px 22px;
+  }
+}
+
+/* --- redesign: controles e blocos restantes sem paralelogramo --- */
+.carousel-controls button,
+.product-photo-controls button,
+.featured-thumbs button,
+.category-carousel-actions .carousel-controls button {
+  border-radius: 12px;
+  clip-path: none;
+}
+
+.carousel-controls button {
+  border-color: var(--line-strong);
+  background: var(--surf-1);
+}
+
+.carousel-controls button:hover {
+  border-color: rgba(255, 55, 66, 0.55);
+  background: var(--surf-2);
+}
+
+.category-carousel-actions .carousel-controls button {
+  border-color: var(--line-strong);
+  background: var(--surf-1);
+}
+
+.brand-proof-strip div {
+  border-radius: var(--r-sm);
+  clip-path: none;
+  background: linear-gradient(160deg, var(--surf-2), var(--surf-1) 58%);
+}
+
+.hero-brand-row {
+  border-radius: 16px;
+  clip-path: none;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hero-feature,
+.assurance-card {
+  border-radius: var(--r-sm);
+  clip-path: none;
+}
+
+.tszr-loader-card {
+  border-radius: 18px;
+  clip-path: none;
+}
+
+.featured-carousel-window {
+  border-radius: var(--r);
+}
+
+/* --- redesign: pagina de produto --- */
+.variation-grid button,
+.search-box input,
+.select-field select,
+.checkout-form input,
+.checkout-form select,
+.checkout-form textarea,
+.message-preview,
+.cart-line-variation select,
+.quantity-row,
+.product-info-grid div,
+.cart-item,
+.cart-line,
+.account-nudge,
+.total-box {
+  border-radius: var(--r-sm);
+}
+
+.variation-grid button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 11px;
+  border-color: var(--line-strong);
+  background: var(--surf-1);
+}
+
+.variation-swatch {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.variation-grid button.is-active {
+  border-color: var(--red);
+  background: linear-gradient(180deg, rgba(255, 55, 66, 0.16), rgba(255, 55, 66, 0.04));
+  color: #fff;
+}
+
+.quantity-control {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* barra de compra fixa no produto (mobile) */
+@media (max-width: 860px) {
+  .detail-actions {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    z-index: 55;
+    display: flex;
+    gap: 10px;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(14, 16, 21, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  }
+
+  .detail-actions .button {
+    flex: 1;
+    min-height: 48px;
+  }
+
+  /* espaco para o conteudo nao terminar sob a barra fixa */
+  .product-detail-layout {
+    padding-bottom: 92px;
   }
 }
