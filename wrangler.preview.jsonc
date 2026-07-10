@@ -1,12 +1,15 @@
 {
+  // Worker de STAGING para revisar branches sem tocar na producao.
+  // Deploy: npx wrangler deploy --config wrangler.preview.jsonc
+  // URL: https://tsz-store-preview.enz-luizgustavo.workers.dev
+  // Compartilha KV/D1 com a producao (chaves de cache incluem o buildId,
+  // entao nao colidem); o Durable Object e o self-reference sao proprios.
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tsz-store",
+  "name": "tsz-store-preview",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-07-07",
   "compatibility_flags": ["nodejs_compat"],
-  // URLs de preview por versao (wrangler versions upload) para revisar
-  // mudancas sem afetar o trafego de producao.
-  "preview_urls": true,
+  "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -41,7 +44,7 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "tsz-store"
+      "service": "tsz-store-preview"
     }
   ],
   "observability": {

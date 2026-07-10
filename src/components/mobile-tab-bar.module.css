@@ -18,10 +18,8 @@
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* espaço para o conteúdo (e footer) não ficar atrás da barra */
-  body {
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
-  }
+  /* o padding-bottom global do body (para nada ficar atras da barra)
+     vive em app/globals.css — CSS Modules rejeitam seletor body puro. */
 }
 
 .tab {
