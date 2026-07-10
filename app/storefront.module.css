@@ -698,7 +698,9 @@
 }
 
 .consent-box {
+  display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
   align-items: start;
   border: 1px solid rgba(8, 124, 140, 0.22);
   border-radius: 8px;
@@ -2681,8 +2683,68 @@ body::before {
   accent-color: var(--red);
 }
 
+.consent-box a {
+  color: #ff5158;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
 .auth-page {
   padding-top: 0;
+}
+
+.legal-page {
+  padding-bottom: 40px;
+}
+
+.legal-content {
+  max-width: 760px;
+  margin: 26px auto 0;
+  padding: 0 20px;
+  color: #d7d9de;
+}
+
+.legal-content h1 {
+  margin: 6px 0 14px;
+  color: #fff;
+}
+
+.legal-content h2 {
+  margin: 26px 0 8px;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.legal-lead {
+  color: #b9bcc2;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.legal-content p,
+.legal-content li {
+  line-height: 1.6;
+}
+
+.legal-content ul,
+.legal-content ol {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.legal-content a {
+  color: #ff5158;
+  text-decoration: underline;
+}
+
+.legal-note {
+  margin-top: 26px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
 .auth-shell,
@@ -5478,6 +5540,20 @@ body::before {
   background: rgba(242, 7, 16, 0.12);
 }
 
+/* Grade 2x2 estavel para as abas na coluna estreita (evita o wrap 3+1 feio). */
+.account-tab-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.account-tab-bar a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+}
+
 .account-overview-grid,
 .account-address-grid,
 .account-suggestion-grid {
@@ -5487,7 +5563,7 @@ body::before {
 }
 
 .account-overview-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 
 .account-overview-grid div,
@@ -5546,6 +5622,16 @@ body::before {
 .account-suggestion-card {
   display: grid;
   gap: 8px;
+  align-content: start;
+}
+
+.account-suggestion-text {
+  display: grid;
+  gap: 3px;
+}
+
+.account-suggestion-card .product-image {
+  min-height: 132px;
 }
 
 .tracking-current-step {
@@ -5641,8 +5727,7 @@ body::before {
 }
 
 @media (max-width: 980px) {
-  .admin-products-shell,
-  .account-overview-grid {
+  .admin-products-shell {
     grid-template-columns: 1fr;
   }
 
@@ -5677,7 +5762,10 @@ body::before {
     padding: 12px;
   }
 
-  .account-tab-bar a,
+  .account-tab-bar {
+    grid-template-columns: 1fr;
+  }
+
   .account-settings-actions .button,
   .account-settings-actions form {
     width: 100%;

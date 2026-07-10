@@ -153,6 +153,10 @@ function validateRequiredSignUp(formData) {
     }
   }
 
+  if (!formValue(formData, "privacyConsent")) {
+    return "Aceite a Politica de Privacidade e os Termos para criar a conta.";
+  }
+
   const [formatError] = validateCustomerFieldFormats({
     phone: "",
     taxId: formValue(formData, "taxId"),

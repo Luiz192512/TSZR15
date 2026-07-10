@@ -5,7 +5,7 @@ import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
 
-import { getProductVisualImage } from "./catalog-shared.js";
+import { getProductVariationImage } from "./catalog-shared.js";
 import { getVariationStockStatus } from "@/src/catalog/stock.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import styles from "./cart-items-panel.module.css";
@@ -50,7 +50,7 @@ export function CartItemsPanel({
             const product = productsById.get(item.id);
             const stock = getVariationStockStatus(product, item.variation);
             const canChangeVariation = product?.variations?.length > 1;
-            const imageUrl = product ? getProductVisualImage(product) : "";
+            const imageUrl = product ? getProductVariationImage(product, item.variation) : "";
 
             return (
               <article className={cx(globalStyles, styles.line)} key={item.cartKey}>

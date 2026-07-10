@@ -122,6 +122,27 @@ export function getProductVisualImage(product, size = "card") {
   return size === "card" ? variants.card : variants.detail;
 }
 
+// Imagem da variacao selecionada. Quando o numero de imagens bate com o numero
+// de variacoes, o admin sobe as fotos na mesma ordem das variacoes, entao o
+// indice mapeia direto. Caso contrario, cai na imagem de capa (getProductVisualImage).
+export function getProductVariationImage(product, variation, size = "card") {
+  const images = getProductImages(product);
+  const variations = Array.isArray(product?.variations) ? product.variations : [];
+  let cover = images[0];
+
+  if (variation && images.length > 1 && images.length === variations.length) {
+    const index = variations.indexOf(variation);
+
+    if (index >= 0) {
+      cover = images[index];
+    }
+  }
+
+  const variants = getProductImageVariants(cover);
+
+  return size === "card" ? variants.card : variants.detail;
+}
+
 export function getFeaturedProducts(products) {
   const productsById = new Map(products.map((product) => [product.id, product]));
   const selectedProducts = featuredProductIds

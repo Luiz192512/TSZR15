@@ -29,7 +29,7 @@ export default async function SignUpPage({ searchParams }) {
           <p className={cx(globalStyles, "section-label")}>Cadastro de cliente</p>
           <h1>Crie sua conta TSZR15.</h1>
           <p className={cx(globalStyles, "helper-text")}>
-            O endereco fica no perfil, depois do cadastro.
+            O endereço fica no perfil, depois do cadastro.
           </p>
 
           {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
@@ -47,7 +47,7 @@ export default async function SignUpPage({ searchParams }) {
                 pattern={taxIdPattern}
                 required
                 sanitizer="taxId"
-                title="Use somente numeros, pontos, barra e hifen."
+                title="Use somente números, pontos, barra e hífen."
               />
             </label>
             <label>
@@ -55,7 +55,7 @@ export default async function SignUpPage({ searchParams }) {
               <input autoComplete="email" name="email" required type="email" />
             </label>
             <label>
-              <span>Numero</span>
+              <span>Número</span>
               <SanitizedInput
                 autoComplete="tel"
                 inputMode="tel"
@@ -63,7 +63,7 @@ export default async function SignUpPage({ searchParams }) {
                 pattern={phonePattern}
                 required
                 sanitizer="phone"
-                title="Use somente numeros e pontuacao de telefone."
+                title="Use somente números e pontuação de telefone."
               />
             </label>
             <PasswordInput
@@ -75,12 +75,20 @@ export default async function SignUpPage({ searchParams }) {
             />
           </div>
 
+          <label className={cx(globalStyles, "consent-box signup-consent")}>
+            <input name="privacyConsent" required type="checkbox" />
+            <span>
+              Li e aceito a <Link href="/privacidade">Política de Privacidade</Link> e os{" "}
+              <Link href="/termos">Termos de Uso</Link> da TSZR15.
+            </span>
+          </label>
+
           <button className={cx(globalStyles, "button button-primary")} type="submit">
             Criar conta
           </button>
 
           <p className={cx(globalStyles, "auth-switch")}>
-            Ja tem conta? <Link href="/entrar">Entrar</Link>
+            Já tem conta? <Link href="/entrar">Entrar</Link>
           </p>
         </form>
       </section>
