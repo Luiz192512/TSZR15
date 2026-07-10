@@ -20,6 +20,8 @@ import { CepAddressFields } from "@/src/components/form/cep-address-fields.js";
 import { PendingSubmitButton } from "@/src/components/form/pending-submit-button.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
+import { formatCategoryLabels } from "@/src/catalog/index.js";
+import { ProductVisual } from "@/src/components/catalog/catalog-shared.js";
 import { phonePattern, taxIdPattern } from "@/src/customer/field-validation.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 import { getCustomerAccountOrders } from "@/src/reviews/order-reviews.js";
@@ -28,19 +30,19 @@ import { getStatusLabel, operationalStatuses, paymentStatuses } from "@/src/orde
 
 function getStatusMessage(params) {
   if (params?.status === "cadastrado") {
-    return "Conta criada. Confira seus dados antes de fazer o proximo pedido.";
+    return "Conta criada. Confira seus dados antes de fazer o próximo pedido.";
   }
 
   if (params?.status === "salvo") {
-    return "Dados salvos para preencher seus proximos pedidos.";
+    return "Dados salvos para preencher seus próximos pedidos.";
   }
 
   if (params?.status === "pedido-vinculado") {
-    return "Pedido vinculado a sua conta.";
+    return "Pedido vinculado à sua conta.";
   }
 
   if (params?.status === "avaliacao-enviada") {
-    return "Avaliacao enviada. Ela aparece publicamente depois da aprovacao.";
+    return "Avaliação enviada. Ela aparece publicamente depois da aprovação.";
   }
 
   return params?.error ? decodeURIComponent(params.error) : "";
@@ -55,7 +57,7 @@ function formatCurrency(cents, currency = "BRL") {
 
 function formatDate(value) {
   if (!value) {
-    return "Data nao informada";
+    return "Data não informada";
   }
 
   return new Intl.DateTimeFormat("pt-BR", {
@@ -97,7 +99,7 @@ function ReviewForm({ item, order, profile }) {
       </fieldset>
 
       <label>
-        <span>Comentario</span>
+        <span>Comentário</span>
         <textarea
           maxLength={1200}
           minLength={8}
@@ -115,11 +117,11 @@ function ReviewForm({ item, order, profile }) {
           name="reviewPhotos"
           type="file"
         />
-        <small>Ate 5 fotos, 5MB cada.</small>
+        <small>Até 5 fotos, 5MB cada.</small>
       </label>
 
-      <PendingSubmitButton pendingLabel="Enviando avaliacao...">
-        Enviar avaliacao
+      <PendingSubmitButton pendingLabel="Enviando avaliação...">
+        Enviar avaliação
       </PendingSubmitButton>
     </form>
   );
@@ -159,8 +161,8 @@ function AccountOrderCard({ order, profile }) {
               <strong>{order.timeline.currentStep.label}</strong>
               <small>
                 {order.tracking?.trackingCode
-                  ? `Codigo: ${order.tracking.trackingCode}`
-                  : "Codigo ainda nao liberado"}
+                  ? `Código: ${order.tracking.trackingCode}`
+                  : "Código ainda não liberado"}
               </small>
             </div>
             <div className={cx(globalStyles, "account-tracking-facts")}>
@@ -169,7 +171,7 @@ function AccountOrderCard({ order, profile }) {
                 <strong>{order.tracking?.carrier || "Aguardando"}</strong>
               </div>
               <div>
-                <span>Previsao</span>
+                <span>Previsão</span>
                 <strong>{order.tracking?.sourceEta || order.shippingEta || "A confirmar"}</strong>
               </div>
             </div>
@@ -184,13 +186,13 @@ function AccountOrderCard({ order, profile }) {
                         {event.location ? ` - ${event.location}` : ""}
                       </span>
                     </div>
-                    <p>{event.description || "Atualizacao operacional registrada."}</p>
+                    <p>{event.description || "Atualização operacional registrada."}</p>
                   </div>
                 ))}
               </div>
             ) : (
               <p className={cx(globalStyles, "helper-text")}>
-                A primeira atualizacao aparece quando o envio andar.
+                A primeira atualização aparece quando o envio andar.
               </p>
             )}
           </div>
@@ -249,11 +251,11 @@ function AccountOrders({ accountOrders, profile }) {
       <section className={cx(globalStyles, "account-panel")}>
         <div className={cx(globalStyles, "account-panel-heading")}>
           <p className={cx(globalStyles, "section-label")}>Pedidos em andamento</p>
-          <h2>Acompanhe o que ainda esta em processo.</h2>
+          <h2>Acompanhe o que ainda está em processo.</h2>
         </div>
         {accountOrders.inProgressOrders.length === 0 ? (
           <p className={cx(globalStyles, "helper-text")}>
-            Nao ha pedidos em andamento vinculados a esta conta.
+            Não há pedidos em andamento vinculados a esta conta.
           </p>
         ) : (
           accountOrders.inProgressOrders.map((order) => (
@@ -264,12 +266,12 @@ function AccountOrders({ accountOrders, profile }) {
 
       <section className={cx(globalStyles, "account-panel")}>
         <div className={cx(globalStyles, "account-panel-heading")}>
-          <p className={cx(globalStyles, "section-label")}>Pedidos concluidos</p>
+          <p className={cx(globalStyles, "section-label")}>Pedidos concluídos</p>
           <h2>Avalie os itens entregues.</h2>
         </div>
         {accountOrders.completedOrders.length === 0 ? (
           <p className={cx(globalStyles, "helper-text")}>
-            Quando um pedido chegar em entregue, a avaliacao aparece aqui.
+            Quando um pedido chegar em entregue, a avaliação aparece aqui.
           </p>
         ) : (
           accountOrders.completedOrders.map((order) => (
@@ -291,12 +293,12 @@ function ClaimOrderForm() {
         <p className={cx(globalStyles, "section-label")}>Vincular pedido</p>
         <h2>Comprou sem entrar na conta?</h2>
         <p className={cx(globalStyles, "helper-text")}>
-          Use o numero do pedido e o WhatsApp, CPF ou CNPJ usado na compra.
+          Use o número do pedido e o WhatsApp, CPF ou CNPJ usado na compra.
         </p>
       </div>
 
       <label>
-        <span>Numero do pedido</span>
+        <span>Número do pedido</span>
         <input name="claimOrderNumber" placeholder="TSZ-..." required />
       </label>
       <label>
@@ -319,14 +321,14 @@ function getActiveAccountTab(params) {
 
 function AccountTabs({ activeTab }) {
   const tabs = [
-    ["inicio", "Inicio"],
+    ["inicio", "Início"],
     ["dados", "Dados pessoais"],
-    ["enderecos", "Enderecos"],
-    ["configuracoes", "Configuracoes"]
+    ["enderecos", "Endereços"],
+    ["configuracoes", "Configurações"]
   ];
 
   return (
-    <nav className={cx(globalStyles, "account-tab-bar")} aria-label="Secoes da conta">
+    <nav className={cx(globalStyles, "account-tab-bar")} aria-label="Seções da conta">
       {tabs.map(([tab, label]) => (
         <Link
           className={cx(globalStyles, activeTab === tab ? "is-active" : "")}
@@ -347,7 +349,7 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
     <div className={cx(globalStyles, "account-main-stack")}>
       <section className={cx(globalStyles, "account-panel account-overview-panel")}>
         <div className={cx(globalStyles, "account-panel-heading")}>
-          <p className={cx(globalStyles, "section-label")}>Inicio</p>
+          <p className={cx(globalStyles, "section-label")}>Início</p>
           <h2>Resumo da sua conta.</h2>
         </div>
         <div className={cx(globalStyles, "account-overview-grid")}>
@@ -360,8 +362,8 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
             <strong>{profile.whatsapp || profile.phone || "Contato pendente"}</strong>
           </div>
           <div>
-            <span>Endereco padrao</span>
-            <strong>{defaultAddress ? defaultAddress.label : "Cadastre um endereco"}</strong>
+            <span>Endereço padrão</span>
+            <strong>{defaultAddress ? defaultAddress.label : "Cadastre um endereço"}</strong>
           </div>
           <div>
             <span>Pedidos</span>
@@ -374,7 +376,7 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
 
       <section className={cx(globalStyles, "account-panel")}>
         <div className={cx(globalStyles, "account-panel-heading")}>
-          <p className={cx(globalStyles, "section-label")}>Sugestoes</p>
+          <p className={cx(globalStyles, "section-label")}>Sugestões</p>
           <h2>Itens que combinam com sua R15.</h2>
         </div>
         <div className={cx(globalStyles, "account-suggestion-grid")}>
@@ -384,8 +386,11 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
               href={`/produto/${product.slug}`}
               key={product.id}
             >
-              <span>{product.storefrontCategoryIds?.[0] ?? "R15"}</span>
-              <strong>{product.name}</strong>
+              <ProductVisual product={product} size="card" />
+              <div className={cx(globalStyles, "account-suggestion-text")}>
+                <span>{formatCategoryLabels(product.storefrontCategoryIds)[0] ?? "R15"}</span>
+                <strong>{product.name}</strong>
+              </div>
             </Link>
           ))}
         </div>
@@ -420,7 +425,7 @@ function PersonalDataForm({ profile, user }) {
             pattern={taxIdPattern}
             required
             sanitizer="taxId"
-            title="Use somente numeros, pontos, barra e hifen."
+            title="Use somente números, pontos, barra e hífen."
           />
         </label>
         <label>
@@ -441,7 +446,7 @@ function PersonalDataForm({ profile, user }) {
             pattern={phonePattern}
             required
             sanitizer="phone"
-            title="Use somente numeros e pontuacao de telefone."
+            title="Use somente números e pontuação de telefone."
           />
         </label>
         <label>
@@ -452,7 +457,7 @@ function PersonalDataForm({ profile, user }) {
             name="phone"
             pattern={phonePattern}
             sanitizer="phone"
-            title="Use somente numeros e pontuacao de telefone."
+            title="Use somente números e pontuação de telefone."
           />
         </label>
       </div>
@@ -468,21 +473,21 @@ function AddressBook({ addresses, selectedAddressId }) {
     <div className={cx(globalStyles, "account-main-stack")}>
       <section className={cx(globalStyles, "account-panel")}>
         <div className={cx(globalStyles, "account-panel-heading")}>
-          <p className={cx(globalStyles, "section-label")}>Enderecos</p>
-          <h2>Cadastre varios enderecos.</h2>
+          <p className={cx(globalStyles, "section-label")}>Endereços</p>
+          <h2>Cadastre vários endereços.</h2>
           <Link className={cx(globalStyles, "button button-secondary")} href="/conta?tab=enderecos">
             Novo
           </Link>
         </div>
         {addresses.length === 0 ? (
-          <p className={cx(globalStyles, "helper-text")}>Nenhum endereco cadastrado.</p>
+          <p className={cx(globalStyles, "helper-text")}>Nenhum endereço cadastrado.</p>
         ) : (
           <div className={cx(globalStyles, "account-address-grid")}>
             {addresses.map((address) => (
               <article className={cx(globalStyles, "account-address-card")} key={address.id}>
                 <div>
                   <strong>{address.label}</strong>
-                  {address.is_default ? <span>Padrao</span> : null}
+                  {address.is_default ? <span>Padrão</span> : null}
                 </div>
                 <p>{buildAddressLine(address)}</p>
                 <div className={cx(globalStyles, "account-address-actions")}>
@@ -492,7 +497,7 @@ function AddressBook({ addresses, selectedAddressId }) {
                   {!address.is_default ? (
                     <form action={setDefaultAddressAction}>
                       <input name="addressId" type="hidden" value={address.id} />
-                      <button type="submit">Usar como padrao</button>
+                      <button type="submit">Usar como padrão</button>
                     </form>
                   ) : null}
                 </div>
@@ -508,7 +513,7 @@ function AddressBook({ addresses, selectedAddressId }) {
       >
         <div className={cx(globalStyles, "account-panel-heading")}>
           <p className={cx(globalStyles, "section-label")}>
-            {selectedAddress ? "Editar endereco" : "Novo endereco"}
+            {selectedAddress ? "Editar endereço" : "Novo endereço"}
           </p>
           <h2>Dados de entrega.</h2>
         </div>
@@ -547,14 +552,14 @@ function AddressBook({ addresses, selectedAddressId }) {
             name="addressIsDefault"
             type="checkbox"
           />
-          <span>Endereco padrao</span>
+          <span>Endereço padrão</span>
         </label>
         <label className={cx(globalStyles, "consent-box account-consent")}>
           <input defaultChecked name="dataConsent" required type="checkbox" />
           <span>{ASSISTED_PURCHASE_CONSENT_TEXT}</span>
         </label>
-        <PendingSubmitButton pendingLabel="Salvando endereco...">
-          Salvar endereco
+        <PendingSubmitButton pendingLabel="Salvando endereço...">
+          Salvar endereço
         </PendingSubmitButton>
       </form>
     </div>
@@ -566,8 +571,8 @@ function SettingsPanel() {
     <div className={cx(globalStyles, "account-main-stack")}>
       <section className={cx(globalStyles, "account-panel account-settings-panel")}>
         <div className={cx(globalStyles, "account-panel-heading")}>
-          <p className={cx(globalStyles, "section-label")}>Configuracoes</p>
-          <h2>Acesso e seguranca.</h2>
+          <p className={cx(globalStyles, "section-label")}>Configurações</p>
+          <h2>Acesso e segurança.</h2>
         </div>
         <div className={cx(globalStyles, "account-settings-actions")}>
           <Link className={cx(globalStyles, "button button-secondary")} href="/trocar-senha">
@@ -599,8 +604,8 @@ export default async function AccountPage({ searchParams }) {
           <h1>Configure o Supabase para ativar contas de cliente.</h1>
           <p>
             Preencha `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ou
-            sincronize as variaveis da integracao Supabase/Vercel no ambiente do servidor. Depois
-            aplique a migracao SQL e reinicie o servidor.
+            sincronize as variáveis da integração Supabase/Vercel no ambiente do servidor. Depois
+            aplique a migração SQL e reinicie o servidor.
           </p>
         </section>
       </main>
@@ -639,7 +644,7 @@ export default async function AccountPage({ searchParams }) {
         <div className={cx(globalStyles, "account-summary")}>
           <p className={cx(globalStyles, "section-label")}>Minha conta</p>
           <h1>Perfil TSZR15.</h1>
-          <p>Acompanhe compras, enderecos, dados e avaliacoes.</p>
+          <p>Acompanhe compras, endereços, dados e avaliações.</p>
           <AccountTabs activeTab={activeTab} />
         </div>
 
@@ -654,8 +659,8 @@ export default async function AccountPage({ searchParams }) {
             <SettingsPanel />
           ) : accountOrderError ? (
             <section className={cx(globalStyles, "account-panel")}>
-              <p className={cx(globalStyles, "section-label")}>Pedidos indisponiveis</p>
-              <h2>Rode a migration de avaliacoes para ativar esta area.</h2>
+              <p className={cx(globalStyles, "section-label")}>Pedidos indisponíveis</p>
+              <h2>Rode a migration de avaliações para ativar esta área.</h2>
               <p className={cx(globalStyles, "helper-text")}>{accountOrderError}</p>
             </section>
           ) : (
