@@ -6590,3 +6590,70 @@ html[data-navigation-loading="true"] .navigation-loading-overlay {
     padding-bottom: 92px;
   }
 }
+
+/* --- redesign v2: feedback das prints --- */
+
+/* setas modernas: circulares com glow no hover (todos os carrosseis) */
+.carousel-controls button,
+.product-photo-controls button,
+.category-carousel-actions .carousel-controls button {
+  width: 42px;
+  min-height: 42px;
+  border-radius: 999px;
+  border-color: var(--line-strong);
+  background: var(--surf-1);
+  color: #eef1f6;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.carousel-controls button:hover,
+.product-photo-controls button:hover {
+  border-color: rgba(255, 55, 66, 0.6);
+  background: var(--surf-2);
+  box-shadow: 0 8px 20px -8px var(--red-glow);
+}
+
+.carousel-controls button:active,
+.product-photo-controls button:active {
+  transform: scale(0.94);
+}
+
+.carousel-controls button svg,
+.product-photo-controls button svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* mobile: setas do carrossel de categoria voltam a ser compactas */
+@media (max-width: 620px) {
+  .category-carousel-actions {
+    grid-template-columns: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .category-carousel-actions .carousel-controls button {
+    width: 42px;
+    min-height: 42px;
+  }
+}
+
+/* respiro entre o hero e a Selecao principal (mobile) */
+@media (max-width: 860px) {
+  .brand-hero {
+    margin-bottom: 20px;
+  }
+
+  .product-band {
+    scroll-margin-top: 84px;
+  }
+
+  /* header mobile: sem dropdown/carrinho (a tab bar cobre); fica logo+busca */
+  .mobile-nav-actions {
+    display: none;
+  }
+}

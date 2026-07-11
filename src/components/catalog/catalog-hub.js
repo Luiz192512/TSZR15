@@ -12,7 +12,6 @@ import {
   brandLogoSrc,
   ChevronIcon,
   getFeaturedProducts,
-  getProductCode,
   getProductFamilyLabel,
   getProductHref,
   getProductSummary,
@@ -22,6 +21,7 @@ import {
   ProductVisual,
   StoreHeader
 } from "./catalog-shared.js";
+import { InfiniteProductRail } from "./infinite-product-rail.js";
 function CategoryRail({ activeCategory, categories, products, setActiveCategory }) {
   return (
     <nav className={cx(globalStyles, "category-strip")} aria-label="Categorias">
@@ -113,19 +113,7 @@ function FeaturedProductCarousel({ products }) {
         </div>
       </div>
 
-      <div className={cx(globalStyles, "featured-thumbs")} aria-label="Produtos em destaque">
-        {products.map((product, index) => (
-          <button
-            className={cx(globalStyles, index === activeIndex ? "is-active" : "")}
-            key={product.id}
-            onClick={() => setActiveIndex(index)}
-            type="button"
-          >
-            <span>{getProductCode(product)}</span>
-            <strong>{product.name}</strong>
-          </button>
-        ))}
-      </div>
+      <InfiniteProductRail products={products} />
     </div>
   );
 }
@@ -275,46 +263,14 @@ export function CatalogHub({ categories, currentUser, products }) {
         <FeaturedProductCarousel products={featuredProducts} />
       </section>
 
-      <section
-        className={cx(globalStyles, "brand-proof-strip")}
-        id="sobre"
-        aria-label="Diferenciais da loja"
-      >
-        <div>
-          <strong>Especialistas em Yamaha R15</strong>
-          <span>catálogo focado no modelo certo</span>
-        </div>
-        <div>
-          <strong>Peças selecionadas</strong>
-          <span>compra assistida com validação interna</span>
-        </div>
-        <div>
-          <strong>Atendimento especializado</strong>
-          <span>fechamento direto pelo WhatsApp</span>
-        </div>
-        <div>
-          <strong>Pagamento seguro</strong>
-          <span>pedido revisado antes do envio</span>
-        </div>
-      </section>
-
-      <section className={cx(globalStyles, "hub-intro")} id="produtos">
-        <div>
-          <p className={cx(globalStyles, "section-label")}>Produtos selecionados</p>
-          <h2>Catálogo R15 com compra assistida TSZR15.</h2>
-        </div>
-        <p>
-          Consulte disponibilidade, escolha a variação no produto e finalize o pedido pelo carrinho
-          com atendimento direto.
-        </p>
-      </section>
-
-      <CategoryRail
-        activeCategory={activeCategory}
-        categories={categories}
-        products={products}
-        setActiveCategory={setActiveCategory}
-      />
+      <div id="produtos">
+        <CategoryRail
+          activeCategory={activeCategory}
+          categories={categories}
+          products={products}
+          setActiveCategory={setActiveCategory}
+        />
+      </div>
 
       {visibleProducts.length === 0 ? (
         <div className={cx(globalStyles, "empty-state")}>
