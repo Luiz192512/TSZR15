@@ -4,6 +4,7 @@ import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 
+import { getVariationSwatchColor } from "@/src/catalog/variation-images.js";
 import { normalizeSearch, ProductCard } from "./catalog-shared.js";
 import styles from "./catalog-browser.module.css";
 
@@ -20,6 +21,34 @@ const priceOptions = [
   ["150-300", "R$ 150 a R$ 300"],
   ["300-mais", "Acima de R$ 300"]
 ];
+
+// Opcoes de cor derivadas das variacoes reais dos produtos: so variacoes com
+// cor mapeada (getVariationSwatchColor) viram filtro, agrupadas por tom (hex).
+function getColorOptions(products) {
+  const byHex = new Map();
+
+  for (const product of products) {
+    for (const variation of product.variations ?? []) {
+      const hex = getVariationSwatchColor(variation);
+
+      if (hex && !byHex.has(hex)) {
+        byHex.set(hex, { hex, label: variation });
+      }
+    }
+  }
+
+  return [...byHex.values()];
+}
+
+function matchesColors(product, selectedColors) {
+  if (selectedColors.length === 0) {
+    return true;
+  }
+
+  return (product.variations ?? []).some((variation) =>
+    selectedColors.includes(getVariationSwatchColor(variation))
+  );
+}
 
 function matchesPriceRange(product, priceRange) {
   if (priceRange === "ate-150") {
@@ -58,8 +87,11 @@ export function CatalogBrowser({ categories, products }) {
   const [activeCategory, setActiveCategory] = useState("all");
   const [sort, setSort] = useState("relevancia");
   const [priceRange, setPriceRange] = useState("todos");
+  const [selectedColors, setSelectedColors] = useState([]);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = normalizeSearch(deferredQuery);
+
+  const colorOptions = useMemo(() => getColorOptions(products), [products]);
 
   const visibleProducts = useMemo(() => {
     const filtered = products.filter((product) => {
@@ -68,13 +100,42 @@ export function CatalogBrowser({ categories, products }) {
       const matchesCategory =
         activeCategory === "all" || product.storefrontCategoryIds.includes(activeCategory);
 
-      return matchesQuery && matchesCategory && matchesPriceRange(product, priceRange);
+      return (
+        matchesQuery &&
+        matchesCategory &&
+        matchesPriceRange(product, priceRange) &&
+        matchesColors(product, selectedColors)
+      );
     });
 
     return sortProducts(filtered, sort);
-  }, [products, normalizedQuery, activeCategory, priceRange, sort]);
+  }, [products, normalizedQuery, activeCategory, priceRange, selectedColors, sort]);
 
   const availableCategories = categories.filter((category) => category.productCount > 0);
+  const hasActiveFilters =
+    query.length > 0 ||
+    activeCategory !== "all" ||
+    priceRange !== "todos" ||
+    selectedColors.length > 0 ||
+    sort !== "relevancia";
+
+  function toggleColor(hex) {
+    startTransition(() =>
+      setSelectedColors((current) =>
+        current.includes(hex) ? current.filter((item) => item !== hex) : [...current, hex]
+      )
+    );
+  }
+
+  function clearFilters() {
+    startTransition(() => {
+      setQuery("");
+      setActiveCategory("all");
+      setPriceRange("todos");
+      setSelectedColors([]);
+      setSort("relevancia");
+    });
+  }
 
   return (
     <section className={cx(styles, "browser")}>
@@ -146,10 +207,37 @@ export function CatalogBrowser({ categories, products }) {
             ))}
           </select>
         </label>
+        {hasActiveFilters ? (
+          <button className={cx(styles, "clear")} onClick={clearFilters} type="button">
+            Limpar
+          </button>
+        ) : null}
         <span aria-live="polite" className={cx(styles, "count")}>
           {visibleProducts.length} {visibleProducts.length === 1 ? "produto" : "produtos"}
         </span>
       </div>
+
+      {colorOptions.length > 0 ? (
+        <div aria-label="Filtrar por cor" className={cx(styles, "colors")} role="group">
+          <span className={cx(styles, "colorsLabel")}>Cor</span>
+          {colorOptions.map(({ hex, label }) => {
+            const active = selectedColors.includes(hex);
+
+            return (
+              <button
+                aria-pressed={active}
+                className={cx(styles, active ? "colorChip colorChipActive" : "colorChip")}
+                key={hex}
+                onClick={() => toggleColor(hex)}
+                type="button"
+              >
+                <i aria-hidden="true" style={{ background: hex }} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {visibleProducts.length === 0 ? (
         <div className={cx(styles, "empty")}>
@@ -157,14 +245,7 @@ export function CatalogBrowser({ categories, products }) {
           <p>Ajuste a busca ou limpe os filtros para ver o catálogo completo.</p>
           <button
             className={cx(globalStyles, "button button-secondary")}
-            onClick={() => {
-              startTransition(() => {
-                setQuery("");
-                setActiveCategory("all");
-                setPriceRange("todos");
-                setSort("relevancia");
-              });
-            }}
+            onClick={clearFilters}
             type="button"
           >
             Limpar filtros

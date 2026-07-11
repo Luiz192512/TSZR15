@@ -1,4 +1,7 @@
 .rail {
+  /* impede o track max-content de estourar grids ancestrais (blowout) */
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   /* esmaece as bordas para o loop nao "cortar" visualmente */
   mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);

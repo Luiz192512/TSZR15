@@ -6657,3 +6657,63 @@ html[data-navigation-loading="true"] .navigation-loading-overlay {
     display: none;
   }
 }
+
+/* --- redesign v3: perfil sem estouro + cards uniformes --- */
+
+/* cadeia de grid da conta: impede blowout de conteudo max-content (rail) */
+.account-panel,
+.account-main-stack > *,
+.account-orders-stack > * {
+  min-width: 0;
+}
+
+/* grade de produtos: colunas fixas para cards de tamanho unico
+   (auto-fit esticava os cards quando o filtro devolvia poucos itens) */
+.product-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.related-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1280px) {
+  .product-grid,
+  .related-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .product-grid,
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .product-grid,
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* thumb quadrado uniforme independente da largura da coluna */
+.hub-product-card .product-image {
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+}
+
+.hub-product-card {
+  min-height: 0;
+}
+
+.hub-grid-count {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
