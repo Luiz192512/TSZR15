@@ -2,7 +2,7 @@
 
 import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { getVariationSwatchColor } from "@/src/catalog/variation-images.js";
 import { normalizeSearch, ProductCard } from "./catalog-shared.js";
@@ -82,12 +82,24 @@ function sortProducts(products, sort) {
   return products;
 }
 
+function SlidersIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13M21 18h-1" />
+      <circle cx="16" cy="6" r="2" />
+      <circle cx="10" cy="12" r="2" />
+      <circle cx="19" cy="18" r="2" />
+    </svg>
+  );
+}
+
 export function CatalogBrowser({ categories, products }) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [sort, setSort] = useState("relevancia");
   const [priceRange, setPriceRange] = useState("todos");
   const [selectedColors, setSelectedColors] = useState([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = normalizeSearch(deferredQuery);
 
@@ -112,12 +124,24 @@ export function CatalogBrowser({ categories, products }) {
   }, [products, normalizedQuery, activeCategory, priceRange, selectedColors, sort]);
 
   const availableCategories = categories.filter((category) => category.productCount > 0);
-  const hasActiveFilters =
-    query.length > 0 ||
-    activeCategory !== "all" ||
-    priceRange !== "todos" ||
-    selectedColors.length > 0 ||
-    sort !== "relevancia";
+  const activeFilterCount =
+    (sort !== "relevancia" ? 1 : 0) + (priceRange !== "todos" ? 1 : 0) + selectedColors.length;
+
+  useEffect(() => {
+    if (!filtersOpen) {
+      return undefined;
+    }
+
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
+        setFiltersOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filtersOpen]);
 
   function toggleColor(hex) {
     startTransition(() =>
@@ -129,11 +153,9 @@ export function CatalogBrowser({ categories, products }) {
 
   function clearFilters() {
     startTransition(() => {
-      setQuery("");
-      setActiveCategory("all");
+      setSort("relevancia");
       setPriceRange("todos");
       setSelectedColors([]);
-      setSort("relevancia");
     });
   }
 
@@ -187,56 +209,128 @@ export function CatalogBrowser({ categories, products }) {
       </nav>
 
       <div className={cx(styles, "toolbar")}>
-        <label className={cx(styles, "control")}>
-          <span>Ordenar</span>
-          <select onChange={(event) => setSort(event.target.value)} value={sort}>
-            {sortOptions.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={cx(styles, "control")}>
-          <span>Preço</span>
-          <select onChange={(event) => setPriceRange(event.target.value)} value={priceRange}>
-            {priceOptions.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        {hasActiveFilters ? (
-          <button className={cx(styles, "clear")} onClick={clearFilters} type="button">
-            Limpar
-          </button>
-        ) : null}
+        <button
+          aria-expanded={filtersOpen}
+          className={cx(styles, "filterBtn")}
+          onClick={() => setFiltersOpen(true)}
+          type="button"
+        >
+          <SlidersIcon />
+          Filtro
+          {activeFilterCount > 0 ? (
+            <span className={cx(styles, "filterBadge")}>{activeFilterCount}</span>
+          ) : null}
+        </button>
         <span aria-live="polite" className={cx(styles, "count")}>
           {visibleProducts.length} {visibleProducts.length === 1 ? "produto" : "produtos"}
         </span>
       </div>
 
-      {colorOptions.length > 0 ? (
-        <div aria-label="Filtrar por cor" className={cx(styles, "colors")} role="group">
-          <span className={cx(styles, "colorsLabel")}>Cor</span>
-          {colorOptions.map(({ hex, label }) => {
-            const active = selectedColors.includes(hex);
-
-            return (
+      {filtersOpen ? (
+        <>
+          <button
+            aria-label="Fechar filtros"
+            className={cx(styles, "backdrop")}
+            onClick={() => setFiltersOpen(false)}
+            type="button"
+          />
+          <div aria-label="Filtros" className={cx(styles, "sheet")} role="dialog">
+            <header className={cx(styles, "sheetHead")}>
+              <strong>Filtros</strong>
               <button
-                aria-pressed={active}
-                className={cx(styles, active ? "colorChip colorChipActive" : "colorChip")}
-                key={hex}
-                onClick={() => toggleColor(hex)}
+                aria-label="Fechar"
+                className={cx(styles, "sheetClose")}
+                onClick={() => setFiltersOpen(false)}
                 type="button"
               >
-                <i aria-hidden="true" style={{ background: hex }} />
-                {label}
+                <svg aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="m6 6 12 12M18 6 6 18" />
+                </svg>
               </button>
-            );
-          })}
-        </div>
+            </header>
+
+            <div className={cx(styles, "sheetBody")}>
+              <p className={cx(styles, "groupLabel")}>Ordenar por</p>
+              <div className={cx(styles, "chipRow")} role="group" aria-label="Ordenar por">
+                {sortOptions.map(([value, label]) => (
+                  <button
+                    aria-pressed={sort === value}
+                    className={cx(styles, sort === value ? "optChip optChipActive" : "optChip")}
+                    key={value}
+                    onClick={() => startTransition(() => setSort(value))}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <p className={cx(styles, "groupLabel")}>Preço</p>
+              <div className={cx(styles, "chipRow")} role="group" aria-label="Faixa de preço">
+                {priceOptions.map(([value, label]) => (
+                  <button
+                    aria-pressed={priceRange === value}
+                    className={cx(
+                      styles,
+                      priceRange === value ? "optChip optChipActive" : "optChip"
+                    )}
+                    key={value}
+                    onClick={() => startTransition(() => setPriceRange(value))}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {colorOptions.length > 0 ? (
+                <>
+                  <p className={cx(styles, "groupLabel")}>Cor</p>
+                  <div className={cx(styles, "chipRow")} role="group" aria-label="Filtrar por cor">
+                    {colorOptions.map(({ hex, label }) => {
+                      const active = selectedColors.includes(hex);
+
+                      return (
+                        <button
+                          aria-pressed={active}
+                          className={cx(
+                            styles,
+                            active ? "optChip colorChip optChipActive" : "optChip colorChip"
+                          )}
+                          key={hex}
+                          onClick={() => toggleColor(hex)}
+                          type="button"
+                        >
+                          <i aria-hidden="true" style={{ background: hex }} />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
+            </div>
+
+            <footer className={cx(styles, "sheetFoot")}>
+              <button
+                className={cx(styles, "clear")}
+                disabled={activeFilterCount === 0}
+                onClick={clearFilters}
+                type="button"
+              >
+                Limpar tudo
+              </button>
+              <button
+                className={cx(globalStyles, "button button-primary")}
+                onClick={() => setFiltersOpen(false)}
+                type="button"
+              >
+                Ver {visibleProducts.length}{" "}
+                {visibleProducts.length === 1 ? "produto" : "produtos"}
+              </button>
+            </footer>
+          </div>
+        </>
       ) : null}
 
       {visibleProducts.length === 0 ? (
@@ -245,7 +339,13 @@ export function CatalogBrowser({ categories, products }) {
           <p>Ajuste a busca ou limpe os filtros para ver o catálogo completo.</p>
           <button
             className={cx(globalStyles, "button button-secondary")}
-            onClick={clearFilters}
+            onClick={() => {
+              clearFilters();
+              startTransition(() => {
+                setQuery("");
+                setActiveCategory("all");
+              });
+            }}
             type="button"
           >
             Limpar filtros
