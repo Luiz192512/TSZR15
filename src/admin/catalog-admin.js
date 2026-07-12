@@ -7,6 +7,7 @@ import {
 } from "@/src/catalog/categories.js";
 import { normalizeCouponCode } from "@/src/checkout/coupons.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
+import { isValidImageUrl, resolveImageOrder } from "@/src/admin/catalog-image-order.js";
 
 const productImageBucket = "product-images";
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -84,6 +85,14 @@ function splitImageUrls(value) {
     .slice(0, 12);
 }
 
+function splitImageOrderTokens(value) {
+  return cleanString(value, 12000)
+    .split(/\r?\n/)
+    .map((item) => cleanString(item, 900))
+    .filter(Boolean)
+    .slice(0, 24);
+}
+
 function parseVariationStock(value, variations) {
   const quantitiesByVariation = new Map();
 
@@ -119,19 +128,6 @@ function parseVariationStock(value, variations) {
     quantity: quantitiesByVariation.get(variation) ?? null,
     variation
   }));
-}
-
-function isValidImageUrl(value) {
-  if (value.startsWith("/")) {
-    return true;
-  }
-
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 function getSelectedCategoryIds(formData) {
@@ -280,6 +276,7 @@ function collectProductPayload(formData) {
   const costCents = parseOptionalMoneyToCents(formData.get("cost"));
   const variations = splitList(formData.get("variations"), { maxItems: 24, maxLength: 120 });
   const imageUrls = splitImageUrls(formData.get("imageUrls"));
+  const imageOrderTokens = splitImageOrderTokens(formData.get("imageOrder"));
   const bikeModelScope = splitList(formData.get("bikeModelScope"), {
     maxItems: 8,
     maxLength: 80
@@ -322,6 +319,7 @@ function collectProductPayload(formData) {
   return {
     costCents,
     id,
+    imageOrderTokens,
     row: {
       id,
       slug,
@@ -475,11 +473,15 @@ export async function upsertAdminCatalogProduct(formData) {
     throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
   }
 
-  const { costCents, id, row } = collectProductPayload(formData);
+  const { costCents, id, imageOrderTokens, row } = collectProductPayload(formData);
   const uploadedImageUrls = await uploadProductImages({ formData, productId: id, supabase });
+  const finalImageUrls =
+    imageOrderTokens.length > 0
+      ? resolveImageOrder(imageOrderTokens, uploadedImageUrls)
+      : [...uploadedImageUrls, ...row.image_urls].slice(0, 12);
   const finalRow = {
     ...row,
-    image_urls: [...uploadedImageUrls, ...row.image_urls].slice(0, 12)
+    image_urls: finalImageUrls
   };
   const { error } = await supabase.from("catalog_products").upsert(finalRow, { onConflict: "id" });
 

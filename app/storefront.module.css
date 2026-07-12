@@ -4239,6 +4239,19 @@
   padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.045);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    opacity 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.admin-upload-preview.is-dragging {
+  opacity: 0.92;
+  transform: scale(1.03);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  border-color: rgba(242, 7, 16, 0.68);
+  z-index: 2;
 }
 
 .admin-upload-preview img {
@@ -4246,41 +4259,85 @@
   aspect-ratio: 4 / 3;
   object-fit: contain;
   background: #050505;
+  pointer-events: none;
 }
 
 .admin-upload-preview figcaption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   color: #fff;
   font-size: 0.78rem;
   font-weight: 900;
 }
 
-.admin-upload-preview figcaption span {
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  background: var(--red);
+.admin-upload-preview-handle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.28);
   color: #fff;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.admin-upload-preview button {
+.admin-upload-preview-handle:hover {
+  border-color: rgba(242, 7, 16, 0.68);
+}
+
+.admin-upload-preview.is-dragging .admin-upload-preview-handle {
+  cursor: grabbing;
+}
+
+.admin-upload-preview-handle span:last-child {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.82rem;
+}
+
+.admin-upload-preview-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-upload-preview-controls button {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 40px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(0, 0, 0, 0.24);
   color: #f8fafc;
   padding: 7px 8px;
-  font-size: 0.76rem;
+  font-size: 0.95rem;
   font-weight: 900;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
-.admin-upload-preview button:hover {
+.admin-upload-preview-controls .admin-upload-preview-remove {
+  flex: 1 1 auto;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.admin-upload-preview-controls button:hover:not(:disabled) {
   border-color: rgba(242, 7, 16, 0.68);
   color: #fff;
+}
+
+.admin-upload-preview-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 @media (max-width: 720px) {

@@ -62,6 +62,7 @@ import {
   isAdminSessionValueValid
 } from "../src/admin/admin-session.js";
 import { buildAdminOrderAnalytics } from "../src/admin/order-analytics.js";
+import { resolveImageOrder } from "../src/admin/catalog-image-order.js";
 import {
   isAdminSessionValueFreshShapeAtEdge,
   isAdminSessionValueValidAtEdge
@@ -1043,4 +1044,30 @@ test("review helpers validate ratings, comments, image mime and public summary",
     ]),
     { averageRating: 4, reviewCount: 2 }
   );
+});
+
+test("resolveImageOrder respeita a ordem enviada pelo admin", () => {
+  const uploaded = ["https://cdn.example/new-a.webp", "https://cdn.example/new-b.webp"];
+
+  // Reordena apenas imagens existentes.
+  assert.deepEqual(
+    resolveImageOrder(["/img/2.webp", "/img/1.webp", "/img/3.webp"], []),
+    ["/img/2.webp", "/img/1.webp", "/img/3.webp"]
+  );
+
+  // Intercala uma imagem nova (new:1) entre existentes, resolvendo pelo indice de upload.
+  assert.deepEqual(
+    resolveImageOrder(["/img/1.webp", "new:1", "/img/2.webp", "new:0"], uploaded),
+    ["/img/1.webp", "https://cdn.example/new-b.webp", "/img/2.webp", "https://cdn.example/new-a.webp"]
+  );
+
+  // Indice de upload fora do range e URL invalida sao ignorados.
+  assert.deepEqual(
+    resolveImageOrder(["new:5", "javascript:alert(1)", "/img/ok.webp"], uploaded),
+    ["/img/ok.webp"]
+  );
+
+  // Nunca ultrapassa 12 imagens.
+  const many = Array.from({ length: 20 }, (_, index) => `/img/${index}.webp`);
+  assert.equal(resolveImageOrder(many, []).length, 12);
 });
