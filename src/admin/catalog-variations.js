@@ -47,14 +47,19 @@ function parseVariationQuantity(value, variation) {
 }
 
 export function collectAdminVariationInventory(formData) {
-  const names = formData.getAll("variationName").slice(0, 24);
-  const quantities = formData.getAll("variationQuantity").slice(0, 24);
+  const lines = String(formData.get("variationInventory") ?? "")
+    .split(/\r?\n/)
+    .slice(0, 24);
   const seenNames = new Set();
   const stock = [];
 
-  for (let index = 0; index < names.length; index += 1) {
-    const rawName = cleanVariationName(names[index]);
-    const rawQuantity = quantities[index] ?? "";
+  for (const line of lines) {
+    const separatorIndex = line.indexOf("=");
+    const rawName = cleanVariationName(
+      separatorIndex >= 0 ? line.slice(0, separatorIndex) : line,
+    );
+    const rawQuantity =
+      separatorIndex >= 0 ? line.slice(separatorIndex + 1) : "";
 
     if (!rawName && !String(rawQuantity).trim()) {
       continue;
@@ -90,7 +95,10 @@ export function collectAdminVariationInventory(formData) {
   };
 }
 
-export function buildAdminVariationRows(variations = [], variationStock = []) {
+export function formatAdminVariationInventory(
+  variations = [],
+  variationStock = [],
+) {
   const stockByVariation = new Map(
     variationStock.map((entry) => [
       normalizeVariationName(entry.variation),
@@ -98,7 +106,7 @@ export function buildAdminVariationRows(variations = [], variationStock = []) {
     ]),
   );
   const seenNames = new Set();
-  const rows = [];
+  const lines = [];
 
   for (const value of variations) {
     const name = canonicalizeVariationName(value);
@@ -110,12 +118,10 @@ export function buildAdminVariationRows(variations = [], variationStock = []) {
 
     seenNames.add(normalizedName);
     const quantity = stockByVariation.get(normalizedName);
-    rows.push({
-      name,
-      quantity:
-        Number.isSafeInteger(quantity) && quantity >= 0 ? String(quantity) : "",
-    });
+    const quantityText =
+      Number.isSafeInteger(quantity) && quantity >= 0 ? String(quantity) : "";
+    lines.push(`${name}=${quantityText}`);
   }
 
-  return rows.length > 0 ? rows : [{ name: "Padrão", quantity: "" }];
+  return lines.length > 0 ? lines.join("\n") : "Padrão=";
 }

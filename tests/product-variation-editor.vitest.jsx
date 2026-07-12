@@ -10,40 +10,27 @@ afterEach(() => {
 });
 
 describe("ProductVariationEditor", () => {
-  it("edits variation and stock together in repeatable rows", () => {
+  it("edits variation and stock in exactly one field", () => {
     const { container } = render(
-      <ProductVariationEditor
-        initialRows={[
-          { name: "Preto", quantity: "" },
-          { name: "Azul", quantity: "3" },
-        ]}
-      />,
+      <ProductVariationEditor defaultValue={"Preto=\nAzul=3"} />,
     );
 
-    expect(within(container).getByLabelText("Nome da variação 1").value).toBe(
-      "Preto",
-    );
+    const field = within(container).getByLabelText("Variações e estoque");
+    expect(field.value).toBe("Preto=\nAzul=3");
     expect(
-      within(container).getByLabelText("Estoque da variação Preto").value,
-    ).toBe("");
-    expect(
-      within(container).getByLabelText("Estoque da variação Azul").value,
-    ).toBe("3");
-
-    fireEvent.click(
-      within(container).getByRole("button", { name: "Adicionar variação" }),
-    );
-    expect(within(container).getByLabelText("Nome da variação 3")).toBeTruthy();
-
-    fireEvent.click(
-      within(container).getByRole("button", { name: "Remover variação Azul" }),
-    );
-    expect(within(container).queryByDisplayValue("Azul")).toBeNull();
+      container.querySelectorAll('textarea[name="variationInventory"]'),
+    ).toHaveLength(1);
     expect(
       container.querySelectorAll('input[name="variationName"]'),
-    ).toHaveLength(2);
+    ).toHaveLength(0);
     expect(
       container.querySelectorAll('input[name="variationQuantity"]'),
-    ).toHaveLength(2);
+    ).toHaveLength(0);
+    expect(
+      within(container).queryByRole("button", { name: "Adicionar variação" }),
+    ).toBeNull();
+
+    fireEvent.change(field, { target: { value: "Preto=5\nAzul=" } });
+    expect(field.value).toBe("Preto=5\nAzul=");
   });
 });

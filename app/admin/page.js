@@ -36,7 +36,7 @@ import {
   formatAdminDateTimeInput,
   formatAdminDisplayDateTime as formatDateTime
 } from "@/src/admin/admin-form-values.js";
-import { buildAdminVariationRows } from "@/src/admin/catalog-variations.js";
+import { formatAdminVariationInventory } from "@/src/admin/catalog-variations.js";
 
 export const metadata = {
   robots: {
@@ -1165,7 +1165,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
         <h2>Vitrine</h2>
         <div className={cx(globalStyles, "form-grid")}>
           <ProductVariationEditor
-            initialRows={buildAdminVariationRows(
+            defaultValue={formatAdminVariationInventory(
               product?.variations,
               product?.variationStock
             )}

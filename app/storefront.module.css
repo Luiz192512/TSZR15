@@ -5823,62 +5823,21 @@
 
 .admin-variation-editor {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.22);
 }
 
-.admin-variation-editor-heading {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.admin-variation-editor-heading > div {
-  display: grid;
-  gap: 4px;
-}
-
-.admin-variation-editor-heading strong {
+.admin-variation-editor > span {
   color: #fff;
   font-size: 0.86rem;
+  font-weight: 900;
   text-transform: uppercase;
 }
 
-.admin-variation-add {
-  flex: 0 0 auto;
-  min-height: 38px;
-}
-
-.admin-variation-list {
-  display: grid;
-  gap: 8px;
-}
-
-.admin-variation-row {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.34fr) auto;
-  gap: 10px;
-  align-items: end;
-  padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.035);
-}
-
-.admin-variation-remove {
-  min-height: 42px;
-  border: 1px solid rgba(255, 70, 70, 0.42);
-  background: rgba(255, 70, 70, 0.08);
-  color: #ff8e92;
-  padding: 0 12px;
-  font-weight: 850;
-}
-
-.admin-variation-remove:disabled {
-  cursor: not-allowed;
-  opacity: 0.35;
+.admin-variation-editor textarea {
+  min-height: 132px;
 }
 
 .admin-product-form .form-grid {
@@ -5942,15 +5901,6 @@
 @media (max-width: 620px) {
   .admin-product-form .admin-product-identity-grid,
   .admin-product-form .admin-product-pricing-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-variation-editor-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .admin-variation-row {
     grid-template-columns: 1fr;
   }
 
