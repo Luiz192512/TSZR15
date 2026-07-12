@@ -74,7 +74,7 @@ export default async function SignInPage({ searchParams }) {
           </button>
 
           <p className={cx(globalStyles, "auth-switch")}>
-            Ainda nao tem conta? <Link href="/cadastrar">Cadastrar Usuário</Link>
+            Ainda não tem conta? <Link href="/cadastrar">Cadastrar usuário</Link>
           </p>
           <p className={cx(globalStyles, "auth-switch")}>
             Esqueceu a senha? <Link href="/recuperar-senha">Recuperar acesso</Link>

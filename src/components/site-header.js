@@ -45,10 +45,9 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
               <span aria-hidden="true" className={cx(globalStyles, "mobile-menu-icon")} />
             </summary>
             <nav className={cx(globalStyles, "mobile-nav-panel")} aria-label="Menu mobile da loja">
-              <Link href="/">Inicio</Link>
-              <Link href="/catalogo#produtos">Produtos</Link>
-              <Link href="/#lancamentos">Lancamentos</Link>
-              <Link href="/#sobre">Sobre nos</Link>
+              <Link href="/">Início</Link>
+              <Link href="/catalogo">Produtos</Link>
+              <Link href="/#lancamentos">Lançamentos</Link>
               <Link href="/rastreio">Rastreio</Link>
               {showAccountNav ? (
                 <AccountNavLink
@@ -63,11 +62,10 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
         </div>
       </div>
 
-      <nav className={cx(globalStyles, "store-nav")} aria-label="Navegacao principal">
-        <Link href="/">Inicio</Link>
-        <Link href="/catalogo#produtos">Produtos</Link>
-        <Link href="/#lancamentos">Lancamentos</Link>
-        <Link href="/#sobre">Sobre nos</Link>
+      <nav className={cx(globalStyles, "store-nav")} aria-label="Navegação principal">
+        <Link href="/">Início</Link>
+        <Link href="/catalogo">Produtos</Link>
+        <Link href="/#lancamentos">Lançamentos</Link>
         <Link
           aria-label="Carrinho - abrir pedido"
           className={cx(globalStyles, "cart-nav-link")}

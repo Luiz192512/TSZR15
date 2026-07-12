@@ -128,7 +128,19 @@ export function CartItemsPanel({
                     onClick={() => onDelete(item.cartKey)}
                     type="button"
                   >
-                    Excluir
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13" />
+                      <path d="M10 11v5M14 11v5" />
+                    </svg>
+                    <span className={cx(globalStyles, "sr-only")}>Excluir</span>
                   </button>
                 </div>
                 <strong>{formatCurrency(item.priceCents * item.quantity)}</strong>

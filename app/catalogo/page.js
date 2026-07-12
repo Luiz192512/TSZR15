@@ -1,12 +1,13 @@
 import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
-import { CatalogHub } from "@/src/components/catalog/catalog-hub.js";
+import { CatalogBrowser } from "@/src/components/catalog/catalog-browser.js";
+import { StoreHeader } from "@/src/components/catalog/catalog-shared.js";
 import { getStorefrontMenu } from "@/src/catalog/index.js";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 
 export const metadata = {
-  title: "Produtos R15 | TSZR15",
-  description: "Produtos R15 com detalhes, variacoes e carrinho separado."
+  title: "Catálogo R15 | TSZR15",
+  description: "Todos os produtos para Yamaha R15 com busca, filtros e ordenação."
 };
 export const revalidate = 60;
 
@@ -16,7 +17,8 @@ export default async function CatalogPage() {
 
   return (
     <main className={cx(globalStyles, "page-shell")}>
-      <CatalogHub categories={menu} currentUser={null} products={catalog.products} />
+      <StoreHeader currentUser={null} resolveAccount={false} showSearch={false} />
+      <CatalogBrowser categories={menu} products={catalog.products} />
     </main>
   );
 }

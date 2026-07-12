@@ -1,0 +1,91 @@
+/* Barra de navegação inferior — só no mobile (padrão de app). */
+.bar {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(8, 9, 12, 0.7), rgba(8, 9, 12, 0.97) 42%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* o padding-bottom global do body (para nada ficar atras da barra)
+     vive em app/globals.css — CSS Modules rejeitam seletor body puro. */
+}
+
+.tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  color: #6e7480;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.tab.active {
+  color: #eef1f6;
+}
+
+.ico {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.ico svg {
+  width: 23px;
+  height: 23px;
+}
+
+.tab.active .ico svg {
+  color: #ff3742;
+}
+
+.tab.active::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  width: 26px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff3742, #c20e1a);
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  left: calc(50% + 7px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ff3742;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px #0b0c10;
+}
+
+.tab:focus-visible {
+  outline: 2px solid #ff3742;
+  outline-offset: 2px;
+  border-radius: 8px;
+}

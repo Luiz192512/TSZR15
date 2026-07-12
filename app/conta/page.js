@@ -20,8 +20,7 @@ import { CepAddressFields } from "@/src/components/form/cep-address-fields.js";
 import { PendingSubmitButton } from "@/src/components/form/pending-submit-button.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
-import { formatCategoryLabels } from "@/src/catalog/index.js";
-import { ProductVisual } from "@/src/components/catalog/catalog-shared.js";
+import { InfiniteProductRail } from "@/src/components/catalog/infinite-product-rail.js";
 import { phonePattern, taxIdPattern } from "@/src/customer/field-validation.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 import { getCustomerAccountOrders } from "@/src/reviews/order-reviews.js";
@@ -379,21 +378,7 @@ function AccountOverview({ accountOrders, addresses, profile, suggestions }) {
           <p className={cx(globalStyles, "section-label")}>Sugestões</p>
           <h2>Itens que combinam com sua R15.</h2>
         </div>
-        <div className={cx(globalStyles, "account-suggestion-grid")}>
-          {suggestions.map((product) => (
-            <Link
-              className={cx(globalStyles, "account-suggestion-card")}
-              href={`/produto/${product.slug}`}
-              key={product.id}
-            >
-              <ProductVisual product={product} size="card" />
-              <div className={cx(globalStyles, "account-suggestion-text")}>
-                <span>{formatCategoryLabels(product.storefrontCategoryIds)[0] ?? "R15"}</span>
-                <strong>{product.name}</strong>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <InfiniteProductRail products={suggestions} />
       </section>
 
       <AccountOrders accountOrders={accountOrders} profile={profile} />
@@ -634,7 +619,7 @@ export default async function AccountPage({ searchParams }) {
   }
 
   const suggestionsCatalog = await getPublicCatalogProductsForStorefront();
-  const suggestions = suggestionsCatalog.products.slice(0, 4);
+  const suggestions = suggestionsCatalog.products.slice(0, 8);
 
   return (
     <main className={cx(globalStyles, "page-shell auth-page")}>

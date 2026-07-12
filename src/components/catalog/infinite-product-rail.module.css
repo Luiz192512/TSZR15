@@ -1,0 +1,99 @@
+.rail {
+  /* impede o track max-content de estourar grids ancestrais (blowout) */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  /* esmaece as bordas para o loop nao "cortar" visualmente */
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  padding: 4px 2px 6px;
+  animation: rail-marquee 38s linear infinite;
+}
+
+.rail:hover .track,
+.rail:focus-within .track {
+  animation-play-state: paused;
+}
+
+@keyframes rail-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* metade = uma lista completa (a outra metade e o clone) */
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail {
+    overflow-x: auto;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .track {
+    animation: none;
+  }
+}
+
+.card {
+  display: grid;
+  gap: 7px;
+  flex: none;
+  width: 148px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(160deg, var(--surf-2), var(--surf-1) 58%);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.card:hover {
+  border-color: rgba(255, 55, 66, 0.55);
+  transform: translateY(-2px);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+.visual {
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+/* o ProductVisual interno usa .product-image (min-height global); compacta */
+.visual > div {
+  min-height: 108px !important;
+  aspect-ratio: 1 / 1;
+}
+
+.name {
+  overflow: hidden;
+  color: #dfe2e7;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.price {
+  color: #ff5158;
+  font-size: 0.86rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}

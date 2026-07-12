@@ -4,15 +4,13 @@ import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useDeferredValue, useMemo, useRef, useState } from "react";
+import { startTransition, useDeferredValue, useMemo, useState } from "react";
 
-import { groupProductsByCategory } from "@/src/catalog/index.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import {
   brandLogoSrc,
   ChevronIcon,
   getFeaturedProducts,
-  getProductCode,
   getProductFamilyLabel,
   getProductHref,
   getProductSummary,
@@ -22,6 +20,7 @@ import {
   ProductVisual,
   StoreHeader
 } from "./catalog-shared.js";
+import { InfiniteProductRail } from "./infinite-product-rail.js";
 function CategoryRail({ activeCategory, categories, products, setActiveCategory }) {
   return (
     <nav className={cx(globalStyles, "category-strip")} aria-label="Categorias">
@@ -113,79 +112,8 @@ function FeaturedProductCarousel({ products }) {
         </div>
       </div>
 
-      <div className={cx(globalStyles, "featured-thumbs")} aria-label="Produtos em destaque">
-        {products.map((product, index) => (
-          <button
-            className={cx(globalStyles, index === activeIndex ? "is-active" : "")}
-            key={product.id}
-            onClick={() => setActiveIndex(index)}
-            type="button"
-          >
-            <span>{getProductCode(product)}</span>
-            <strong>{product.name}</strong>
-          </button>
-        ))}
-      </div>
+      <InfiniteProductRail products={products} />
     </div>
-  );
-}
-
-function CategoryProductCarousel({ category }) {
-  const trackRef = useRef(null);
-
-  function scrollByPage(direction) {
-    const track = trackRef.current;
-
-    if (!track) {
-      return;
-    }
-
-    track.scrollBy({
-      left: direction * Math.max(track.clientWidth - 80, 260),
-      behavior: "smooth"
-    });
-  }
-
-  return (
-    <section
-      className={cx(globalStyles, "category-carousel-section")}
-      aria-labelledby={`category-${category.id}`}
-    >
-      <div className={cx(globalStyles, "category-carousel-heading")}>
-        <div>
-          <p className={cx(globalStyles, "section-label")}>Categoria</p>
-          <h2 id={`category-${category.id}`}>{category.label}</h2>
-        </div>
-        <div className={cx(globalStyles, "category-carousel-actions")}>
-          <span>{category.products.length} itens</span>
-          <div
-            className={cx(globalStyles, "carousel-controls")}
-            aria-label={`Controles de ${category.label}`}
-          >
-            <button
-              aria-label={`Ver itens anteriores de ${category.label}`}
-              onClick={() => scrollByPage(-1)}
-              type="button"
-            >
-              <ChevronIcon direction="left" />
-            </button>
-            <button
-              aria-label={`Ver proximos itens de ${category.label}`}
-              onClick={() => scrollByPage(1)}
-              type="button"
-            >
-              <ChevronIcon direction="right" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className={cx(globalStyles, "category-carousel-track")} ref={trackRef}>
-        {category.products.map((product) => (
-          <ProductCard key={`${category.id}-${product.id}`} product={product} />
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -204,9 +132,6 @@ export function CatalogHub({ categories, currentUser, products }) {
   });
   const visibleProducts = matchingProducts.filter(
     (product) => activeCategory === "all" || product.storefrontCategoryIds.includes(activeCategory)
-  );
-  const visibleCategories = groupProductsByCategory(visibleProducts).filter(
-    (category) => category.products.length > 0
   );
 
   function setSearchValue(value) {
@@ -275,46 +200,14 @@ export function CatalogHub({ categories, currentUser, products }) {
         <FeaturedProductCarousel products={featuredProducts} />
       </section>
 
-      <section
-        className={cx(globalStyles, "brand-proof-strip")}
-        id="sobre"
-        aria-label="Diferenciais da loja"
-      >
-        <div>
-          <strong>Especialistas em Yamaha R15</strong>
-          <span>catálogo focado no modelo certo</span>
-        </div>
-        <div>
-          <strong>Peças selecionadas</strong>
-          <span>compra assistida com validação interna</span>
-        </div>
-        <div>
-          <strong>Atendimento especializado</strong>
-          <span>fechamento direto pelo WhatsApp</span>
-        </div>
-        <div>
-          <strong>Pagamento seguro</strong>
-          <span>pedido revisado antes do envio</span>
-        </div>
-      </section>
-
-      <section className={cx(globalStyles, "hub-intro")} id="produtos">
-        <div>
-          <p className={cx(globalStyles, "section-label")}>Produtos selecionados</p>
-          <h2>Catálogo R15 com compra assistida TSZR15.</h2>
-        </div>
-        <p>
-          Consulte disponibilidade, escolha a variação no produto e finalize o pedido pelo carrinho
-          com atendimento direto.
-        </p>
-      </section>
-
-      <CategoryRail
-        activeCategory={activeCategory}
-        categories={categories}
-        products={products}
-        setActiveCategory={setActiveCategory}
-      />
+      <div id="produtos">
+        <CategoryRail
+          activeCategory={activeCategory}
+          categories={categories}
+          products={products}
+          setActiveCategory={setActiveCategory}
+        />
+      </div>
 
       {visibleProducts.length === 0 ? (
         <div className={cx(globalStyles, "empty-state")}>
@@ -323,14 +216,16 @@ export function CatalogHub({ categories, currentUser, products }) {
           </p>
         </div>
       ) : (
-        <div
-          className={cx(globalStyles, "category-carousel-list")}
-          aria-label="Produtos TSZR15 por categoria"
-        >
-          {visibleCategories.map((category) => (
-            <CategoryProductCarousel category={category} key={category.id} />
-          ))}
-        </div>
+        <section aria-label="Produtos TSZR15">
+          <p className={cx(globalStyles, "hub-grid-count")}>
+            {visibleProducts.length} {visibleProducts.length === 1 ? "produto" : "produtos"}
+          </p>
+          <div className={cx(globalStyles, "product-grid")}>
+            {visibleProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
       )}
     </>
   );

@@ -8,7 +8,10 @@ import { useEffect, useState } from "react";
 
 import { formatCategoryLabels } from "@/src/catalog/index.js";
 import { getProductImageVariants } from "@/src/catalog/image-variants.js";
-import { getProductVariationImageIndex } from "@/src/catalog/variation-images.js";
+import {
+  getProductVariationImageIndex,
+  getVariationSwatchColor
+} from "@/src/catalog/variation-images.js";
 import { getVariationStockStatus } from "@/src/catalog/stock.js";
 import { getCartItemKey } from "@/src/cart/cart-items.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
@@ -283,6 +286,7 @@ export function ProductDetails({
               {product.variations.map((variation) =>
                 (() => {
                   const variationStock = getVariationStockStatus(product, variation);
+                  const swatchColor = getVariationSwatchColor(variation);
 
                   return (
                     <button
@@ -299,6 +303,13 @@ export function ProductDetails({
                       onClick={() => selectVariation(variation)}
                       type="button"
                     >
+                      {swatchColor ? (
+                        <i
+                          aria-hidden="true"
+                          className={cx(globalStyles, "variation-swatch")}
+                          style={{ background: swatchColor }}
+                        />
+                      ) : null}
                       {variationStock.status === "out" ? `${variation} — esgotado` : variation}
                     </button>
                   );
