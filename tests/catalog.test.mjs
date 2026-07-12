@@ -214,6 +214,33 @@ test("every published SKU has storefront categories, price, variations and Whats
   }
 });
 
+test("catalog variations use customer choices instead of product type or availability", () => {
+  const forbiddenVariations = new Set(["Completo", "Ponteira", "Sob consulta"]);
+  const normalizedVariations = new Set();
+
+  for (const product of catalogProducts) {
+    for (const variation of product.variations) {
+      assert.equal(
+        forbiddenVariations.has(variation),
+        false,
+        `${product.name} usa ${variation} como falsa variação`,
+      );
+      normalizedVariations.add(
+        variation
+          .normalize("NFD")
+          .replace(/\p{Diacritic}/gu, "")
+          .toLowerCase(),
+      );
+    }
+  }
+
+  assert.equal(normalizedVariations.has("padrao"), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Padrão")), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Fumê")), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Alumínio")), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Holográfico")), true);
+});
+
 test("public catalog hides internal purchase metadata", () => {
   const publicProducts = getPublicCatalogProducts(
     catalogProducts.map((product) => ({
@@ -914,7 +941,7 @@ test("internal order status becomes pending only after one day without a decisio
   assert.equal(getStatusLabel("recusado", internalOrderStatuses), "Recusado");
 });
 
-test("admin analytics computes sales, profit and top customers", () => {
+test("admin analytics computes paid sales, profit and top customers", () => {
   const analytics = buildAdminOrderAnalytics({
     now: new Date("2026-05-29T12:00:00.000Z"),
     orders: [
@@ -996,12 +1023,12 @@ test("admin analytics computes sales, profit and top customers", () => {
     ]
   });
 
-  assert.equal(analytics.salesCount, 2);
-  assert.equal(analytics.totalRevenueCents, 50000);
-  assert.equal(analytics.knownCostCents, 23000);
-  assert.equal(analytics.grossProfitCents, 27000);
+  assert.equal(analytics.salesCount, 1);
+  assert.equal(analytics.totalRevenueCents, 30000);
+  assert.equal(analytics.knownCostCents, 13000);
+  assert.equal(analytics.grossProfitCents, 17000);
   assert.equal(analytics.topCustomers[0].name, "Cliente A");
-  assert.equal(analytics.topCustomers[0].count, 2);
+  assert.equal(analytics.topCustomers[0].count, 1);
   assert.equal(analytics.internalStatusCounts.recusado, 1);
   assert.equal(analytics.topSoldItems[0].name, "Escapamento SC");
   assert.equal(analytics.topSoldItems[0].quantity, 2);

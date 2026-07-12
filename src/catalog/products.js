@@ -16,15 +16,15 @@ const defaultPricesByFamily = {
 };
 
 const defaultVariationsByFamily = {
-  aero_front: ["Preto", "Fume", "Carbon look"],
-  adesivo_detalhe: ["Holografico", "Branco", "Preto"],
+  aero_front: ["Preto", "Fumê", "Carbon look"],
+  adesivo_detalhe: ["Holográfico", "Branco", "Preto"],
   adesivo_full: ["Brilho", "Fosco", "Personalizar no atendimento"],
   cockpit: ["Preto", "Azul", "Vermelho"],
   controles: ["Preto", "Azul", "Vermelho"],
-  escapamento: ["Completo", "Ponteira", "Sob consulta"],
-  iluminacao: ["Cristal", "Fume", "Rainbow"],
-  manutencao: ["Padrao"],
-  protecao: ["Preto", "Aluminio", "Carbon look"],
+  escapamento: ["Padrão"],
+  iluminacao: ["Cristal", "Fumê", "Rainbow"],
+  manutencao: ["Padrão"],
+  protecao: ["Preto", "Alumínio", "Carbon look"],
   retrovisor: ["Preto", "Carbon look"],
   slider: ["Preto", "Azul", "Vermelho"],
   tanque: ["Preto", "Transparente", "Carbon look"]
@@ -61,7 +61,7 @@ function buildProduct({
     bikeModelScope,
     priceCents: priceCents ?? defaultPricesByFamily[productFamily] ?? 9990,
     currency: "BRL",
-    variations: variations ?? defaultVariationsByFamily[productFamily] ?? ["Padrao"],
+    variations: variations ?? defaultVariationsByFamily[productFamily] ?? ["Padrão"],
     availability,
     leadTimeDays,
     shippingClass,
