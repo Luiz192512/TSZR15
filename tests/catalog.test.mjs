@@ -914,7 +914,7 @@ test("internal order status becomes pending only after one day without a decisio
   assert.equal(getStatusLabel("recusado", internalOrderStatuses), "Recusado");
 });
 
-test("admin analytics computes sales, profit and top customers", () => {
+test("admin analytics computes paid sales, profit and top customers", () => {
   const analytics = buildAdminOrderAnalytics({
     now: new Date("2026-05-29T12:00:00.000Z"),
     orders: [
@@ -996,12 +996,12 @@ test("admin analytics computes sales, profit and top customers", () => {
     ]
   });
 
-  assert.equal(analytics.salesCount, 2);
-  assert.equal(analytics.totalRevenueCents, 50000);
-  assert.equal(analytics.knownCostCents, 23000);
-  assert.equal(analytics.grossProfitCents, 27000);
+  assert.equal(analytics.salesCount, 1);
+  assert.equal(analytics.totalRevenueCents, 30000);
+  assert.equal(analytics.knownCostCents, 13000);
+  assert.equal(analytics.grossProfitCents, 17000);
   assert.equal(analytics.topCustomers[0].name, "Cliente A");
-  assert.equal(analytics.topCustomers[0].count, 2);
+  assert.equal(analytics.topCustomers[0].count, 1);
   assert.equal(analytics.internalStatusCounts.recusado, 1);
   assert.equal(analytics.topSoldItems[0].name, "Escapamento SC");
   assert.equal(analytics.topSoldItems[0].quantity, 2);

@@ -28,11 +28,7 @@ function isActiveOrder(order) {
 }
 
 function isSalesOrder(order) {
-  return (
-    isActiveOrder(order) &&
-    (order.payment_status === "pagamento_confirmado" ||
-      order.internal_order_status === "confirmado")
-  );
+  return isActiveOrder(order) && order.payment_status === "pagamento_confirmado";
 }
 
 export function buildAdminOrderAnalytics({
@@ -89,7 +85,7 @@ export function buildAdminOrderAnalytics({
 
   const customers = new Map();
 
-  for (const order of salesOrders.length ? salesOrders : activeOrders) {
+  for (const order of salesOrders) {
     const key = getCustomerKey(order);
     const previous = customers.get(key) ?? {
       count: 0,
