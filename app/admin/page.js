@@ -30,11 +30,13 @@ import {
 } from "@/src/orders/status.js";
 import { paymentMethods, shippingOptions } from "@/src/checkout/whatsapp.js";
 import { ProductImageUploader } from "@/src/components/admin/product-image-uploader.js";
+import { ProductVariationEditor } from "@/src/components/admin/product-variation-editor.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import {
   formatAdminDateTimeInput,
   formatAdminDisplayDateTime as formatDateTime
 } from "@/src/admin/admin-form-values.js";
+import { buildAdminVariationRows } from "@/src/admin/catalog-variations.js";
 
 export const metadata = {
   robots: {
@@ -62,16 +64,6 @@ function centsToInput(cents) {
 
 function arrayToTextarea(values) {
   return Array.isArray(values) ? values.join("\n") : "";
-}
-
-function variationStockToTextarea(variations, variationStock) {
-  const quantities = new Map(
-    (variationStock ?? []).map((stock) => [stock.variation, stock.quantity])
-  );
-
-  return (variations ?? [])
-    .map((variation) => `${variation}=${quantities.get(variation) ?? ""}`)
-    .join("\n");
 }
 
 function productPriceToInput(cents) {
@@ -1172,30 +1164,12 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
       <div className={cx(globalStyles, "admin-form-block")}>
         <h2>Vitrine</h2>
         <div className={cx(globalStyles, "form-grid")}>
-          <label className={cx(globalStyles, "span-all")}>
-            <span>
-              Variacoes <RequiredMark />
-            </span>
-            <textarea
-              defaultValue={arrayToTextarea(product?.variations) || "Padrao"}
-              name="variations"
-              required
-              rows={3}
-            />
-            <small>Uma por linha ou separadas por virgula.</small>
-          </label>
-          <label className={cx(globalStyles, "span-all")}>
-            <span>Estoque por variação</span>
-            <textarea
-              defaultValue={variationStockToTextarea(product?.variations, product?.variationStock)}
-              name="variationStock"
-              rows={3}
-            />
-            <small>
-              Use <code>Variação=quantidade</code>. Deixe depois do = vazio para “consultar
-              disponibilidade”; use 0 para esgotado.
-            </small>
-          </label>
+          <ProductVariationEditor
+            initialRows={buildAdminVariationRows(
+              product?.variations,
+              product?.variationStock
+            )}
+          />
           <ProductImageUploader existingImageUrls={product?.imageUrls ?? []} />
           <label className={cx(globalStyles, "span-all")}>
             <span>Notas</span>

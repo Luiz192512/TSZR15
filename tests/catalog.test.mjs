@@ -214,6 +214,33 @@ test("every published SKU has storefront categories, price, variations and Whats
   }
 });
 
+test("catalog variations use customer choices instead of product type or availability", () => {
+  const forbiddenVariations = new Set(["Completo", "Ponteira", "Sob consulta"]);
+  const normalizedVariations = new Set();
+
+  for (const product of catalogProducts) {
+    for (const variation of product.variations) {
+      assert.equal(
+        forbiddenVariations.has(variation),
+        false,
+        `${product.name} usa ${variation} como falsa variação`,
+      );
+      normalizedVariations.add(
+        variation
+          .normalize("NFD")
+          .replace(/\p{Diacritic}/gu, "")
+          .toLowerCase(),
+      );
+    }
+  }
+
+  assert.equal(normalizedVariations.has("padrao"), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Padrão")), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Fumê")), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Alumínio")), true);
+  assert.equal(catalogProducts.some((product) => product.variations.includes("Holográfico")), true);
+});
+
 test("public catalog hides internal purchase metadata", () => {
   const publicProducts = getPublicCatalogProducts(
     catalogProducts.map((product) => ({

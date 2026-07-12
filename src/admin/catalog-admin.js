@@ -16,6 +16,7 @@ import {
   parseAdminDateTimeInput,
   parseAdminMoneyToCents
 } from "@/src/admin/admin-form-values.js";
+import { collectAdminVariationInventory } from "@/src/admin/catalog-variations.js";
 
 const productImageBucket = "product-images";
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -67,43 +68,6 @@ function splitImageOrderTokens(value) {
     .map((item) => cleanString(item, 900))
     .filter(Boolean)
     .slice(0, 24);
-}
-
-function parseVariationStock(value, variations) {
-  const quantitiesByVariation = new Map();
-
-  for (const line of cleanString(value, 5000).split(/\r?\n/)) {
-    const [rawVariation, rawQuantity = ""] = line.split("=", 2);
-    const variation = cleanString(rawVariation, 160);
-
-    if (!variation || !variations.includes(variation)) {
-      continue;
-    }
-
-    const quantityText = cleanString(rawQuantity, 20);
-
-    if (!quantityText) {
-      quantitiesByVariation.set(variation, null);
-      continue;
-    }
-
-    if (!/^\d+$/.test(quantityText)) {
-      throw new Error(`Estoque inválido para a variação ${variation}.`);
-    }
-
-    const quantity = Number(quantityText);
-
-    if (!Number.isInteger(quantity) || quantity < 0) {
-      throw new Error(`Estoque inválido para a variação ${variation}.`);
-    }
-
-    quantitiesByVariation.set(variation, quantity);
-  }
-
-  return variations.map((variation) => ({
-    quantity: quantitiesByVariation.get(variation) ?? null,
-    variation
-  }));
 }
 
 function getSelectedCategoryIds(formData) {
@@ -250,7 +214,7 @@ function collectProductPayload(formData) {
   const productFamily = cleanString(formData.get("productFamily"), 80);
   const priceCents = parseAdminMoneyToCents(formData.get("price"));
   const costCents = parseAdminMoneyToCents(formData.get("cost"), { allowZero: true });
-  const variations = splitList(formData.get("variations"), { maxItems: 24, maxLength: 120 });
+  const { stock: variationStock, variations } = collectAdminVariationInventory(formData);
   const imageUrls = splitImageUrls(formData.get("imageUrls"));
   const imageOrderTokens = splitImageOrderTokens(formData.get("imageOrder"));
   const bikeModelScope = splitList(formData.get("bikeModelScope"), {
@@ -296,6 +260,7 @@ function collectProductPayload(formData) {
     costCents,
     id,
     imageOrderTokens,
+    variationStock,
     row: {
       id,
       slug,
@@ -473,7 +438,7 @@ export async function upsertAdminCatalogProduct(formData) {
     throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
   }
 
-  const { costCents, id, imageOrderTokens, row } = collectProductPayload(formData);
+  const { costCents, id, imageOrderTokens, row, variationStock } = collectProductPayload(formData);
   const uploadedImageUrls = await uploadProductImages({ formData, productId: id, supabase });
   const finalImageUrls =
     imageOrderTokens.length > 0
@@ -489,7 +454,6 @@ export async function upsertAdminCatalogProduct(formData) {
     throw new Error(error.message);
   }
 
-  const variationStock = parseVariationStock(formData.get("variationStock"), finalRow.variations);
   const { data: currentStockRows, error: currentStockError } = await supabase
     .from("catalog_variation_stock")
     .eq("product_id", id)
