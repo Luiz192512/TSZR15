@@ -501,36 +501,47 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
                 onPointerUp={endPointerDrag}
                 type="button"
               >
-                <span aria-hidden="true">⠿</span>
-                <span>{index + 1}</span>
+                <span className={cx(globalStyles, "admin-upload-preview-grip")} aria-hidden="true">
+                  ⠿
+                </span>
+                <span>Arrastar</span>
               </button>
-              <img alt="" draggable={false} src={item.previewUrl} />
-              <figcaption>{item.kind === "new" ? "Novo enquadramento" : "Atual"}</figcaption>
-              <div className={cx(globalStyles, "admin-upload-preview-controls")}>
-                <button
-                  aria-label={`Mover imagem ${index + 1} para tras`}
-                  disabled={index === 0}
-                  onClick={() => moveImage(index, -1)}
-                  type="button"
-                >
-                  ↑
-                </button>
-                <button
-                  aria-label={`Mover imagem ${index + 1} para frente`}
-                  disabled={index === items.length - 1}
-                  onClick={() => moveImage(index, 1)}
-                  type="button"
-                >
-                  ↓
-                </button>
-                <button
-                  aria-label={`Remover imagem ${index + 1}`}
-                  className={cx(globalStyles, "admin-upload-preview-remove")}
-                  onClick={() => removeImage(item)}
-                  type="button"
-                >
-                  Remover
-                </button>
+              <div className={cx(globalStyles, "admin-upload-preview-media")}>
+                <span className={cx(globalStyles, "admin-upload-preview-index")}>{index + 1}</span>
+                <img alt="" draggable={false} src={item.previewUrl} />
+              </div>
+              <div className={cx(globalStyles, "admin-upload-preview-footer")}>
+                <span className={cx(globalStyles, "admin-upload-preview-tag")}>
+                  {item.kind === "new" ? "Novo" : "Atual"}
+                </span>
+                <div className={cx(globalStyles, "admin-upload-preview-controls")}>
+                  <button
+                    aria-label={`Mover imagem ${index + 1} para tras`}
+                    className={cx(globalStyles, "admin-upload-preview-move")}
+                    disabled={index === 0}
+                    onClick={() => moveImage(index, -1)}
+                    type="button"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    aria-label={`Mover imagem ${index + 1} para frente`}
+                    className={cx(globalStyles, "admin-upload-preview-move")}
+                    disabled={index === items.length - 1}
+                    onClick={() => moveImage(index, 1)}
+                    type="button"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    aria-label={`Remover imagem ${index + 1}`}
+                    className={cx(globalStyles, "admin-upload-preview-remove")}
+                    onClick={() => removeImage(item)}
+                    type="button"
+                  >
+                    Remover
+                  </button>
+                </div>
               </div>
             </figure>
           ))}
