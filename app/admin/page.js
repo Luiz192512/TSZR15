@@ -31,6 +31,10 @@ import {
 import { paymentMethods, shippingOptions } from "@/src/checkout/whatsapp.js";
 import { ProductImageUploader } from "@/src/components/admin/product-image-uploader.js";
 import { SiteHeader } from "@/src/components/site-header.js";
+import {
+  formatAdminDateTimeInput,
+  formatAdminDisplayDateTime as formatDateTime
+} from "@/src/admin/admin-form-values.js";
 
 export const metadata = {
   robots: {
@@ -48,37 +52,12 @@ function formatCurrency(cents, currency = "BRL") {
   }).format((cents ?? 0) / 100);
 }
 
-function formatDateTime(value) {
-  if (!value) {
-    return "Nao informado";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
-}
-
 function centsToInput(cents) {
   if (!Number.isInteger(cents)) {
     return "";
   }
 
   return String((cents / 100).toFixed(2)).replace(".", ",");
-}
-
-function dateTimeToInput(value) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toISOString().slice(0, 16);
 }
 
 function arrayToTextarea(values) {
@@ -539,6 +518,7 @@ function OrderDetail({ selected }) {
       <form action={updateAdminOrderAction} className={cx(globalStyles, "admin-operation-form")}>
         <input name="orderId" type="hidden" value={order.id} />
         <input name="orderNumber" type="hidden" value={order.order_number} />
+        <input name="operationId" type="hidden" value={crypto.randomUUID()} />
         <input name="supplierPurchaseId" type="hidden" value={supplierPurchase?.id ?? ""} />
 
         <div className={cx(globalStyles, "admin-form-block")}>
@@ -633,10 +613,11 @@ function OrderDetail({ selected }) {
             <label>
               <span>Comprado em</span>
               <input
-                defaultValue={dateTimeToInput(supplierPurchase?.purchased_at)}
+                defaultValue={formatAdminDateTimeInput(supplierPurchase?.purchased_at)}
                 name="purchasedAt"
                 type="datetime-local"
               />
+              <small>Horario de Brasilia.</small>
             </label>
             <label>
               <span>Custo produto</span>
@@ -697,6 +678,7 @@ function OrderDetail({ selected }) {
             <label>
               <span>Data do evento</span>
               <input name="trackingEventAt" type="datetime-local" />
+              <small>Horario de Brasilia.</small>
             </label>
             <label>
               <span>Local</span>
@@ -1299,6 +1281,7 @@ function CouponForm({ categories, coupon, products }) {
       action={upsertAdminCouponAction}
       className={cx(globalStyles, "admin-operation-form admin-product-form")}
     >
+      <input name="couponId" type="hidden" value={coupon?.id ?? ""} />
       <div className={cx(globalStyles, "admin-form-block")}>
         <h2>{coupon ? `Cupom ${coupon.code}` : "Novo cupom"}</h2>
         <div className={cx(globalStyles, "form-grid")}>
@@ -1403,18 +1386,20 @@ function CouponForm({ categories, coupon, products }) {
           <label>
             <span>Comeca em</span>
             <input
-              defaultValue={dateTimeToInput(coupon?.startsAt)}
+              defaultValue={formatAdminDateTimeInput(coupon?.startsAt)}
               name="startsAt"
               type="datetime-local"
             />
+            <small>Horario de Brasilia.</small>
           </label>
           <label>
             <span>Expira em</span>
             <input
-              defaultValue={dateTimeToInput(coupon?.expiresAt)}
+              defaultValue={formatAdminDateTimeInput(coupon?.expiresAt)}
               name="expiresAt"
               type="datetime-local"
             />
+            <small>Horario de Brasilia.</small>
           </label>
           <fieldset className={cx(globalStyles, "span-all admin-checkbox-fieldset")}>
             <legend>Categorias aplicaveis</legend>
@@ -1487,7 +1472,7 @@ function AdminCoupons({ selectedCouponCode, state }) {
             action={archiveAdminCouponAction}
             className={cx(globalStyles, "admin-archive-form")}
           >
-            <input name="couponCode" type="hidden" value={selectedCoupon.code} />
+            <input name="couponId" type="hidden" value={selectedCoupon.id} />
             <button className={cx(globalStyles, "button button-secondary")} type="submit">
               Desativar cupom
             </button>

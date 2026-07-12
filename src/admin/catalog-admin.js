@@ -8,6 +8,14 @@ import {
 import { normalizeCouponCode } from "@/src/checkout/coupons.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
 import { isValidImageUrl, resolveImageOrder } from "@/src/admin/catalog-image-order.js";
+import {
+  archiveAdminCouponById,
+  saveAdminCoupon
+} from "@/src/admin/catalog-coupon-persistence.js";
+import {
+  parseAdminDateTimeInput,
+  parseAdminMoneyToCents
+} from "@/src/admin/admin-form-values.js";
 
 const productImageBucket = "product-images";
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -26,38 +34,6 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-}
-
-function parseMoneyToCents(value) {
-  const cleaned = cleanString(value, 40).replace(/\./g, "").replace(",", ".");
-
-  if (!cleaned) {
-    return null;
-  }
-
-  const numeric = Number(cleaned);
-
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    return null;
-  }
-
-  return Math.round(numeric * 100);
-}
-
-function parseOptionalMoneyToCents(value) {
-  const cleaned = cleanString(value, 40);
-
-  if (!cleaned) {
-    return null;
-  }
-
-  const numeric = parseMoneyToCents(cleaned);
-
-  if (!Number.isInteger(numeric) || numeric < 0) {
-    return null;
-  }
-
-  return numeric;
 }
 
 function parseInteger(value, fallback = 0) {
@@ -272,8 +248,8 @@ function collectProductPayload(formData) {
   const id = previousId || slug;
   const storefrontCategoryIds = getSelectedCategoryIds(formData);
   const productFamily = cleanString(formData.get("productFamily"), 80);
-  const priceCents = parseMoneyToCents(formData.get("price"));
-  const costCents = parseOptionalMoneyToCents(formData.get("cost"));
+  const priceCents = parseAdminMoneyToCents(formData.get("price"));
+  const costCents = parseAdminMoneyToCents(formData.get("cost"), { allowZero: true });
   const variations = splitList(formData.get("variations"), { maxItems: 24, maxLength: 120 });
   const imageUrls = splitImageUrls(formData.get("imageUrls"));
   const imageOrderTokens = splitImageOrderTokens(formData.get("imageOrder"));
@@ -348,11 +324,16 @@ function collectProductPayload(formData) {
 }
 
 function collectCouponPayload(formData) {
+  const couponId = cleanString(formData.get("couponId"), 80);
   const code = normalizeCouponCode(formData.get("couponCode"));
   const discountType = cleanString(formData.get("discountType"), 20) || "percent";
   const discountPercent = parseInteger(formData.get("discountPercent"), 0);
-  const discountCents = parseOptionalMoneyToCents(formData.get("discountValue"));
-  const minimumSubtotalCents = parseOptionalMoneyToCents(formData.get("minimumSubtotal")) ?? 0;
+  const discountCents = parseAdminMoneyToCents(formData.get("discountValue"));
+  const minimumSubtotal = cleanString(formData.get("minimumSubtotal"), 40);
+  const parsedMinimumSubtotalCents = parseAdminMoneyToCents(minimumSubtotal, {
+    allowZero: true
+  });
+  const minimumSubtotalCents = parsedMinimumSubtotalCents ?? 0;
   const maxRedemptions = parseInteger(formData.get("maxRedemptions"), 0) || null;
   const appliesToProductIds = formData
     .getAll("couponProductIds")
@@ -380,11 +361,30 @@ function collectCouponPayload(formData) {
     throw new Error("Informe o valor do desconto fixo.");
   }
 
+  if (minimumSubtotal && !Number.isInteger(parsedMinimumSubtotalCents)) {
+    throw new Error("Informe um subtotal minimo valido.");
+  }
+
   const startsAt = cleanString(formData.get("startsAt"), 80);
   const expiresAt = cleanString(formData.get("expiresAt"), 80);
+  const startsAtIso = startsAt ? parseAdminDateTimeInput(startsAt) : null;
+  const expiresAtIso = expiresAt ? parseAdminDateTimeInput(expiresAt) : null;
+
+  if (startsAt && !startsAtIso) {
+    throw new Error("Informe uma data inicial valida no horario de Brasilia.");
+  }
+
+  if (expiresAt && !expiresAtIso) {
+    throw new Error("Informe uma data final valida no horario de Brasilia.");
+  }
+
+  if (startsAtIso && expiresAtIso && new Date(expiresAtIso) <= new Date(startsAtIso)) {
+    throw new Error("A expiracao do cupom deve ser posterior ao inicio.");
+  }
 
   return {
     code,
+    couponId,
     row: {
       applies_to_category_ids: appliesToCategoryIds,
       applies_to_product_ids: appliesToProductIds,
@@ -393,11 +393,11 @@ function collectCouponPayload(formData) {
       discount_cents: discountType === "fixed" ? discountCents : null,
       discount_percent: discountType === "percent" ? discountPercent : null,
       discount_type: discountType,
-      expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
+      expires_at: expiresAtIso,
       is_active: formData.get("couponIsActive") === "on",
       max_redemptions: maxRedemptions,
       minimum_subtotal_cents: minimumSubtotalCents,
-      starts_at: startsAt ? new Date(startsAt).toISOString() : null
+      starts_at: startsAtIso
     }
   };
 }
@@ -588,38 +588,23 @@ export async function upsertAdminCoupon(formData) {
     throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
   }
 
-  const { code, row } = collectCouponPayload(formData);
-  const { error } = await supabase.from("catalog_coupons").upsert(row, { onConflict: "code" });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return { code };
+  const { couponId, row } = collectCouponPayload(formData);
+  return saveAdminCoupon({ couponId, row, supabase });
 }
 
 export async function archiveAdminCoupon(formData) {
   const { isConfigured, supabase } = getAdminSupabaseStatus();
-  const code = normalizeCouponCode(formData.get("couponCode"));
+  const couponId = cleanString(formData.get("couponId"), 80);
 
   if (!isConfigured) {
     throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
   }
 
-  if (!code) {
+  if (!couponId) {
     throw new Error("Cupom invalido.");
   }
 
-  const { error } = await supabase
-    .from("catalog_coupons")
-    .update({ is_active: false })
-    .eq("code", code);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return { code };
+  return archiveAdminCouponById({ couponId, supabase });
 }
 
 export async function archiveAdminCatalogProduct(formData) {
