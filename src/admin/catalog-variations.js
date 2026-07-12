@@ -46,20 +46,51 @@ function parseVariationQuantity(value, variation) {
   return quantity;
 }
 
-export function collectAdminVariationInventory(formData) {
-  const lines = String(formData.get("variationInventory") ?? "")
+function parseVariationCards(value) {
+  if (!String(value ?? "").trim()) {
+    return null;
+  }
+
+  try {
+    const cards = JSON.parse(String(value));
+
+    if (!Array.isArray(cards)) {
+      throw new Error();
+    }
+
+    return cards.slice(0, 24);
+  } catch {
+    throw new Error("Os cards de variação enviados são inválidos.");
+  }
+}
+
+function legacyVariationCards(value) {
+  return String(value ?? "")
     .split(/\r?\n/)
-    .slice(0, 24);
+    .slice(0, 24)
+    .map((line) => {
+      const separatorIndex = line.indexOf("=");
+
+      return {
+        imageTokens: [],
+        quantity: separatorIndex >= 0 ? line.slice(separatorIndex + 1) : "",
+        variation: separatorIndex >= 0 ? line.slice(0, separatorIndex) : line,
+      };
+    });
+}
+
+export function collectAdminVariationInventory(formData) {
+  const cards =
+    parseVariationCards(formData.get("variationCards")) ??
+    legacyVariationCards(formData.get("variationInventory"));
   const seenNames = new Set();
   const stock = [];
+  const variationImageTokens = [];
+  let imageCount = 0;
 
-  for (const line of lines) {
-    const separatorIndex = line.indexOf("=");
-    const rawName = cleanVariationName(
-      separatorIndex >= 0 ? line.slice(0, separatorIndex) : line,
-    );
-    const rawQuantity =
-      separatorIndex >= 0 ? line.slice(separatorIndex + 1) : "";
+  for (const card of cards) {
+    const rawName = cleanVariationName(card?.variation);
+    const rawQuantity = card?.quantity ?? "";
 
     if (!rawName && !String(rawQuantity).trim()) {
       continue;
@@ -83,6 +114,18 @@ export function collectAdminVariationInventory(formData) {
       quantity: parseVariationQuantity(rawQuantity, variation),
       variation,
     });
+    const imageTokens = Array.isArray(card?.imageTokens)
+      ? card.imageTokens
+          .map((token) =>
+            String(token ?? "")
+              .trim()
+              .slice(0, 900),
+          )
+          .filter(Boolean)
+          .slice(0, Math.max(0, 12 - imageCount))
+      : [];
+    imageCount += imageTokens.length;
+    variationImageTokens.push({ imageTokens, variation });
   }
 
   if (stock.length === 0) {
@@ -91,37 +134,7 @@ export function collectAdminVariationInventory(formData) {
 
   return {
     stock,
+    variationImageTokens,
     variations: stock.map((entry) => entry.variation),
   };
-}
-
-export function formatAdminVariationInventory(
-  variations = [],
-  variationStock = [],
-) {
-  const stockByVariation = new Map(
-    variationStock.map((entry) => [
-      normalizeVariationName(entry.variation),
-      entry.quantity,
-    ]),
-  );
-  const seenNames = new Set();
-  const lines = [];
-
-  for (const value of variations) {
-    const name = canonicalizeVariationName(value);
-    const normalizedName = normalizeVariationName(name);
-
-    if (!name || seenNames.has(normalizedName)) {
-      continue;
-    }
-
-    seenNames.add(normalizedName);
-    const quantity = stockByVariation.get(normalizedName);
-    const quantityText =
-      Number.isSafeInteger(quantity) && quantity >= 0 ? String(quantity) : "";
-    lines.push(`${name}=${quantityText}`);
-  }
-
-  return lines.length > 0 ? lines.join("\n") : "Padrão=";
 }

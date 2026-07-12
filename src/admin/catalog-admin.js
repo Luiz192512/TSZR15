@@ -102,6 +102,12 @@ function toAdminProduct(row) {
     leadTimeDays: row.lead_time_days ?? 2,
     shippingClass: row.shipping_class ?? "medium",
     imageUrls: row.image_urls ?? [],
+    variationImages: Array.isArray(row.variation_images)
+      ? row.variation_images.map((group) => ({
+          imageUrls: Array.isArray(group?.image_urls) ? group.image_urls : [],
+          variation: group?.variation ?? ""
+        }))
+      : [],
     notes: row.notes ?? "",
     isPublished: row.is_published !== false,
     updatedAt: row.updated_at,
@@ -214,7 +220,12 @@ function collectProductPayload(formData) {
   const productFamily = cleanString(formData.get("productFamily"), 80);
   const priceCents = parseAdminMoneyToCents(formData.get("price"));
   const costCents = parseAdminMoneyToCents(formData.get("cost"), { allowZero: true });
-  const { stock: variationStock, variations } = collectAdminVariationInventory(formData);
+  const {
+    stock: variationStock,
+    variationImageTokens,
+    variations
+  } = collectAdminVariationInventory(formData);
+  const usesVariationCards = formData.get("variationCards") !== null;
   const imageUrls = splitImageUrls(formData.get("imageUrls"));
   const imageOrderTokens = splitImageOrderTokens(formData.get("imageOrder"));
   const bikeModelScope = splitList(formData.get("bikeModelScope"), {
@@ -251,15 +262,20 @@ function collectProductPayload(formData) {
   }
 
   const invalidImageUrl = imageUrls.find((imageUrl) => !isValidImageUrl(imageUrl));
+  const invalidVariationImageToken = variationImageTokens
+    .flatMap((group) => group.imageTokens)
+    .find((token) => !/^new:\d+$/.test(token) && !isValidImageUrl(token));
 
-  if (invalidImageUrl) {
-    throw new Error(`URL de imagem invalida: ${invalidImageUrl}`);
+  if (invalidImageUrl || invalidVariationImageToken) {
+    throw new Error(`URL de imagem invalida: ${invalidImageUrl ?? invalidVariationImageToken}`);
   }
 
   return {
     costCents,
     id,
     imageOrderTokens,
+    usesVariationCards,
+    variationImageTokens,
     variationStock,
     row: {
       id,
@@ -438,15 +454,31 @@ export async function upsertAdminCatalogProduct(formData) {
     throw new Error("Configure a URL do Supabase e uma chave privilegiada do Supabase.");
   }
 
-  const { costCents, id, imageOrderTokens, row, variationStock } = collectProductPayload(formData);
+  const {
+    costCents,
+    id,
+    imageOrderTokens,
+    row,
+    usesVariationCards,
+    variationImageTokens,
+    variationStock
+  } = collectProductPayload(formData);
   const uploadedImageUrls = await uploadProductImages({ formData, productId: id, supabase });
-  const finalImageUrls =
-    imageOrderTokens.length > 0
+  const finalVariationImages = usesVariationCards
+    ? variationImageTokens.map((group) => ({
+        image_urls: resolveImageOrder(group.imageTokens, uploadedImageUrls),
+        variation: group.variation
+      }))
+    : [];
+  const finalImageUrls = usesVariationCards
+    ? finalVariationImages.flatMap((group) => group.image_urls).slice(0, 12)
+    : imageOrderTokens.length > 0
       ? resolveImageOrder(imageOrderTokens, uploadedImageUrls)
       : [...uploadedImageUrls, ...row.image_urls].slice(0, 12);
   const finalRow = {
     ...row,
-    image_urls: finalImageUrls
+    image_urls: finalImageUrls,
+    variation_images: finalVariationImages
   };
   const { error } = await supabase.from("catalog_products").upsert(finalRow, { onConflict: "id" });
 

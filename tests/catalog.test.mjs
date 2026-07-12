@@ -17,7 +17,10 @@ import {
   buildCatalogProductCategoryRows,
   buildCatalogProductRows
 } from "../src/catalog/supabase-rows.js";
-import { readCatalogProductsFromSupabase } from "../src/catalog/supabase-catalog-core.js";
+import {
+  readCatalogProductsFromSupabase,
+  toCatalogProduct
+} from "../src/catalog/supabase-catalog-core.js";
 import { getProductVariationImageIndex } from "../src/catalog/variation-images.js";
 import {
   removeCartItem,
@@ -147,6 +150,7 @@ function createSupabaseCatalogStub({ data = [], error = null } = {}) {
           assert.match(columns, /\bid\b/);
           assert.match(columns, /\bslug\b/);
           assert.match(columns, /\bimage_urls\b/);
+          assert.match(columns, /\bvariation_images\b/);
           assert.match(columns, /\binternal_purchase_source\b/);
           return this;
         },
@@ -174,6 +178,7 @@ function buildCatalogRow(overrides = {}) {
     currency: "BRL",
     id: "produto-supabase-teste",
     image_urls: ["https://cdn.example.com/produto.jpg"],
+    variation_images: [],
     internal_purchase_source: {
       provider: "painel-admin",
       visibility: "internal-only"
@@ -223,22 +228,34 @@ test("catalog variations use customer choices instead of product type or availab
       assert.equal(
         forbiddenVariations.has(variation),
         false,
-        `${product.name} usa ${variation} como falsa variação`,
+        `${product.name} usa ${variation} como falsa variação`
       );
       normalizedVariations.add(
         variation
           .normalize("NFD")
           .replace(/\p{Diacritic}/gu, "")
-          .toLowerCase(),
+          .toLowerCase()
       );
     }
   }
 
   assert.equal(normalizedVariations.has("padrao"), true);
-  assert.equal(catalogProducts.some((product) => product.variations.includes("Padrão")), true);
-  assert.equal(catalogProducts.some((product) => product.variations.includes("Fumê")), true);
-  assert.equal(catalogProducts.some((product) => product.variations.includes("Alumínio")), true);
-  assert.equal(catalogProducts.some((product) => product.variations.includes("Holográfico")), true);
+  assert.equal(
+    catalogProducts.some((product) => product.variations.includes("Padrão")),
+    true
+  );
+  assert.equal(
+    catalogProducts.some((product) => product.variations.includes("Fumê")),
+    true
+  );
+  assert.equal(
+    catalogProducts.some((product) => product.variations.includes("Alumínio")),
+    true
+  );
+  assert.equal(
+    catalogProducts.some((product) => product.variations.includes("Holográfico")),
+    true
+  );
 });
 
 test("public catalog hides internal purchase metadata", () => {
@@ -301,6 +318,35 @@ test("catalog products can carry image URL arrays through Supabase rows", () => 
   ]);
 });
 
+test("Supabase catalog rows carry explicit image groups for each variation", () => {
+  const product = toCatalogProduct(
+    buildCatalogRow({
+      image_urls: ["https://cdn.example.com/fume.webp", "https://cdn.example.com/preto.webp"],
+      variation_images: [
+        {
+          image_urls: ["https://cdn.example.com/preto.webp"],
+          variation: "Preto"
+        },
+        {
+          image_urls: ["https://cdn.example.com/fume.webp"],
+          variation: "Fumê"
+        }
+      ]
+    })
+  );
+
+  assert.deepEqual(product.variationImages, [
+    {
+      imageUrls: ["https://cdn.example.com/preto.webp"],
+      variation: "Preto"
+    },
+    {
+      imageUrls: ["https://cdn.example.com/fume.webp"],
+      variation: "Fumê"
+    }
+  ]);
+});
+
 test("product variation image resolver matches color names in optimized image filenames", () => {
   const product = {
     imageUrls: [
@@ -342,6 +388,26 @@ test("product variation image resolver falls back to variation order", () => {
 
   assert.equal(getProductVariationImageIndex(product, "Fume"), 1);
   assert.equal(getProductVariationImageIndex(product, "Transparente"), 2);
+});
+
+test("product variation image resolver prefers explicit variation links", () => {
+  const product = {
+    imageUrls: ["https://cdn.example.com/generic-a.webp", "https://cdn.example.com/generic-b.webp"],
+    variationImages: [
+      {
+        imageUrls: ["https://cdn.example.com/generic-b.webp"],
+        variation: "Preto"
+      },
+      {
+        imageUrls: ["https://cdn.example.com/generic-a.webp"],
+        variation: "Vermelho"
+      }
+    ],
+    variations: ["Preto", "Vermelho"]
+  };
+
+  assert.equal(getProductVariationImageIndex(product, "Preto"), 1);
+  assert.equal(getProductVariationImageIndex(product, "Vermelho"), 0);
 });
 
 test("configured Supabase catalog can return an empty storefront without local fallback", async () => {
@@ -463,7 +529,10 @@ test("WhatsApp checkout message carries items, payment method and total", () => 
     shippingOptionId: "pac-estimado",
     storeName: "TSZR15"
   });
-  const url = buildWhatsAppCheckoutUrl({ phoneNumber: "55 (11) 99999-9999", message });
+  const url = buildWhatsAppCheckoutUrl({
+    phoneNumber: "55 (11) 99999-9999",
+    message
+  });
 
   assert.equal(totals.totalCents, 33180);
   assert.match(message, /Pagamento escolhido: Pix/);
@@ -707,7 +776,11 @@ test("customer snapshot builds complete checkout data from account records", () 
     tax_id: "00.000.000/0001-00",
     whatsapp: "(41) 99999-9999"
   };
-  const customer = buildCustomerSnapshot({ address, profile, user: { email: profile.email } });
+  const customer = buildCustomerSnapshot({
+    address,
+    profile,
+    user: { email: profile.email }
+  });
 
   assert.equal(
     buildAddressLine(address),
@@ -877,7 +950,10 @@ test("admin session values are signed, expiring and token-bound", async () => {
   assert.equal(isAdminSessionValueFreshShape(sessionValue, { now: now + 1000 }), true);
   assert.equal(isAdminSessionValueValid(sessionValue, { now: now + 1000, token }), true);
   assert.equal(
-    await isAdminSessionValueValidAtEdge(sessionValue, { now: now + 1000, token }),
+    await isAdminSessionValueValidAtEdge(sessionValue, {
+      now: now + 1000,
+      token
+    }),
     true
   );
   assert.equal(isAdminSessionValueFreshShapeAtEdge(sessionValue, { now: now + 1000 }), true);
@@ -897,7 +973,10 @@ test("admin session values are signed, expiring and token-bound", async () => {
   );
   assert.equal(isAdminSessionValueValid("sha256-antigo-nao-assinado", { now, token }), false);
   assert.equal(
-    await isAdminSessionValueValidAtEdge("sha256-antigo-nao-assinado", { now, token }),
+    await isAdminSessionValueValidAtEdge("sha256-antigo-nao-assinado", {
+      now,
+      token
+    }),
     false
   );
   assert.equal(isAdminSessionValueFreshShape("sha256-antigo-nao-assinado", { now }), false);
@@ -933,7 +1012,10 @@ test("internal order status becomes pending only after one day without a decisio
   );
   assert.equal(
     getEffectiveInternalOrderStatus(
-      { created_at: "2026-05-20T12:00:00.000Z", internal_order_status: "confirmado" },
+      {
+        created_at: "2026-05-20T12:00:00.000Z",
+        internal_order_status: "confirmado"
+      },
       now
     ),
     "confirmado"
@@ -1059,7 +1141,10 @@ test("review helpers validate ratings, comments, image mime and public summary",
     "image/webp"
   );
   assert.deepEqual(
-    validateReviewImageMeta({ detectedMimeType: "application/pdf", sizeBytes: 100 }),
+    validateReviewImageMeta({
+      detectedMimeType: "application/pdf",
+      sizeBytes: 100
+    }),
     ["Envie fotos JPG, PNG, WEBP ou GIF."]
   );
 
@@ -1077,22 +1162,24 @@ test("resolveImageOrder respeita a ordem enviada pelo admin", () => {
   const uploaded = ["https://cdn.example/new-a.webp", "https://cdn.example/new-b.webp"];
 
   // Reordena apenas imagens existentes.
-  assert.deepEqual(
-    resolveImageOrder(["/img/2.webp", "/img/1.webp", "/img/3.webp"], []),
-    ["/img/2.webp", "/img/1.webp", "/img/3.webp"]
-  );
+  assert.deepEqual(resolveImageOrder(["/img/2.webp", "/img/1.webp", "/img/3.webp"], []), [
+    "/img/2.webp",
+    "/img/1.webp",
+    "/img/3.webp"
+  ]);
 
   // Intercala uma imagem nova (new:1) entre existentes, resolvendo pelo indice de upload.
-  assert.deepEqual(
-    resolveImageOrder(["/img/1.webp", "new:1", "/img/2.webp", "new:0"], uploaded),
-    ["/img/1.webp", "https://cdn.example/new-b.webp", "/img/2.webp", "https://cdn.example/new-a.webp"]
-  );
+  assert.deepEqual(resolveImageOrder(["/img/1.webp", "new:1", "/img/2.webp", "new:0"], uploaded), [
+    "/img/1.webp",
+    "https://cdn.example/new-b.webp",
+    "/img/2.webp",
+    "https://cdn.example/new-a.webp"
+  ]);
 
   // Indice de upload fora do range e URL invalida sao ignorados.
-  assert.deepEqual(
-    resolveImageOrder(["new:5", "javascript:alert(1)", "/img/ok.webp"], uploaded),
-    ["/img/ok.webp"]
-  );
+  assert.deepEqual(resolveImageOrder(["new:5", "javascript:alert(1)", "/img/ok.webp"], uploaded), [
+    "/img/ok.webp"
+  ]);
 
   // Nunca ultrapassa 12 imagens.
   const many = Array.from({ length: 20 }, (_, index) => `/img/${index}.webp`);
