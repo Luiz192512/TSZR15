@@ -20,6 +20,15 @@ function createDraft(file) {
   };
 }
 
+function createExistingItem(url, index) {
+  return {
+    id: `existing-${index}-${url}`,
+    kind: "existing",
+    previewUrl: url,
+    url
+  };
+}
+
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -85,24 +94,32 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
   const fileInputRef = useRef(null);
   const croppedInputRef = useRef(null);
   const objectUrlsRef = useRef(new Set());
-  const [currentUrls, setCurrentUrls] = useState(existingImageUrls);
-  const [croppedImages, setCroppedImages] = useState([]);
+  const gridRef = useRef(null);
+  const draggingIdRef = useRef(null);
+  const [items, setItems] = useState(() =>
+    existingImageUrls.map((url, index) => createExistingItem(url, index))
+  );
   const [draftQueue, setDraftQueue] = useState([]);
   const [activeDraft, setActiveDraft] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
   const [feedback, setFeedback] = useState("");
   const existingImageKey = useMemo(() => existingImageUrls.join("\n"), [existingImageUrls]);
-  const orderedPreviews = useMemo(
-    () => [
-      ...croppedImages.map((item) => ({ ...item, kind: "new" })),
-      ...currentUrls.map((url, index) => ({
-        id: `existing-${index}-${url}`,
-        kind: "existing",
-        previewUrl: url,
-        url
-      }))
-    ],
-    [croppedImages, currentUrls]
+
+  const existingUrlsValue = useMemo(
+    () =>
+      items
+        .filter((item) => item.kind === "existing")
+        .map((item) => item.url)
+        .join("\n"),
+    [items]
   );
+  const imageOrderValue = useMemo(() => {
+    let uploadIndex = 0;
+
+    return items
+      .map((item) => (item.kind === "new" ? `new:${uploadIndex++}` : item.url))
+      .join("\n");
+  }, [items]);
 
   function revokeObjectUrl(url) {
     URL.revokeObjectURL(url);
@@ -110,13 +127,16 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
   }
 
   useEffect(() => {
-    setCurrentUrls(existingImageUrls);
-    setCroppedImages((images) => {
-      for (const image of images) {
-        revokeObjectUrl(image.previewUrl);
+    draggingIdRef.current = null;
+    setDraggingId(null);
+    setItems((current) => {
+      for (const item of current) {
+        if (item.kind === "new") {
+          revokeObjectUrl(item.previewUrl);
+        }
       }
 
-      return [];
+      return existingImageUrls.map((url, index) => createExistingItem(url, index));
     });
     setDraftQueue((drafts) => {
       for (const draft of drafts) {
@@ -152,12 +172,14 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
 
     const transfer = new DataTransfer();
 
-    for (const image of croppedImages) {
-      transfer.items.add(image.file);
+    for (const item of items) {
+      if (item.kind === "new") {
+        transfer.items.add(item.file);
+      }
     }
 
     croppedInputRef.current.files = transfer.files;
-  }, [croppedImages]);
+  }, [items]);
 
   useEffect(
     () => () => {
@@ -183,10 +205,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
     }
 
     const pendingCount = draftQueue.length + (activeDraft ? 1 : 0);
-    const availableSlots = Math.max(
-      0,
-      maxProductImages - currentUrls.length - croppedImages.length - pendingCount
-    );
+    const availableSlots = Math.max(0, maxProductImages - items.length - pendingCount);
     const files = selectedFiles.slice(0, availableSlots);
 
     if (availableSlots === 0) {
@@ -236,14 +255,16 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
 
     try {
       setFeedback("Gerando enquadramento da imagem...");
-      const file = await cropDraftToFile(activeDraft, croppedImages.length);
+      const newImageCount = items.filter((item) => item.kind === "new").length;
+      const file = await cropDraftToFile(activeDraft, newImageCount);
       const previewUrl = URL.createObjectURL(file);
       objectUrlsRef.current.add(previewUrl);
-      setCroppedImages((items) => [
-        ...items,
+      setItems((current) => [
+        ...current,
         {
           file,
-          id: `${file.name}-${crypto.randomUUID()}`,
+          id: `new-${file.name}-${crypto.randomUUID()}`,
+          kind: "new",
           previewUrl
         }
       ]);
@@ -255,20 +276,96 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
   }
 
   function removeImage(item) {
+    setItems((current) => current.filter((entry) => entry.id !== item.id));
+
     if (item.kind === "new") {
-      setCroppedImages((images) => {
-        const imageToRemove = images.find((image) => image.id === item.id);
+      revokeObjectUrl(item.previewUrl);
+    }
+  }
 
-        if (imageToRemove) {
-          revokeObjectUrl(imageToRemove.previewUrl);
-        }
+  function moveImage(index, direction) {
+    setItems((current) => {
+      const target = index + direction;
 
-        return images.filter((image) => image.id !== item.id);
-      });
+      if (target < 0 || target >= current.length) {
+        return current;
+      }
+
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  function startPointerDrag(event, item) {
+    if (event.button !== 0) {
       return;
     }
 
-    setCurrentUrls((urls) => urls.filter((url) => url !== item.url));
+    draggingIdRef.current = item.id;
+    setDraggingId(item.id);
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // setPointerCapture pode falhar em navegadores antigos; o arraste segue via eventos globais.
+    }
+  }
+
+  function handlePointerDragMove(event) {
+    if (draggingIdRef.current == null || !gridRef.current) {
+      return;
+    }
+
+    const tiles = Array.from(gridRef.current.children);
+    const pointerX = event.clientX;
+    const pointerY = event.clientY;
+    let nearestIndex = -1;
+    let nearestDistance = Infinity;
+
+    tiles.forEach((tile, index) => {
+      const rect = tile.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.hypot(pointerX - centerX, pointerY - centerY);
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+
+    if (nearestIndex < 0) {
+      return;
+    }
+
+    setItems((current) => {
+      const fromIndex = current.findIndex((entry) => entry.id === draggingIdRef.current);
+
+      if (fromIndex < 0 || fromIndex === nearestIndex) {
+        return current;
+      }
+
+      const next = [...current];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(nearestIndex, 0, moved);
+      return next;
+    });
+  }
+
+  function endPointerDrag(event) {
+    if (draggingIdRef.current == null) {
+      return;
+    }
+
+    draggingIdRef.current = null;
+    setDraggingId(null);
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Ignorado: o ponteiro pode ja ter sido liberado.
+    }
   }
 
   return (
@@ -279,8 +376,9 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
         name="imageUrls"
         readOnly
         tabIndex={-1}
-        value={currentUrls.join("\n")}
+        value={existingUrlsValue}
       />
+      <input name="imageOrder" readOnly type="hidden" value={imageOrderValue} />
       <input
         accept="image/jpeg,image/png,image/webp,image/gif"
         className={cx(globalStyles, "visually-hidden-field")}
@@ -302,7 +400,7 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
         <div>
           <span>Imagens do produto</span>
           <strong>Selecione, enquadre e envie varias fotos.</strong>
-          <small>O enquadramento preserva a peça no mesmo formato dos cards da vitrine.</small>
+          <small>Arraste pela alca ⠿ (ou use as setas) para definir a ordem. A 1ª é a capa.</small>
         </div>
         <button
           className={cx(globalStyles, "button button-secondary")}
@@ -380,25 +478,71 @@ export function ProductImageUploader({ existingImageUrls = [] }) {
         </div>
       ) : null}
 
-      {orderedPreviews.length > 0 ? (
+      {items.length > 0 ? (
         <div
           className={cx(globalStyles, "admin-upload-preview-grid")}
           aria-label="Preview das imagens do produto"
+          ref={gridRef}
         >
-          {orderedPreviews.map((item, index) => (
-            <figure className={cx(globalStyles, "admin-upload-preview")} key={item.id}>
-              <img alt="" src={item.previewUrl} />
-              <figcaption>
-                <span>{index + 1}</span>
-                <strong>{item.kind === "new" ? "Novo enquadramento" : "Atual"}</strong>
-              </figcaption>
+          {items.map((item, index) => (
+            <figure
+              className={cx(
+                globalStyles,
+                `admin-upload-preview ${draggingId === item.id ? "is-dragging" : ""}`
+              )}
+              key={item.id}
+            >
               <button
-                aria-label={`Remover imagem ${index + 1}`}
-                onClick={() => removeImage(item)}
+                aria-label={`Arrastar imagem ${index + 1} para reordenar`}
+                className={cx(globalStyles, "admin-upload-preview-handle")}
+                onPointerCancel={endPointerDrag}
+                onPointerDown={(event) => startPointerDrag(event, item)}
+                onPointerMove={handlePointerDragMove}
+                onPointerUp={endPointerDrag}
                 type="button"
               >
-                Remover
+                <span className={cx(globalStyles, "admin-upload-preview-grip")} aria-hidden="true">
+                  ⠿
+                </span>
+                <span>Arrastar</span>
               </button>
+              <div className={cx(globalStyles, "admin-upload-preview-media")}>
+                <span className={cx(globalStyles, "admin-upload-preview-index")}>{index + 1}</span>
+                <img alt="" draggable={false} src={item.previewUrl} />
+              </div>
+              <div className={cx(globalStyles, "admin-upload-preview-footer")}>
+                <span className={cx(globalStyles, "admin-upload-preview-tag")}>
+                  {item.kind === "new" ? "Novo" : "Atual"}
+                </span>
+                <div className={cx(globalStyles, "admin-upload-preview-controls")}>
+                  <button
+                    aria-label={`Mover imagem ${index + 1} para tras`}
+                    className={cx(globalStyles, "admin-upload-preview-move")}
+                    disabled={index === 0}
+                    onClick={() => moveImage(index, -1)}
+                    type="button"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    aria-label={`Mover imagem ${index + 1} para frente`}
+                    className={cx(globalStyles, "admin-upload-preview-move")}
+                    disabled={index === items.length - 1}
+                    onClick={() => moveImage(index, 1)}
+                    type="button"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    aria-label={`Remover imagem ${index + 1}`}
+                    className={cx(globalStyles, "admin-upload-preview-remove")}
+                    onClick={() => removeImage(item)}
+                    type="button"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
             </figure>
           ))}
         </div>
