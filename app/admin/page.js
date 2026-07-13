@@ -30,13 +30,11 @@ import {
 } from "@/src/orders/status.js";
 import { paymentMethods, shippingOptions } from "@/src/checkout/whatsapp.js";
 import { ProductImageUploader } from "@/src/components/admin/product-image-uploader.js";
-import { ProductVariationEditor } from "@/src/components/admin/product-variation-editor.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import {
   formatAdminDateTimeInput,
   formatAdminDisplayDateTime as formatDateTime
 } from "@/src/admin/admin-form-values.js";
-import { buildAdminVariationRows } from "@/src/admin/catalog-variations.js";
 
 export const metadata = {
   robots: {
@@ -1208,13 +1206,12 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
       <div className={cx(globalStyles, "admin-form-block")}>
         <h2>Vitrine</h2>
         <div className={cx(globalStyles, "form-grid")}>
-          <ProductVariationEditor
-            initialRows={buildAdminVariationRows(
-              product?.variations,
-              product?.variationStock
-            )}
+          <ProductImageUploader
+            existingImageUrls={product?.imageUrls ?? []}
+            variationImages={product?.variationImages ?? []}
+            variationStock={product?.variationStock ?? []}
+            variations={product?.variations ?? ["Padrão"]}
           />
-          <ProductImageUploader existingImageUrls={product?.imageUrls ?? []} />
           <label className={cx(globalStyles, "span-all")}>
             <span>Notas</span>
             <textarea defaultValue={product?.notes ?? ""} name="notes" rows={4} />

@@ -80,6 +80,21 @@ export function getProductVariationImageIndex(product, variation) {
     return 0;
   }
 
+  const normalizedVariation = normalizeVariationImageToken(variation);
+  const explicitGroup = Array.isArray(product?.variationImages)
+    ? product.variationImages.find(
+        (group) => normalizeVariationImageToken(group?.variation) === normalizedVariation
+      )
+    : null;
+  const explicitImage = Array.isArray(explicitGroup?.imageUrls)
+    ? explicitGroup.imageUrls.find((imageUrl) => images.includes(imageUrl))
+    : null;
+  const explicitImageIndex = explicitImage ? images.indexOf(explicitImage) : -1;
+
+  if (explicitImageIndex >= 0) {
+    return explicitImageIndex;
+  }
+
   const tokens = getVariationSearchTokens(variation);
   const matchedImageIndex = images.findIndex((imageUrl) => {
     const imageSearchValue = getImageSearchValue(imageUrl);
@@ -91,7 +106,6 @@ export function getProductVariationImageIndex(product, variation) {
     return matchedImageIndex;
   }
 
-  const normalizedVariation = normalizeVariationImageToken(variation);
   const variationIndex = variations.findIndex(
     (candidate) => normalizeVariationImageToken(candidate) === normalizedVariation
   );

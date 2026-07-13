@@ -1,4 +1,5 @@
 import { getProductImageVariants } from "./image-variants.js";
+import { getProductVariationImageIndex } from "./variation-images.js";
 
 const featuredProductIds = [
   "escapamento-sc-project-completo",
@@ -76,11 +77,10 @@ export function getProductVisualImage(product, size = "card") {
 
 export function getProductVariationImage(product, variation, size = "card") {
   const images = getProductImages(product);
-  const variations = Array.isArray(product?.variations) ? product.variations : [];
   let cover = images[0];
 
-  if (variation && images.length > 1 && images.length === variations.length) {
-    const index = variations.indexOf(variation);
+  if (variation && images.length > 1) {
+    const index = getProductVariationImageIndex(product, variation);
 
     if (index >= 0) {
       cover = images[index];

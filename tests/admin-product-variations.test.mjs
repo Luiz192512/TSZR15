@@ -1,28 +1,28 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  buildAdminVariationRows,
-  collectAdminVariationInventory,
-} from "../src/admin/catalog-variations.js";
+import { collectAdminVariationInventory } from "../src/admin/catalog-variations.js";
 
-function variationFormData(entries) {
+function variationCardsFormData(cards) {
   const formData = new FormData();
-
-  for (const entry of entries) {
-    formData.append("variationName", entry.name);
-    formData.append("variationQuantity", entry.quantity ?? "");
-  }
-
+  formData.set("variationCards", JSON.stringify(cards));
   return formData;
 }
 
-test("unified variation inventory creates variations and stock in the same order", () => {
+test("variation cards keep names, stock and image tokens in the same order", () => {
   const inventory = collectAdminVariationInventory(
-    variationFormData([
-      { name: "  Preto  ", quantity: "3" },
-      { name: "Fume", quantity: "0" },
-      { name: "Padrao", quantity: "" },
+    variationCardsFormData([
+      {
+        imageTokens: ["/img/preto.webp", "new:0"],
+        quantity: "3",
+        variation: "  Preto  ",
+      },
+      {
+        imageTokens: ["/img/fume.webp"],
+        quantity: "0",
+        variation: "Fume",
+      },
+      { imageTokens: [], quantity: "", variation: "Padrao" },
     ]),
   );
 
@@ -32,53 +32,43 @@ test("unified variation inventory creates variations and stock in the same order
       { quantity: 0, variation: "Fumê" },
       { quantity: null, variation: "Padrão" },
     ],
+    variationImageTokens: [
+      {
+        imageTokens: ["/img/preto.webp", "new:0"],
+        variation: "Preto",
+      },
+      { imageTokens: ["/img/fume.webp"], variation: "Fumê" },
+      { imageTokens: [], variation: "Padrão" },
+    ],
     variations: ["Preto", "Fumê", "Padrão"],
   });
 });
 
-test("unified variation inventory rejects duplicate normalized names", () => {
+test("variation cards reject duplicate normalized names", () => {
   assert.throws(
     () =>
       collectAdminVariationInventory(
-        variationFormData([
-          { name: "Fumê", quantity: "2" },
-          { name: "fume", quantity: "2" },
+        variationCardsFormData([
+          { imageTokens: [], quantity: "2", variation: "Fumê" },
+          { imageTokens: [], quantity: "2", variation: "fume" },
         ]),
       ),
     /variação Fumê foi informada mais de uma vez/i,
   );
 });
 
-test("unified variation inventory rejects invalid quantities and empty products", () => {
+test("variation cards reject invalid quantities and empty products", () => {
   assert.throws(
     () =>
       collectAdminVariationInventory(
-        variationFormData([{ name: "Preto", quantity: "2,5" }]),
+        variationCardsFormData([
+          { imageTokens: [], quantity: "2,5", variation: "Preto" },
+        ]),
       ),
     /estoque inválido para a variação Preto/i,
   );
   assert.throws(
-    () => collectAdminVariationInventory(variationFormData([])),
+    () => collectAdminVariationInventory(variationCardsFormData([])),
     /informe pelo menos uma variação/i,
   );
-});
-
-test("admin variation rows join each product variation with its stock", () => {
-  assert.deepEqual(
-    buildAdminVariationRows(
-      ["Preto", "Fume", "Padrao"],
-      [
-        { quantity: 4, variation: "Preto" },
-        { quantity: 0, variation: "Fume" },
-      ],
-    ),
-    [
-      { name: "Preto", quantity: "4" },
-      { name: "Fumê", quantity: "0" },
-      { name: "Padrão", quantity: "" },
-    ],
-  );
-  assert.deepEqual(buildAdminVariationRows([], []), [
-    { name: "Padrão", quantity: "" },
-  ]);
 });
