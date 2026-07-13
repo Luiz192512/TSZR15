@@ -1,10 +1,10 @@
-import worker from "./worker.js";
+import worker from "../.open-next/worker.js";
 
 export {
   BucketCachePurge,
   DOQueueHandler,
   DOShardedTagCache,
-} from "./worker.js";
+} from "../.open-next/worker.js";
 
 function serializeError(error) {
   if (!(error instanceof Error)) {
