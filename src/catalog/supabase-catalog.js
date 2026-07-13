@@ -1,9 +1,10 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 
+import { STOREFRONT_CATALOG_CACHE_TAG } from "./cache-constants.js";
 import { toPublicCatalogProduct } from "./index.js";
-import { attachVariationStock, readCatalogVariationStock } from "./stock.js";
 import { readCatalogProductsFromSupabase } from "./supabase-catalog-core.js";
 export {
   buildCatalogCategoryRows,
@@ -44,22 +45,7 @@ export async function getSupabaseCatalogProducts({ supabase } = {}) {
     };
   }
 
-  const catalog = await readCatalogProductsFromSupabase(client);
-
-  if (catalog.error || catalog.products.length === 0) {
-    return catalog;
-  }
-
-  const stock = await readCatalogVariationStock(
-    client,
-    catalog.products.map((product) => product.id)
-  );
-
-  return {
-    ...catalog,
-    products: attachVariationStock(catalog.products, stock.rows),
-    stockError: stock.error
-  };
+  return readCatalogProductsFromSupabase(client);
 }
 
 export async function getPublicCatalogProductsForStorefront(options = {}) {
@@ -70,4 +56,25 @@ export async function getPublicCatalogProductsForStorefront(options = {}) {
     products: products.map(toPublicCatalogProduct),
     source
   };
+}
+
+const readCachedPublicStorefrontCatalog = unstable_cache(
+  async () => {
+    const catalog = await getPublicCatalogProductsForStorefront();
+
+    if (catalog.error) {
+      throw new Error(catalog.error.message ?? "Nao foi possivel carregar o catalogo.");
+    }
+
+    return catalog;
+  },
+  [STOREFRONT_CATALOG_CACHE_TAG],
+  {
+    revalidate: 3600,
+    tags: [STOREFRONT_CATALOG_CACHE_TAG]
+  }
+);
+
+export function getCachedPublicCatalogProductsForStorefront() {
+  return readCachedPublicStorefrontCatalog();
 }

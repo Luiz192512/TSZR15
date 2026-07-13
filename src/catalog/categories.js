@@ -26,3 +26,9 @@ export const technicalFamilies = [
 export const storefrontCategoryMap = new Map(
   storefrontCategories.map((category) => [category.id, category])
 );
+
+export function formatCategoryLabels(categoryIds = []) {
+  return categoryIds.map(
+    (categoryId) => storefrontCategoryMap.get(categoryId)?.label ?? categoryId
+  );
+}

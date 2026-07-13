@@ -11,6 +11,7 @@ import {
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
 import { isAdminTokenConfigured, startAdminSession } from "@/src/admin/admin-auth.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
+import { getCustomerPasswordError } from "@/src/auth/password-policy.js";
 
 import {
   buildPasswordResetRedirectUrl,
@@ -412,9 +413,10 @@ export async function signUpAction(formData) {
 
   const email = formValue(formData, "email");
   const password = formValue(formData, "password");
+  const passwordError = getCustomerPasswordError(password);
 
-  if (password.length < 6) {
-    redirectWithError("/cadastrar", "Use uma senha com pelo menos 6 caracteres.");
+  if (passwordError) {
+    redirectWithError("/cadastrar", passwordError);
   }
 
   const confirmedAccount = await createConfirmedCustomerAccount({
@@ -667,9 +669,10 @@ export async function updatePasswordAction(formData) {
 
   const password = formValue(formData, "password");
   const passwordConfirmation = formValue(formData, "passwordConfirmation");
+  const passwordError = getCustomerPasswordError(password);
 
-  if (password.length < 6) {
-    redirectWithError("/trocar-senha", "Use uma senha com pelo menos 6 caracteres.");
+  if (passwordError) {
+    redirectWithError("/trocar-senha", passwordError);
   }
 
   if (password !== passwordConfirmation) {

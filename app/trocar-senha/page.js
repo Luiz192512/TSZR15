@@ -3,6 +3,11 @@ import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { updatePasswordAction } from "@/app/auth/actions.js";
+import {
+  CUSTOMER_PASSWORD_PATTERN,
+  CUSTOMER_PASSWORD_REQUIREMENTS_MESSAGE,
+  MIN_CUSTOMER_PASSWORD_LENGTH
+} from "@/src/auth/password-policy.js";
 import { PasswordInput } from "@/src/components/form/password-input.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
@@ -36,23 +41,27 @@ export default async function ChangePasswordPage({ searchParams }) {
           <p className={cx(globalStyles, "section-label")}>Trocar senha</p>
           <h1>Defina uma nova senha para sua conta.</h1>
           <p className={cx(globalStyles, "helper-text")}>
-            Use uma senha com pelo menos 6 caracteres. Depois voce entra novamente.
+            {CUSTOMER_PASSWORD_REQUIREMENTS_MESSAGE} Depois voce entra novamente.
           </p>
 
           {message ? <p className={cx(globalStyles, "form-alert")}>{message}</p> : null}
 
           <PasswordInput
             autoComplete="new-password"
+            hint={CUSTOMER_PASSWORD_REQUIREMENTS_MESSAGE}
             label="Nova senha"
-            minLength={6}
+            minLength={MIN_CUSTOMER_PASSWORD_LENGTH}
             name="password"
+            pattern={CUSTOMER_PASSWORD_PATTERN}
             required
           />
           <PasswordInput
             autoComplete="new-password"
+            hint={CUSTOMER_PASSWORD_REQUIREMENTS_MESSAGE}
             label="Confirmar senha"
-            minLength={6}
+            minLength={MIN_CUSTOMER_PASSWORD_LENGTH}
             name="passwordConfirmation"
+            pattern={CUSTOMER_PASSWORD_PATTERN}
             required
           />
 

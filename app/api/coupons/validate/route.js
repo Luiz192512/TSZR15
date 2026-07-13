@@ -4,7 +4,12 @@ import {
   normalizeCheckoutCartItems
 } from "@/src/checkout/order-backend.js";
 import { calculateCartTotals } from "@/src/checkout/whatsapp.js";
-import { resolveCheckoutCoupon } from "@/src/checkout/coupons.js";
+import {
+  getCouponRateLimitIdentifiers,
+  normalizeCouponCode,
+  resolveCheckoutCoupon,
+  toPublicCheckoutCoupon
+} from "@/src/checkout/coupons.js";
 import { logServerEvent } from "@/src/lib/logger.js";
 import { consumeRateLimit, getRequestIp, rateLimitProfiles } from "@/src/lib/rate-limit.js";
 import { createRateLimitResponse } from "@/src/lib/rate-limit-response.js";
@@ -20,14 +25,6 @@ function errorResponse(message, status, details = []) {
   );
 }
 
-function normalizeCouponIdentifier(couponCode) {
-  return String(couponCode ?? "")
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9_-]/g, "")
-    .slice(0, 40);
-}
-
 export async function POST(request) {
   let payload;
 
@@ -41,11 +38,23 @@ export async function POST(request) {
   }
 
   const supabase = createServiceRoleSupabaseClient();
-  const rateLimit = await consumeRateLimit({
-    ...rateLimitProfiles.coupon,
-    identifier: `${getRequestIp(request)}:${normalizeCouponIdentifier(payload?.couponCode) || "empty"}`,
-    supabase
+  const identifiers = getCouponRateLimitIdentifiers({
+    couponCode: payload?.couponCode,
+    ip: getRequestIp(request)
   });
+  const [globalRateLimit, codeRateLimit] = await Promise.all([
+    consumeRateLimit({
+      ...rateLimitProfiles.couponGlobal,
+      identifier: identifiers.global,
+      supabase
+    }),
+    consumeRateLimit({
+      ...rateLimitProfiles.coupon,
+      identifier: identifiers.code,
+      supabase
+    })
+  ]);
+  const rateLimit = !globalRateLimit.allowed ? globalRateLimit : codeRateLimit;
 
   if (!rateLimit.allowed) {
     logServerEvent("warn", "coupon_rate_limit_blocked", {
@@ -76,12 +85,12 @@ export async function POST(request) {
     });
 
     logServerEvent(coupon ? "info" : "warn", coupon ? "coupon_applied" : "coupon_invalid", {
-      code: coupon?.code ?? normalizeCouponIdentifier(payload?.couponCode),
+      code: coupon?.code ?? normalizeCouponCode(payload?.couponCode),
       discountCents: coupon?.discountCents ?? 0
     });
 
     return Response.json({
-      coupon,
+      coupon: toPublicCheckoutCoupon(coupon),
       totals: {
         currency: "BRL",
         discountCents: totals.discountCents,

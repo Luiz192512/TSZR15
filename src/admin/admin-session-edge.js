@@ -1,7 +1,8 @@
 import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_MAX_AGE_SECONDS,
-  ADMIN_SESSION_VERSION
+  ADMIN_SESSION_VERSION,
+  ADMIN_TOKEN_MIN_LENGTH
 } from "./admin-session-constants.js";
 
 export { ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_SECONDS };
@@ -12,8 +13,8 @@ function getConfiguredAdminToken() {
   return process.env.TSZR15_ADMIN_TOKEN ?? "";
 }
 
-function isAdminTokenValueConfigured(token = getConfiguredAdminToken()) {
-  return token.length >= 12;
+export function isAdminTokenValueConfiguredAtEdge(token = getConfiguredAdminToken()) {
+  return token.length >= ADMIN_TOKEN_MIN_LENGTH;
 }
 
 function parseAdminSessionValue(sessionValue) {
@@ -74,7 +75,7 @@ export async function isAdminSessionValueValidAtEdge(
   sessionValue,
   { now = Date.now(), token = getConfiguredAdminToken() } = {}
 ) {
-  if (!isAdminTokenValueConfigured(token)) {
+  if (!isAdminTokenValueConfiguredAtEdge(token)) {
     return false;
   }
 
@@ -104,6 +105,6 @@ export function getAdminSessionCookieOptions({ maxAge = ADMIN_SESSION_MAX_AGE_SE
     maxAge,
     path: "/admin",
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production"
+    secure: true
   };
 }

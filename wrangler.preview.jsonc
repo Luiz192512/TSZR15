@@ -2,7 +2,7 @@
   // Worker de STAGING para revisar branches sem tocar na producao.
   // Deploy: npx wrangler deploy --config wrangler.preview.jsonc
   // URL: https://tsz-store-preview.enz-luizgustavo.workers.dev
-  // Compartilha KV/D1 com a producao (chaves de cache incluem o buildId,
+  // Compartilha KV com a producao (chaves de cache incluem o buildId,
   // entao nao colidem); o Durable Object e o self-reference sao proprios.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tsz-store-preview",
@@ -18,13 +18,10 @@
     {
       "binding": "NEXT_INC_CACHE_KV",
       "id": "a12d6d53e59948a888bc62e5a30de08e"
-    }
-  ],
-  "d1_databases": [
+    },
     {
-      "binding": "NEXT_TAG_CACHE_D1",
-      "database_name": "tsz-store-tag-cache",
-      "database_id": "684bc810-ece7-46c3-8774-501cd5945197"
+      "binding": "NEXT_TAG_CACHE_KV",
+      "id": "a12d6d53e59948a888bc62e5a30de08e"
     }
   ],
   "durable_objects": {

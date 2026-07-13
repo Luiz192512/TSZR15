@@ -5,6 +5,7 @@ import { redactSensitive } from "../src/lib/logger.js";
 import {
   clearLocalRateLimitStore,
   consumeRateLimit,
+  getRequestIp,
   hashRateLimitIdentifier,
   rateLimitProfiles
 } from "../src/lib/rate-limit.js";
@@ -31,6 +32,29 @@ test("rate limit permite requisicoes dentro da janela e bloqueia acima do limite
   assert.equal(second.allowed, true);
   assert.equal(third.allowed, false);
   assert.equal(third.retryAfterSeconds, 30);
+});
+
+test("IP do rate limit usa apenas headers confiaveis da Cloudflare", () => {
+  assert.equal(
+    getRequestIp(
+      new Headers({
+        "cf-connecting-ip": "203.0.113.10",
+        "true-client-ip": "203.0.113.11",
+        "x-forwarded-for": "198.51.100.200"
+      })
+    ),
+    "203.0.113.10"
+  );
+  assert.equal(
+    getRequestIp(
+      new Headers({
+        "true-client-ip": "203.0.113.11",
+        "x-forwarded-for": "198.51.100.200"
+      })
+    ),
+    "203.0.113.11"
+  );
+  assert.equal(getRequestIp(new Headers({ "x-forwarded-for": "198.51.100.200" })), "unknown");
 });
 
 test("rate limit separa chaves por rota, IP e cupom", async () => {

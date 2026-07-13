@@ -18,6 +18,7 @@ import {
 } from "@/src/admin/order-admin.js";
 import { moderateOrderReview } from "@/src/reviews/order-reviews.js";
 import { revalidateCatalogPaths } from "@/src/catalog/revalidation.js";
+import { isSameOriginRequest } from "@/src/security/origin.js";
 
 function formValue(formData, key) {
   return String(formData.get(key) ?? "").trim();
@@ -30,22 +31,12 @@ function redirectWithError(path, message) {
 
 async function isSameOriginAdminRequest() {
   const headerStore = await headers();
-  const origin = headerStore.get("origin");
-  const host = headerStore.get("host");
 
-  if (!origin || !host) {
-    return true;
-  }
-
-  try {
-    return new URL(origin).host === host;
-  } catch {
-    return false;
-  }
+  return isSameOriginRequest(headerStore);
 }
 
 export async function adminSignOutAction() {
-  if (!(await isSameOriginAdminRequest())) {
+  if (!(await isAdminSessionValid()) || !(await isSameOriginAdminRequest())) {
     redirect("/entrar?next=/admin");
   }
 

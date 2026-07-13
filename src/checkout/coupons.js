@@ -8,6 +8,29 @@ export function normalizeCouponCode(value) {
     .slice(0, 40);
 }
 
+export function getCouponRateLimitIdentifiers({ couponCode, ip }) {
+  const normalizedIp = String(ip ?? "unknown").trim() || "unknown";
+  const normalizedCode = normalizeCouponCode(couponCode) || "empty";
+
+  return {
+    code: `${normalizedIp}:${normalizedCode}`,
+    global: normalizedIp
+  };
+}
+
+export function toPublicCheckoutCoupon(coupon) {
+  if (!coupon) {
+    return null;
+  }
+
+  return {
+    code: coupon.code,
+    discountCents: coupon.discountCents,
+    discountPercent: coupon.discountPercent,
+    discountType: coupon.discountType
+  };
+}
+
 function cents(value) {
   return Number.isInteger(value) && value > 0 ? value : 0;
 }

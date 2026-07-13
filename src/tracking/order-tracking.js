@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
+import { contactMatchesOrder } from "@/src/customer/order-contact.js";
 import {
   customerTrackingSteps,
   getStatusLabel,
@@ -12,36 +13,6 @@ function cleanString(value, maxLength = 200) {
   return String(value ?? "")
     .trim()
     .slice(0, maxLength);
-}
-
-function digitsOnly(value) {
-  return cleanString(value, 120).replace(/\D/g, "");
-}
-
-function contactMatchesOrder(order, contact) {
-  const submitted = digitsOnly(contact);
-
-  if (submitted.length < 8) {
-    return false;
-  }
-
-  const knownValues = [
-    order.customer_whatsapp,
-    order.customer_phone,
-    order.customer_tax_id,
-    order.customer_snapshot?.whatsapp,
-    order.customer_snapshot?.phone,
-    order.customer_snapshot?.taxId
-  ]
-    .map(digitsOnly)
-    .filter((value) => value.length >= 8);
-
-  return knownValues.some(
-    (known) =>
-      known === submitted ||
-      (known.length >= 8 && submitted.endsWith(known)) ||
-      (submitted.length >= 8 && known.endsWith(submitted))
-  );
 }
 
 function buildPublicTimeline(order, trackingEvents) {

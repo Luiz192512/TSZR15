@@ -17,7 +17,7 @@ import {
 import { isAdminSessionValid, isAdminTokenConfigured } from "@/src/admin/admin-auth.js";
 import { getAdminCatalogState } from "@/src/admin/catalog-admin.js";
 import { getAdminDashboardState } from "@/src/admin/order-admin.js";
-import { formatCategoryLabels } from "@/src/catalog/index.js";
+import { formatCategoryLabels } from "@/src/catalog/categories.js";
 import { getPublicSupabaseConfig } from "@/src/lib/supabase/config.js";
 import {
   getEffectiveInternalOrderStatus,
@@ -86,11 +86,21 @@ function getNewProductCount(params) {
   return Number.isInteger(count) && count > 0 ? Math.min(count, 12) : 0;
 }
 
-function buildAddProductHref({ newProductCount = 0, selectedProductId = "" } = {}) {
+function getAdminPage(params, key) {
+  const page = Number.parseInt(String(params?.[key] ?? ""), 10);
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function buildAddProductHref({
+  newProductCount = 0,
+  productPage = 1,
+  selectedProductId = ""
+} = {}) {
   const currentDraftCount = selectedProductId ? newProductCount : Math.max(newProductCount, 1);
   const nextDraftCount = Math.min(currentDraftCount + 1, 12);
+  const pageQuery = productPage > 1 ? `&paginaProdutos=${productPage}` : "";
 
-  return `/admin?tab=produtos&novosProdutos=${nextDraftCount}`;
+  return `/admin?tab=produtos&novosProdutos=${nextDraftCount}${pageQuery}`;
 }
 
 function getMessage(params) {
@@ -954,12 +964,36 @@ function AdminAnalytics({ analytics, pendingReviews = [] }) {
   );
 }
 
-function ProductList({ newProductCount, products, selectedProductId }) {
+function AdminListPagination({ page, pageCount, pageParam, tab }) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  return (
+    <nav aria-label={`Páginas de ${tab}`} className={cx(globalStyles, "admin-list-pagination")}>
+      {page > 1 ? (
+        <Link href={`/admin?tab=${tab}&${pageParam}=${page - 1}`}>Anterior</Link>
+      ) : (
+        <span aria-disabled="true">Anterior</span>
+      )}
+      <strong>
+        {page} / {pageCount}
+      </strong>
+      {page < pageCount ? (
+        <Link href={`/admin?tab=${tab}&${pageParam}=${page + 1}`}>Próxima</Link>
+      ) : (
+        <span aria-disabled="true">Próxima</span>
+      )}
+    </nav>
+  );
+}
+
+function ProductList({ newProductCount, pagination, products, selectedProductId }) {
   return (
     <aside className={cx(globalStyles, "admin-list-panel")}>
       <div className={cx(globalStyles, "admin-panel-heading")}>
         <p className={cx(globalStyles, "section-label")}>Catalogo</p>
-        <strong>{products.length} produtos</strong>
+        <strong>{pagination.total} produtos</strong>
       </div>
 
       <div className={cx(globalStyles, "admin-product-list")}>
@@ -968,7 +1002,11 @@ function ProductList({ newProductCount, products, selectedProductId }) {
             globalStyles,
             `admin-product-link ${!selectedProductId ? "is-active" : ""}`
           )}
-          href={buildAddProductHref({ newProductCount, selectedProductId })}
+          href={buildAddProductHref({
+            newProductCount,
+            productPage: pagination.page,
+            selectedProductId
+          })}
         >
           <span>
             <strong>Adicionar produto</strong>
@@ -983,7 +1021,7 @@ function ProductList({ newProductCount, products, selectedProductId }) {
               globalStyles,
               `admin-product-link ${selectedProductId === product.id ? "is-active" : ""}`
             )}
-            href={`/admin?tab=produtos&produto=${encodeURIComponent(product.id)}`}
+            href={`/admin?tab=produtos&paginaProdutos=${pagination.page}&produto=${encodeURIComponent(product.id)}`}
             key={product.id}
           >
             <span>
@@ -999,6 +1037,12 @@ function ProductList({ newProductCount, products, selectedProductId }) {
           </Link>
         ))}
       </div>
+      <AdminListPagination
+        page={pagination.page}
+        pageCount={pagination.pageCount}
+        pageParam="paginaProdutos"
+        tab="produtos"
+      />
     </aside>
   );
 }
@@ -1192,12 +1236,12 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
   );
 }
 
-function CouponList({ coupons, selectedCouponCode }) {
+function CouponList({ coupons, pagination, selectedCouponCode }) {
   return (
     <aside className={cx(globalStyles, "admin-list-panel")}>
       <div className={cx(globalStyles, "admin-panel-heading")}>
         <p className={cx(globalStyles, "section-label")}>Promocoes</p>
-        <strong>{coupons.length} cupons</strong>
+        <strong>{pagination.total} cupons</strong>
       </div>
 
       <div className={cx(globalStyles, "admin-product-list")}>
@@ -1221,7 +1265,7 @@ function CouponList({ coupons, selectedCouponCode }) {
               globalStyles,
               `admin-product-link ${selectedCouponCode === coupon.code ? "is-active" : ""}`
             )}
-            href={`/admin?tab=cupons&cupom=${encodeURIComponent(coupon.code)}`}
+            href={`/admin?tab=cupons&paginaCupons=${pagination.page}&cupom=${encodeURIComponent(coupon.code)}`}
             key={coupon.id}
           >
             <span>
@@ -1238,6 +1282,12 @@ function CouponList({ coupons, selectedCouponCode }) {
           </Link>
         ))}
       </div>
+      <AdminListPagination
+        page={pagination.page}
+        pageCount={pagination.pageCount}
+        pageParam="paginaCupons"
+        tab="cupons"
+      />
     </aside>
   );
 }
@@ -1429,14 +1479,25 @@ function AdminCoupons({ selectedCouponCode, state }) {
 
   return (
     <section className={cx(globalStyles, "admin-shell admin-products-shell")}>
-      <CouponList coupons={state.coupons} selectedCouponCode={selectedCouponCode} />
+      <CouponList
+        coupons={state.coupons}
+        pagination={state.pagination.coupons}
+        selectedCouponCode={selectedCouponCode}
+      />
 
       <div className={cx(globalStyles, "admin-detail-panel admin-product-panel")}>
         <CouponForm
           categories={state.categories}
           coupon={selectedCoupon}
-          products={state.products}
+          products={state.couponProductOptions}
         />
+
+        {state.couponProductOptionsTruncated ? (
+          <p className={cx(globalStyles, "helper-text")}>
+            A seleção exibe os primeiros 500 produtos por nome. Use categorias para regras mais
+            amplas.
+          </p>
+        ) : null}
 
         {selectedCoupon ? (
           <form
@@ -1464,6 +1525,7 @@ function AdminProducts({ newProductCount, selectedProductId, state }) {
     <section className={cx(globalStyles, "admin-shell admin-products-shell")}>
       <ProductList
         newProductCount={newProductCount}
+        pagination={state.pagination.products}
         products={state.products}
         selectedProductId={selectedProductId}
       />
@@ -1528,6 +1590,8 @@ export default async function AdminPage({ searchParams }) {
   const message = getMessage(params);
   const activeTab = getActiveAdminTab(params);
   const newProductCount = getNewProductCount(params);
+  const productPage = getAdminPage(params, "paginaProdutos");
+  const couponPage = getAdminPage(params, "paginaCupons");
 
   if (!isAdminTokenConfigured()) {
     redirect("/entrar?next=/admin");
@@ -1542,7 +1606,12 @@ export default async function AdminPage({ searchParams }) {
   try {
     state =
       activeTab === "produtos" || activeTab === "cupons"
-        ? await getAdminCatalogState()
+        ? await getAdminCatalogState({
+            couponPage,
+            productPage,
+            selectedCouponCode: params?.cupom ?? "",
+            selectedProductId: params?.produto ?? ""
+          })
         : await getAdminDashboardState({ selectedOrderNumber: params?.pedido });
   } catch (error) {
     return (
@@ -1577,6 +1646,7 @@ export default async function AdminPage({ searchParams }) {
               className={cx(globalStyles, "button button-primary")}
               href={buildAddProductHref({
                 newProductCount,
+                productPage,
                 selectedProductId: params?.produto ?? ""
               })}
             >

@@ -21,6 +21,48 @@ import { collectAdminVariationInventory } from "@/src/admin/catalog-variations.j
 const productImageBucket = "product-images";
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const maxImageBytes = 5 * 1024 * 1024;
+const adminProductPageSize = 24;
+const adminCouponPageSize = 30;
+const adminCouponProductOptionLimit = 500;
+const adminProductColumns = [
+  "id",
+  "slug",
+  "name",
+  "storefront_category_ids",
+  "product_family",
+  "bike_model_scope",
+  "price_cents",
+  "currency",
+  "variations",
+  "availability",
+  "lead_time_days",
+  "shipping_class",
+  "image_urls",
+  "notes",
+  "is_published",
+  "updated_at",
+  "created_at",
+  "catalog_product_costs(cost_cents)",
+  "catalog_variation_stock(variation,quantity)"
+].join(",");
+const adminCouponColumns = [
+  "id",
+  "code",
+  "description",
+  "discount_type",
+  "discount_percent",
+  "discount_cents",
+  "minimum_subtotal_cents",
+  "applies_to_product_ids",
+  "applies_to_category_ids",
+  "starts_at",
+  "expires_at",
+  "max_redemptions",
+  "redemption_count",
+  "is_active",
+  "updated_at",
+  "created_at"
+].join(",");
 
 function cleanString(value, maxLength = 500) {
   return String(value ?? "")
@@ -41,6 +83,31 @@ function parseInteger(value, fallback = 0) {
   const numeric = Number.parseInt(cleanString(value, 20), 10);
 
   return Number.isInteger(numeric) && numeric >= 0 ? numeric : fallback;
+}
+
+function normalizePage(value) {
+  const page = Number.parseInt(String(value ?? ""), 10);
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function getPageMetadata({ count, page, pageSize }) {
+  const total = Number.isInteger(count) ? count : 0;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  return {
+    page: Math.min(page, pageCount),
+    pageCount,
+    pageSize,
+    total
+  };
+}
+
+function mergeRowsByKey(rows, selectedRow, key) {
+  if (!selectedRow || rows.some((row) => row[key] === selectedRow[key])) {
+    return rows;
+  }
+
+  return [selectedRow, ...rows];
 }
 
 function splitList(value, { maxItems = 30, maxLength = 160 } = {}) {
@@ -78,7 +145,10 @@ function getSelectedCategoryIds(formData) {
 }
 
 function toAdminProduct(row) {
-  const costCents = row.cost_cents ?? row.catalog_product_costs?.cost_cents ?? null;
+  const joinedCost = Array.isArray(row.catalog_product_costs)
+    ? row.catalog_product_costs[0]
+    : row.catalog_product_costs;
+  const costCents = row.cost_cents ?? joinedCost?.cost_cents ?? null;
   const profitCents = Number.isInteger(costCents) ? row.price_cents - costCents : null;
 
   return {
@@ -97,7 +167,7 @@ function toAdminProduct(row) {
         : null,
     currency: row.currency ?? "BRL",
     variations: row.variations ?? [],
-    variationStock: row.variation_stock ?? [],
+    variationStock: row.variation_stock ?? row.catalog_variation_stock ?? [],
     availability: row.availability ?? "sob-consulta",
     leadTimeDays: row.lead_time_days ?? 2,
     shippingClass: row.shipping_class ?? "medium",
@@ -383,67 +453,160 @@ function collectCouponPayload(formData) {
   };
 }
 
-export async function getAdminCatalogState() {
+export async function getAdminCatalogState(options = {}) {
+  const {
+    couponPage: requestedCouponPage = 1,
+    productPage: requestedProductPage = 1,
+    selectedCouponCode = "",
+    selectedProductId = ""
+  } = options;
   const { isConfigured, supabase } = getAdminSupabaseStatus();
+  const couponPage = normalizePage(requestedCouponPage);
+  const productPage = normalizePage(requestedProductPage);
 
   if (!isConfigured) {
     return {
       categories: storefrontCategories,
+      couponProductOptions: [],
       coupons: [],
       families: technicalFamilies,
       isConfigured,
+      pagination: {
+        coupons: getPageMetadata({ count: 0, page: 1, pageSize: adminCouponPageSize }),
+        products: getPageMetadata({ count: 0, page: 1, pageSize: adminProductPageSize })
+      },
       products: []
     };
   }
 
+  const productFrom = (productPage - 1) * adminProductPageSize;
+  const couponFrom = (couponPage - 1) * adminCouponPageSize;
   const [
-    { data, error },
-    { data: costRows, error: costError },
-    { data: couponRows, error: couponError },
-    { data: stockRows, error: stockError }
+    { count: productCount, data: productRows, error: productError },
+    { count: couponCount, data: couponRows, error: couponError },
+    { count: couponProductOptionCount, data: couponProductOptionRows, error: optionError },
+    { data: selectedProductRow, error: selectedProductError },
+    { data: selectedCouponRow, error: selectedCouponError }
   ] = await Promise.all([
     supabase
       .from("catalog_products")
-      .select("*")
+      .select(adminProductColumns, { count: "exact" })
       .order("is_published", { ascending: false })
       .order("updated_at", { ascending: false })
-      .order("name", { ascending: true }),
-    supabase.from("catalog_product_costs").select("*"),
+      .order("name", { ascending: true })
+      .range(productFrom, productFrom + adminProductPageSize - 1),
     supabase
       .from("catalog_coupons")
-      .select("*")
+      .select(adminCouponColumns, { count: "exact" })
       .order("is_active", { ascending: false })
       .order("updated_at", { ascending: false })
-      .order("code", { ascending: true }),
-    supabase.from("catalog_variation_stock").select("product_id, variation, quantity")
+      .order("code", { ascending: true })
+      .range(couponFrom, couponFrom + adminCouponPageSize - 1),
+    supabase
+      .from("catalog_products")
+      .select("id,name", { count: "exact" })
+      .order("name", { ascending: true })
+      .range(0, adminCouponProductOptionLimit - 1),
+    selectedProductId
+      ? supabase
+          .from("catalog_products")
+          .select(adminProductColumns)
+          .eq("id", selectedProductId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    selectedCouponCode
+      ? supabase
+          .from("catalog_coupons")
+          .select(adminCouponColumns)
+          .eq("code", normalizeCouponCode(selectedCouponCode))
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null })
   ]);
 
-  const firstError = error ?? costError ?? couponError ?? stockError;
+  const firstError =
+    productError ??
+    couponError ??
+    optionError ??
+    selectedProductError ??
+    selectedCouponError;
 
   if (firstError) {
     throw new Error(firstError.message);
   }
 
-  const costsByProductId = new Map((costRows ?? []).map((row) => [row.product_id, row]));
-  const stockByProductId = new Map();
+  const productPagination = getPageMetadata({
+    count: productCount,
+    page: productPage,
+    pageSize: adminProductPageSize
+  });
+  const couponPagination = getPageMetadata({
+    count: couponCount,
+    page: couponPage,
+    pageSize: adminCouponPageSize
+  });
+  let pagedProductRows = productRows ?? [];
+  let pagedCouponRows = couponRows ?? [];
 
-  for (const stock of stockRows ?? []) {
-    const productStock = stockByProductId.get(stock.product_id) ?? [];
-    productStock.push({ quantity: stock.quantity, variation: stock.variation });
-    stockByProductId.set(stock.product_id, productStock);
+  if (productPagination.total > 0 && productPagination.page !== productPage) {
+    const correctedFrom = (productPagination.page - 1) * adminProductPageSize;
+    const { data: correctedRows, error: correctedError } = await supabase
+      .from("catalog_products")
+      .select(adminProductColumns)
+      .order("is_published", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .order("name", { ascending: true })
+      .range(correctedFrom, correctedFrom + adminProductPageSize - 1);
+
+    if (correctedError) {
+      throw new Error(correctedError.message);
+    }
+
+    pagedProductRows = correctedRows ?? [];
   }
-  const productRows = (data ?? []).map((row) => ({
-    ...row,
-    cost_cents: costsByProductId.get(row.id)?.cost_cents ?? null,
-    variation_stock: stockByProductId.get(row.id) ?? []
-  }));
+
+  if (couponPagination.total > 0 && couponPagination.page !== couponPage) {
+    const correctedFrom = (couponPagination.page - 1) * adminCouponPageSize;
+    const { data: correctedRows, error: correctedError } = await supabase
+      .from("catalog_coupons")
+      .select(adminCouponColumns)
+      .order("is_active", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .order("code", { ascending: true })
+      .range(correctedFrom, correctedFrom + adminCouponPageSize - 1);
+
+    if (correctedError) {
+      throw new Error(correctedError.message);
+    }
+
+    pagedCouponRows = correctedRows ?? [];
+  }
+
+  const visibleProductRows = mergeRowsByKey(pagedProductRows, selectedProductRow, "id");
+  const visibleCouponRows = mergeRowsByKey(pagedCouponRows, selectedCouponRow, "id");
+  const couponProductOptions = [...(couponProductOptionRows ?? [])];
+  const optionIds = new Set(couponProductOptions.map((product) => product.id));
+
+  for (const productId of selectedCouponRow?.applies_to_product_ids ?? []) {
+    if (!optionIds.has(productId)) {
+      couponProductOptions.push({ id: productId, name: productId });
+      optionIds.add(productId);
+    }
+  }
 
   return {
     categories: storefrontCategories,
-    coupons: (couponRows ?? []).map(toAdminCoupon),
+    couponProductOptions,
+    couponProductOptionsTruncated:
+      Number.isInteger(couponProductOptionCount) &&
+      couponProductOptionCount > adminCouponProductOptionLimit,
+    coupons: visibleCouponRows.map(toAdminCoupon),
     families: technicalFamilies,
     isConfigured,
-    products: productRows.map(toAdminProduct)
+    pagination: {
+      coupons: couponPagination,
+      products: productPagination
+    },
+    products: visibleProductRows.map(toAdminProduct)
   };
 }
 

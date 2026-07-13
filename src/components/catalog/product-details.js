@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { formatCategoryLabels } from "@/src/catalog/index.js";
+import { formatCategoryLabels } from "@/src/catalog/categories.js";
 import { getProductImageVariants } from "@/src/catalog/image-variants.js";
 import {
   getProductVariationImageIndex,

@@ -1,146 +1,91 @@
-﻿"use client";
-
 import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
 
-import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import {
   brandLogoSrc,
-  ChevronIcon,
-  getFeaturedProducts,
-  getProductFamilyLabel,
-  getProductHref,
-  getProductSummary,
   heroBoardSrc,
-  normalizeSearch,
-  ProductCard,
-  ProductVisual,
   StoreHeader
 } from "./catalog-shared.js";
-import { InfiniteProductRail } from "./infinite-product-rail.js";
-function CategoryRail({ activeCategory, categories, products, setActiveCategory }) {
+import { FeaturedProductCarousel } from "./featured-product-carousel.js";
+import { ProductCard } from "./product-card.js";
+
+function homeHref(filters, overrides = {}) {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams();
+
+  if (next.query) params.set("busca", next.query);
+  if (next.category && next.category !== "all") params.set("categoria", next.category);
+  if (Number(next.page) > 1) params.set("pagina", String(next.page));
+
+  const query = params.toString();
+  return query ? `/?${query}#produtos` : "/#produtos";
+}
+
+function CategoryRail({ catalogTotal, categories, filters }) {
   return (
     <nav className={cx(globalStyles, "category-strip")} aria-label="Categorias">
-      <button
+      <Link
+        aria-current={filters.category === "all" ? "page" : undefined}
         className={cx(
           globalStyles,
-          `category-token ${activeCategory === "all" ? "is-active" : ""}`
+          `category-token ${filters.category === "all" ? "is-active" : ""}`
         )}
-        onClick={() => startTransition(() => setActiveCategory("all"))}
-        type="button"
+        href={homeHref(filters, { category: "all", page: 1 })}
       >
-        <span>{products.length}</span>
+        <span>{catalogTotal}</span>
         Todos
-      </button>
+      </Link>
       {categories
         .filter((category) => category.productCount > 0)
         .map((category) => (
-          <button
+          <Link
+            aria-current={filters.category === category.id ? "page" : undefined}
             className={cx(
               globalStyles,
-              `category-token ${activeCategory === category.id ? "is-active" : ""}`
+              `category-token ${filters.category === category.id ? "is-active" : ""}`
             )}
+            href={homeHref(filters, { category: category.id, page: 1 })}
             key={category.id}
-            onClick={() => startTransition(() => setActiveCategory(category.id))}
-            type="button"
           >
             <span>{category.productCount}</span>
             {category.label}
-          </button>
+          </Link>
         ))}
     </nav>
   );
 }
 
-function FeaturedProductCarousel({ products }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const activeProduct = products[activeIndex] ?? products[0];
-
-  if (!activeProduct) {
-    return null;
-  }
-
-  function goToPrevious() {
-    setActiveIndex((currentIndex) => (currentIndex === 0 ? products.length - 1 : currentIndex - 1));
-  }
-
-  function goToNext() {
-    setActiveIndex((currentIndex) => (currentIndex === products.length - 1 ? 0 : currentIndex + 1));
-  }
+function HomePagination({ catalogPage, filters }) {
+  if (catalogPage.pageCount <= 1) return null;
 
   return (
-    <div className={cx(globalStyles, "featured-carousel")}>
-      <div className={cx(globalStyles, "featured-carousel-head")}>
-        <div>
-          <p className={cx(globalStyles, "section-label")}>Principais produtos</p>
-          <h2>
-            Tudo o que sua <span>R15</span> precisa.
-          </h2>
-        </div>
-        <div className={cx(globalStyles, "carousel-controls")} aria-label="Controles do carrossel">
-          <button aria-label="Produto anterior" onClick={goToPrevious} type="button">
-            <ChevronIcon direction="left" />
-          </button>
-          <button aria-label="Proximo produto" onClick={goToNext} type="button">
-            <ChevronIcon direction="right" />
-          </button>
-        </div>
-      </div>
-
-      <div className={cx(globalStyles, "featured-carousel-window")}>
-        <div className={cx(globalStyles, "featured-carousel-track")}>
-          <article className={cx(globalStyles, "featured-slide")} key={activeProduct.id}>
-            <ProductVisual product={activeProduct} size="feature" />
-            <div className={cx(globalStyles, "featured-slide-copy")}>
-              <span>{getProductFamilyLabel(activeProduct.productFamily)}</span>
-              <h3>{activeProduct.name}</h3>
-              <p>{getProductSummary(activeProduct)}</p>
-              <div className={cx(globalStyles, "featured-slide-footer")}>
-                <strong>{formatCurrency(activeProduct.priceCents)}</strong>
-                <Link
-                  className={cx(globalStyles, "button button-primary")}
-                  href={getProductHref(activeProduct)}
-                >
-                  Ver detalhes
-                </Link>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
-
-      <InfiniteProductRail products={products} />
-    </div>
+    <nav aria-label="Paginação dos produtos" className={cx(globalStyles, "catalog-pagination")}>
+      {catalogPage.page > 1 ? (
+        <Link href={homeHref(filters, { page: catalogPage.page - 1 })}>Anterior</Link>
+      ) : null}
+      <span>
+        Página {catalogPage.page} de {catalogPage.pageCount}
+      </span>
+      {catalogPage.page < catalogPage.pageCount ? (
+        <Link href={homeHref(filters, { page: catalogPage.page + 1 })}>Próxima</Link>
+      ) : null}
+    </nav>
   );
 }
 
-export function CatalogHub({ categories, currentUser, products }) {
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const normalizedQuery = normalizeSearch(deferredQuery);
-  const featuredProducts = useMemo(() => getFeaturedProducts(products), [products]);
-
-  const matchingProducts = products.filter((product) => {
-    const searchable = normalizeSearch(`${product.name} ${product.productFamily}`);
-    const matchesQuery = normalizedQuery.length === 0 || searchable.includes(normalizedQuery);
-
-    return matchesQuery;
-  });
-  const visibleProducts = matchingProducts.filter(
-    (product) => activeCategory === "all" || product.storefrontCategoryIds.includes(activeCategory)
-  );
-
-  function setSearchValue(value) {
-    startTransition(() => setQuery(value));
-  }
-
+export function CatalogHub({
+  catalogPage,
+  catalogTotal,
+  categories,
+  currentUser,
+  featuredProducts = [],
+  filters
+}) {
   return (
     <>
-      <StoreHeader currentUser={currentUser} onSearchChange={setSearchValue} query={query} />
+      <StoreHeader currentUser={currentUser} showSearch={false} />
 
       <section className={cx(globalStyles, "brand-hero")}>
         <div className={cx(globalStyles, "brand-hero-copy")}>
@@ -197,19 +142,41 @@ export function CatalogHub({ categories, currentUser, products }) {
             para montar o conjunto certo sem sair do foco R15.
           </p>
         </div>
-        <FeaturedProductCarousel products={featuredProducts} />
+        <FeaturedProductCarousel featuredProducts={featuredProducts} />
       </section>
 
-      <div id="produtos">
-        <CategoryRail
-          activeCategory={activeCategory}
-          categories={categories}
-          products={products}
-          setActiveCategory={setActiveCategory}
-        />
-      </div>
+      <section id="produtos">
+        <form
+          action="/#produtos"
+          className={cx(globalStyles, "storefront-server-search")}
+          method="get"
+        >
+          {filters.category !== "all" ? (
+            <input name="categoria" type="hidden" value={filters.category} />
+          ) : null}
+          <label className={cx(globalStyles, "store-search")} htmlFor="home-catalog-search">
+            <span>Buscar</span>
+            <input
+              defaultValue={filters.query}
+              id="home-catalog-search"
+              name="busca"
+              placeholder="Escapamentos, sliders, manetes..."
+            />
+          </label>
+          <button className={cx(globalStyles, "button button-primary")} type="submit">
+            Buscar
+          </button>
+          {filters.query ? (
+            <Link className={cx(globalStyles, "button button-secondary")} href="/#produtos">
+              Limpar
+            </Link>
+          ) : null}
+        </form>
 
-      {visibleProducts.length === 0 ? (
+        <CategoryRail catalogTotal={catalogTotal} categories={categories} filters={filters} />
+      </section>
+
+      {catalogPage.products.length === 0 ? (
         <div className={cx(globalStyles, "empty-state")}>
           <p className={cx(globalStyles, "empty-copy")}>
             Nenhum produto encontrado com esse filtro. Tente outro termo ou abra todos.
@@ -218,13 +185,14 @@ export function CatalogHub({ categories, currentUser, products }) {
       ) : (
         <section aria-label="Produtos TSZR15">
           <p className={cx(globalStyles, "hub-grid-count")}>
-            {visibleProducts.length} {visibleProducts.length === 1 ? "produto" : "produtos"}
+            {catalogPage.total} {catalogPage.total === 1 ? "produto" : "produtos"}
           </p>
           <div className={cx(globalStyles, "product-grid")}>
-            {visibleProducts.map((product) => (
+            {catalogPage.products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
+          <HomePagination catalogPage={catalogPage} filters={filters} />
         </section>
       )}
     </>

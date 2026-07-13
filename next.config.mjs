@@ -1,9 +1,11 @@
+import { securityHeaders } from "./src/security/headers.js";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Nenhuma rota usa next/og (ImageResponse); sem esta exclusão o tracing
   // arrasta ~1,4 MiB de WASM para o worker do Cloudflare (limite de 3 MiB).
   outputFileTracingExcludes: {
-    "*": ["node_modules/next/dist/compiled/@vercel/og/**"]
+    "*": ["node_modules/next/dist/compiled/@vercel/og/**"],
   },
   images: {
     // O otimizador /_next/image nao roda no worker do OpenNext/Cloudflare: ele
@@ -17,11 +19,19 @@ const nextConfig = {
       {
         hostname: "mckthvbwddxipghumrpw.supabase.co",
         pathname: "/storage/v1/object/public/**",
-        protocol: "https"
-      }
-    ]
+        protocol: "https",
+      },
+    ],
   },
-  reactStrictMode: true
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
+    ];
+  },
+  reactStrictMode: true,
 };
 
 export default nextConfig;

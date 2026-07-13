@@ -1,15 +1,15 @@
 import { defineCloudflareConfig } from "@opennextjs/cloudflare";
 import kvIncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cache/kv-incremental-cache";
 import doQueue from "@opennextjs/cloudflare/overrides/queue/do-queue";
-import d1NextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache";
+import kvNextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/kv-next-tag-cache";
 
 const config = defineCloudflareConfig({
   // ISR/prerender payloads (home, catálogo, produto) live in KV.
   incrementalCache: kvIncrementalCache,
-  // Time-based revalidation (revalidate: 60) is serialized through a Durable Object queue.
+  // Time-based revalidation (revalidate: 3600) is serialized through a Durable Object queue.
   queue: doQueue,
-  // revalidatePath()/revalidateTag() (used by /api/revalidate) need the D1 tag cache.
-  tagCache: d1NextTagCache,
+  // Tag invalidation shares the existing KV namespace, avoiding a D1 round trip.
+  tagCache: kvNextTagCache,
   enableCacheInterception: true,
 });
 

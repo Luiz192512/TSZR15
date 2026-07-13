@@ -3,6 +3,11 @@ import { cx } from "@/src/lib/classnames";
 import Link from "next/link";
 
 import { signUpAction } from "@/app/auth/actions.js";
+import {
+  CUSTOMER_PASSWORD_PATTERN,
+  CUSTOMER_PASSWORD_REQUIREMENTS_MESSAGE,
+  MIN_CUSTOMER_PASSWORD_LENGTH
+} from "@/src/auth/password-policy.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { PasswordInput } from "@/src/components/form/password-input.js";
 import { SanitizedInput } from "@/src/components/form/sanitized-input.js";
@@ -68,9 +73,11 @@ export default async function SignUpPage({ searchParams }) {
             </label>
             <PasswordInput
               autoComplete="new-password"
+              hint={CUSTOMER_PASSWORD_REQUIREMENTS_MESSAGE}
               label="Senha"
-              minLength={6}
+              minLength={MIN_CUSTOMER_PASSWORD_LENGTH}
               name="password"
+              pattern={CUSTOMER_PASSWORD_PATTERN}
               required
             />
           </div>

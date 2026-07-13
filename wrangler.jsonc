@@ -15,13 +15,10 @@
     {
       "binding": "NEXT_INC_CACHE_KV",
       "id": "a12d6d53e59948a888bc62e5a30de08e"
-    }
-  ],
-  "d1_databases": [
+    },
     {
-      "binding": "NEXT_TAG_CACHE_D1",
-      "database_name": "tsz-store-tag-cache",
-      "database_id": "684bc810-ece7-46c3-8774-501cd5945197"
+      "binding": "NEXT_TAG_CACHE_KV",
+      "id": "a12d6d53e59948a888bc62e5a30de08e"
     }
   ],
   "durable_objects": {

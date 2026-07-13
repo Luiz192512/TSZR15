@@ -1,4 +1,6 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+import { STOREFRONT_CATALOG_CACHE_TAG } from "./cache-constants.js";
 
 export function getCatalogRevalidationPaths(slugs = []) {
   return [
@@ -11,6 +13,7 @@ export function getCatalogRevalidationPaths(slugs = []) {
 }
 
 export function revalidateCatalogPaths(slugs = []) {
+  revalidateTag(STOREFRONT_CATALOG_CACHE_TAG, "max");
   revalidatePath("/");
   revalidatePath("/catalogo");
   revalidatePath("/api/catalog");

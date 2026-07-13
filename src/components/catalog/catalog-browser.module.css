@@ -296,3 +296,109 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+.serverFilters {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(160deg, var(--surf-2), var(--surf-1) 58%);
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.filterGrid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.filterGrid select {
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surf-1);
+  color: #fff;
+  padding: 0 12px;
+}
+
+.colorFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.colorFilters legend {
+  width: 100%;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.colorFilters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.colorFilters i {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.filterActions,
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination {
+  justify-content: center;
+  padding: 12px 0 24px;
+}
+
+.pagination a {
+  display: grid;
+  min-width: 40px;
+  min-height: 40px;
+  place-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.pagination .pageActive {
+  border-color: var(--red);
+  background: var(--red);
+}
+
+@media (max-width: 720px) {
+  .filterGrid {
+    grid-template-columns: 1fr;
+  }
+}

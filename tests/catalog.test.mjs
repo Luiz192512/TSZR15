@@ -21,6 +21,7 @@ import {
   readCatalogProductsFromSupabase,
   toCatalogProduct
 } from "../src/catalog/supabase-catalog-core.js";
+import { getProductVariationImage } from "../src/catalog/product-presentation.js";
 import { getProductVariationImageIndex } from "../src/catalog/variation-images.js";
 import {
   removeCartItem,
@@ -152,6 +153,7 @@ function createSupabaseCatalogStub({ data = [], error = null } = {}) {
           assert.match(columns, /\bimage_urls\b/);
           assert.match(columns, /\bvariation_images\b/);
           assert.match(columns, /\binternal_purchase_source\b/);
+          assert.match(columns, /catalog_variation_stock\s*\(\s*variation\s*,\s*quantity\s*\)/);
           return this;
         },
         eq(column, value) {
@@ -175,6 +177,10 @@ function buildCatalogRow(overrides = {}) {
     availability: "sob-consulta",
     bike_model_scope: ["yamaha-r15"],
     checkout_channel: "whatsapp-business",
+    catalog_variation_stock: [
+      { quantity: 3, variation: "Preto" },
+      { quantity: 0, variation: "Vermelho" }
+    ],
     currency: "BRL",
     id: "produto-supabase-teste",
     image_urls: ["https://cdn.example.com/produto.jpg"],
@@ -390,7 +396,7 @@ test("product variation image resolver falls back to variation order", () => {
   assert.equal(getProductVariationImageIndex(product, "Transparente"), 2);
 });
 
-test("product variation image resolver prefers explicit variation links", () => {
+test("product presentation honors explicit variation image links", () => {
   const product = {
     imageUrls: ["https://cdn.example.com/generic-a.webp", "https://cdn.example.com/generic-b.webp"],
     variationImages: [
@@ -408,6 +414,10 @@ test("product variation image resolver prefers explicit variation links", () => 
 
   assert.equal(getProductVariationImageIndex(product, "Preto"), 1);
   assert.equal(getProductVariationImageIndex(product, "Vermelho"), 0);
+  assert.equal(
+    getProductVariationImage(product, "Preto"),
+    "https://cdn.example.com/generic-b.webp"
+  );
 });
 
 test("configured Supabase catalog can return an empty storefront without local fallback", async () => {
@@ -439,6 +449,10 @@ test("Supabase storefront product maps rows and keeps internal sourcing private"
   assert.equal(product.name, "Produto Supabase Teste");
   assert.deepEqual(product.storefrontCategoryIds, ["suporte-sliders"]);
   assert.deepEqual(product.imageUrls, ["https://cdn.example.com/produto.jpg"]);
+  assert.deepEqual(product.variationStock, [
+    { quantity: 3, variation: "Preto" },
+    { quantity: 0, variation: "Vermelho" }
+  ]);
   assert.equal("internalPurchaseSource" in product, false);
 });
 
@@ -942,7 +956,7 @@ test("Supabase config prefers preview env names in preview runtime", () => {
 
 test("admin session values are signed, expiring and token-bound", async () => {
   const now = Date.UTC(2026, 4, 25, 12, 0, 0);
-  const token = "admin-token-com-mais-de-12";
+  const token = "admin-token-seguro-com-mais-de-32-caracteres";
   const sessionValue = createAdminSessionValue({ now, token });
 
   assert.equal(isAdminPasswordValid(token, token), true);
@@ -967,7 +981,7 @@ test("admin session values are signed, expiring and token-bound", async () => {
   assert.equal(
     isAdminSessionValueValid(sessionValue, {
       now: now + 1000,
-      token: "outro-token-com-mais-de-12"
+      token: "outro-token-seguro-com-mais-de-32-caracteres"
     }),
     false
   );
