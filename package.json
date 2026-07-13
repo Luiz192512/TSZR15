@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:cf": "opennextjs-cloudflare build",
+    "build:sites": "npm run build:cf && node scripts/prepare-sites-build.mjs",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "format": "prettier --write \"app/api/**/*.js\" \"app/auth/actions.js\" \"app/page.js\" \"app/catalogo/page.js\" \"app/pedido/page.js\" \"app/produto/[slug]/page.js\" \"src/components/catalog/*.js\" \"src/lib/*.js\" \"tests/rate-limit.test.mjs\" \"*.{json,mjs}\"",
