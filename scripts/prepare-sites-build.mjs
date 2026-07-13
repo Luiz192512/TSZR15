@@ -22,7 +22,10 @@ await rm(join(serverDir, "server-functions", "default", "src"), {
 
 await cp(assetsDir, join(distDir, "assets"), { recursive: true });
 await cp(assetsDir, join(distDir, "client"), { recursive: true });
-await cp(join(serverDir, "worker.js"), join(serverDir, "index.js"));
+await cp(
+  join(root, ".openai", "sites-worker.mjs"),
+  join(serverDir, "index.js"),
+);
 await cp(
   join(root, ".openai", "sites-wrangler.json"),
   join(serverDir, "wrangler.json"),
