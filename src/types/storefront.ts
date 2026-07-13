@@ -6,7 +6,13 @@ export interface Product {
   productFamily: string;
   slug: string;
   variations: string[];
+  variationImages?: VariationImages[];
   variationStock?: VariationStock[];
+}
+
+export interface VariationImages {
+  imageUrls: string[];
+  variation: string;
 }
 
 export interface VariationStock {

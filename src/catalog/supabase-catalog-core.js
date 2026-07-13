@@ -1,4 +1,15 @@
 export function toCatalogProduct(row) {
+  const variationImages = Array.isArray(row.variation_images)
+    ? row.variation_images
+        .map((group) => ({
+          imageUrls: Array.isArray(group?.image_urls)
+            ? group.image_urls.filter((url) => typeof url === "string" && url.trim())
+            : [],
+          variation: String(group?.variation ?? "").trim()
+        }))
+        .filter((group) => group.variation)
+    : [];
+
   return {
     id: row.id,
     slug: row.slug,
@@ -13,6 +24,7 @@ export function toCatalogProduct(row) {
     leadTimeDays: row.lead_time_days,
     shippingClass: row.shipping_class,
     imageUrls: row.image_urls ?? [],
+    variationImages,
     checkoutChannel: row.checkout_channel,
     internalPurchaseSource: row.internal_purchase_source ?? {},
     notes: row.notes ?? ""
@@ -33,6 +45,7 @@ const publicCatalogProductColumns = `
   lead_time_days,
   shipping_class,
   image_urls,
+  variation_images,
   checkout_channel,
   internal_purchase_source,
   notes

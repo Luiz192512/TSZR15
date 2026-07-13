@@ -1,0 +1,10 @@
+{
+  "name": "tszr15-sites-bundle",
+  "main": "sites-worker.mjs",
+  "compatibility_date": "2026-07-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "../.open-next/assets",
+    "binding": "ASSETS"
+  }
+}
