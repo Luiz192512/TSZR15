@@ -9,6 +9,7 @@ import styles from "./password-input.module.css";
 export function PasswordInput({
   className,
   hideLabel = "Ocultar senha",
+  hint,
   label = "Senha",
   showLabel = "Mostrar senha",
   ...props
@@ -33,6 +34,7 @@ export function PasswordInput({
           {isVisible ? "Ocultar" : "Mostrar"}
         </button>
       </span>
+      {hint ? <small>{hint}</small> : null}
     </label>
   );
 }

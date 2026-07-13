@@ -16,16 +16,18 @@ const siteUrl = "https://www.tszr15-store.com.br";
 
 export const dynamic = "force-static";
 export const dynamicParams = true;
-export const revalidate = 60;
+export const revalidate = 3600;
+
+const getCatalog = cache(() => getPublicCatalogProductsForStorefront());
 
 const getProductBySlug = cache(async (slug) => {
-  const catalog = await getPublicCatalogProductsForStorefront();
+  const catalog = await getCatalog();
 
   return catalog.products.find((item) => item.slug === slug) ?? null;
 });
 
 export async function generateStaticParams() {
-  const catalog = await getPublicCatalogProductsForStorefront();
+  const catalog = await getCatalog();
 
   return catalog.products.map((product) => ({ slug: product.slug }));
 }
@@ -84,7 +86,7 @@ export default async function ProductPage({ params }) {
   }
 
   const [catalog, reviewState] = await Promise.all([
-    getPublicCatalogProductsForStorefront(),
+    getCatalog(),
     getSafeReviewState(product.id)
   ]);
   const relatedProducts = catalog.products

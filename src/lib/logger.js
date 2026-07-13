@@ -1,60 +1,24 @@
-import pino from "pino";
-
 const censor = "[redacted]";
 const sensitiveKeyPattern =
   /authorization|cookie|token|password|email|phone|whatsapp|tax|cpf|cnpj|customer|payload|message|url/i;
 
-const redactPaths = [
-  "authorization",
-  "cookie",
-  "headers.authorization",
-  "headers.cookie",
-  "req.headers.authorization",
-  "req.headers.cookie",
-  "token",
-  "password",
-  "email",
-  "phone",
-  "phoneNumber",
-  "whatsapp",
-  "whatsappUrl",
-  "taxId",
-  "tax_id",
-  "cpf",
-  "cnpj",
-  "customer",
-  "payload",
-  "payload.customer",
-  "*.authorization",
-  "*.cookie",
-  "*.token",
-  "*.password",
-  "*.email",
-  "*.phone",
-  "*.phoneNumber",
-  "*.whatsapp",
-  "*.whatsappUrl",
-  "*.taxId",
-  "*.tax_id",
-  "*.cpf",
-  "*.cnpj",
-  "*.customer",
-  "*.payload"
-];
+const logLevels = Object.freeze({
+  trace: 10,
+  debug: 20,
+  info: 30,
+  warn: 40,
+  error: 50,
+  fatal: 60,
+});
 
-function createBaseLogger() {
-  return pino({
-    base: undefined,
-    level: process.env.LOG_LEVEL ?? "info",
-    redact: {
-      censor,
-      paths: redactPaths,
-      remove: false
-    }
-  });
-}
-
-export const logger = createBaseLogger();
+const consoleMethods = Object.freeze({
+  trace: "debug",
+  debug: "debug",
+  info: "info",
+  warn: "warn",
+  error: "error",
+  fatal: "error",
+});
 
 export function redactSensitive(value) {
   if (Array.isArray(value)) {
@@ -68,14 +32,74 @@ export function redactSensitive(value) {
   return Object.fromEntries(
     Object.entries(value).map(([key, entryValue]) => [
       key,
-      sensitiveKeyPattern.test(key) ? censor : redactSensitive(entryValue)
-    ])
+      sensitiveKeyPattern.test(key) ? censor : redactSensitive(entryValue),
+    ]),
   );
 }
 
+function shouldLog(level) {
+  const configuredLevel = Object.hasOwn(logLevels, process.env.LOG_LEVEL)
+    ? process.env.LOG_LEVEL
+    : "info";
+
+  return logLevels[level] >= logLevels[configuredLevel];
+}
+
+function normalizeLogArguments(input, message) {
+  if (typeof input === "string" && message === undefined) {
+    return { details: {}, message: input };
+  }
+
+  if (input instanceof Error) {
+    return {
+      details: {
+        err: {
+          message: input.message,
+          name: input.name,
+          stack: input.stack,
+        },
+      },
+      message,
+    };
+  }
+
+  return {
+    details: input && typeof input === "object" ? input : {},
+    message,
+  };
+}
+
+function writeLog(level, input, message) {
+  if (!shouldLog(level)) {
+    return;
+  }
+
+  const normalized = normalizeLogArguments(input, message);
+  const entry = {
+    ...redactSensitive(normalized.details),
+    level,
+    time: new Date().toISOString(),
+    ...(normalized.message ? { msg: normalized.message } : {}),
+  };
+  const method = consoleMethods[level] ?? "info";
+
+  console[method](JSON.stringify(entry));
+}
+
+export const logger = Object.freeze(
+  Object.fromEntries(
+    Object.keys(logLevels).map((level) => [
+      level,
+      (input, message) => writeLog(level, input, message),
+    ]),
+  ),
+);
+
 export function logServerEvent(level, event, details = {}) {
   const logMethod =
-    typeof logger[level] === "function" ? logger[level].bind(logger) : logger.info.bind(logger);
+    typeof logger[level] === "function"
+      ? logger[level].bind(logger)
+      : logger.info.bind(logger);
 
   logMethod(redactSensitive({ event, ...details }), event);
 }

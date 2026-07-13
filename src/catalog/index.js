@@ -1,4 +1,9 @@
-import { storefrontCategories, storefrontCategoryMap, technicalFamilies } from "./categories.js";
+import {
+  formatCategoryLabels,
+  storefrontCategories,
+  storefrontCategoryMap,
+  technicalFamilies
+} from "./categories.js";
 import { catalogProducts, rawCatalogProducts, rejectedCatalogProducts } from "./products.js";
 import { blockedMotorcycleKeywords, getImportDecision } from "./importRules.js";
 
@@ -7,6 +12,7 @@ export {
   catalogProducts,
   rawCatalogProducts,
   rejectedCatalogProducts,
+  formatCategoryLabels,
   storefrontCategories,
   technicalFamilies
 };
@@ -57,12 +63,6 @@ export function groupProductsByCategory(products = catalogProducts) {
     ...category,
     products: products.filter((product) => product.storefrontCategoryIds.includes(category.id))
   }));
-}
-
-export function formatCategoryLabels(categoryIds) {
-  return categoryIds.map(
-    (categoryId) => storefrontCategoryMap.get(categoryId)?.label ?? categoryId
-  );
 }
 
 export function formatCurrency(cents) {

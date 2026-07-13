@@ -6,7 +6,12 @@ import {
   CheckoutValidationError,
   persistCheckoutOrder
 } from "@/src/checkout/order-backend.js";
-import { markCouponRedeemed, resolveCheckoutCoupon } from "@/src/checkout/coupons.js";
+import {
+  markCouponRedeemed,
+  resolveCheckoutCoupon,
+  toPublicCheckoutCoupon
+} from "@/src/checkout/coupons.js";
+import { toPublicCheckoutTotals } from "@/src/checkout/public-response.js";
 import { getSupabaseCatalogProducts } from "@/src/catalog/supabase-catalog.js";
 import { getVariationStockStatus } from "@/src/catalog/stock.js";
 import { logServerEvent } from "@/src/lib/logger.js";
@@ -196,10 +201,10 @@ export async function POST(request) {
   return Response.json(
     {
       channel: "whatsapp-business",
-      coupon: draft.coupon,
+      coupon: toPublicCheckoutCoupon(draft.coupon),
       message: draft.message,
       order,
-      totals: draft.totals,
+      totals: toPublicCheckoutTotals(draft.totals),
       whatsappUrl: buildWhatsAppCheckoutUrl({ phoneNumber, message: draft.message })
     },
     { status: order.saved ? 201 : 200 }

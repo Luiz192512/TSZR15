@@ -4,7 +4,6 @@ import { createServerClient } from "@supabase/ssr";
 import {
   ADMIN_SESSION_COOKIE,
   getAdminSessionCookieOptions,
-  isAdminSessionValueFreshShapeAtEdge,
   isAdminSessionValueValidAtEdge
 } from "./src/admin/admin-session-edge.js";
 import {
@@ -40,8 +39,6 @@ function redirectToAdminLogin(request) {
 // Kept as edge middleware (not Next 16 proxy.js): the Cloudflare OpenNext
 // adapter does not support the Node.js proxy runtime.
 export async function middleware(request) {
-  const supabaseUrl = getSupabaseUrl();
-  const supabaseKey = getSupabasePublishableKey();
   const isAdminRequest = isAdminPath(request.nextUrl.pathname);
 
   let response = NextResponse.next({ request });
@@ -49,14 +46,16 @@ export async function middleware(request) {
   if (isAdminRequest) {
     const adminSessionValue = request.cookies.get(ADMIN_SESSION_COOKIE)?.value ?? "";
     const hasSignedAdminSession = await isAdminSessionValueValidAtEdge(adminSessionValue);
-    const hasFreshAdminSessionShape = isAdminSessionValueFreshShapeAtEdge(adminSessionValue);
 
-    if (!hasSignedAdminSession && !hasFreshAdminSessionShape) {
+    if (!hasSignedAdminSession) {
       return redirectToAdminLogin(request);
     }
 
     return addAdminSecurityHeaders(response);
   }
+
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabasePublishableKey();
 
   if (!supabaseUrl || !supabaseKey) {
     return response;
@@ -84,6 +83,13 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+    "/admin/:path*",
+    "/auth/:path*",
+    "/cadastrar",
+    "/conta/:path*",
+    "/entrar",
+    "/pedido/:path*",
+    "/recuperar-senha",
+    "/trocar-senha"
   ]
 };

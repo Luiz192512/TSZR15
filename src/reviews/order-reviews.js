@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { buildPublicOrderTrackingView } from "@/src/tracking/order-tracking.js";
+import { contactMatchesOrder } from "@/src/customer/order-contact.js";
 import {
   buildReviewSummary,
   cleanReviewString,
@@ -14,6 +15,7 @@ import {
   validateReviewImageMeta,
   validateReviewInput
 } from "@/src/reviews/review-utils.js";
+import { createSignedPhotoUrls } from "@/src/reviews/photo-urls.js";
 
 const reviewPhotoBucket = "review-photos";
 
@@ -21,36 +23,6 @@ function cleanString(value, maxLength = 500) {
   return String(value ?? "")
     .trim()
     .slice(0, maxLength);
-}
-
-function digitsOnly(value) {
-  return cleanString(value, 120).replace(/\D/g, "");
-}
-
-function contactMatchesOrder(order, contact) {
-  const submitted = digitsOnly(contact);
-
-  if (submitted.length < 8) {
-    return false;
-  }
-
-  const knownValues = [
-    order.customer_whatsapp,
-    order.customer_phone,
-    order.customer_tax_id,
-    order.customer_snapshot?.whatsapp,
-    order.customer_snapshot?.phone,
-    order.customer_snapshot?.taxId
-  ]
-    .map(digitsOnly)
-    .filter((value) => value.length >= 8);
-
-  return knownValues.some(
-    (known) =>
-      known === submitted ||
-      (known.length >= 8 && submitted.endsWith(known)) ||
-      (submitted.length >= 8 && known.endsWith(submitted))
-  );
 }
 
 function getReviewUploadFiles(formData) {
@@ -63,24 +35,6 @@ function getReviewUploadFiles(formData) {
   }
 
   return files;
-}
-
-async function createSignedPhotoUrls({ photos, supabase }) {
-  const signedPhotos = [];
-
-  for (const photo of photos) {
-    const { data, error } = await supabase.storage
-      .from(photo.storage_bucket ?? reviewPhotoBucket)
-      .createSignedUrl(photo.storage_path, 60 * 60 * 24 * 7);
-
-    signedPhotos.push({
-      id: photo.id,
-      sortOrder: photo.sort_order ?? 0,
-      url: error ? "" : (data?.signedUrl ?? "")
-    });
-  }
-
-  return signedPhotos.filter((photo) => photo.url);
 }
 
 async function uploadReviewPhotos({ files, reviewId, supabase, userId }) {
@@ -297,12 +251,12 @@ export async function getCustomerAccountOrders({ user }) {
       throw new Error(photoError.message);
     }
 
-    for (const review of reviews ?? []) {
-      const reviewPhotos = (photos ?? []).filter((photo) => photo.review_id === review.id);
-      photosByReviewId.set(
-        review.id,
-        await createSignedPhotoUrls({ photos: reviewPhotos, supabase })
-      );
+    const signedPhotos = await createSignedPhotoUrls({ photos: photos ?? [], supabase });
+
+    for (const photo of signedPhotos) {
+      const reviewPhotos = photosByReviewId.get(photo.reviewId) ?? [];
+      reviewPhotos.push(photo);
+      photosByReviewId.set(photo.reviewId, reviewPhotos);
     }
   }
 
@@ -622,14 +576,18 @@ export async function getApprovedProductReviews({ productId, limit = 12 }) {
     photos = data ?? [];
   }
 
-  const mappedReviews = [];
+  const signedPhotos = await createSignedPhotoUrls({ photos, supabase });
+  const photosByReviewId = new Map();
 
-  for (const review of reviews ?? []) {
-    const reviewPhotos = photos.filter((photo) => photo.review_id === review.id);
-    mappedReviews.push(
-      mapReview(review, await createSignedPhotoUrls({ photos: reviewPhotos, supabase }))
-    );
+  for (const photo of signedPhotos) {
+    const reviewPhotos = photosByReviewId.get(photo.reviewId) ?? [];
+    reviewPhotos.push(photo);
+    photosByReviewId.set(photo.reviewId, reviewPhotos);
   }
+
+  const mappedReviews = (reviews ?? []).map((review) =>
+    mapReview(review, photosByReviewId.get(review.id) ?? [])
+  );
 
   return {
     reviews: mappedReviews,
@@ -689,20 +647,24 @@ export async function listPendingOrderReviews({ limit = 40, supabase } = {}) {
     orderNumbersById = new Map((data ?? []).map((order) => [order.id, order.order_number]));
   }
 
-  const mappedReviews = [];
+  const signedPhotos = await createSignedPhotoUrls({ photos, supabase: client });
+  const photosByReviewId = new Map();
 
-  for (const review of reviews ?? []) {
-    const reviewPhotos = photos.filter((photo) => photo.review_id === review.id);
-    mappedReviews.push(
-      mapReview(
-        {
-          ...review,
-          order_number: orderNumbersById.get(review.order_id) ?? ""
-        },
-        await createSignedPhotoUrls({ photos: reviewPhotos, supabase: client })
-      )
-    );
+  for (const photo of signedPhotos) {
+    const reviewPhotos = photosByReviewId.get(photo.reviewId) ?? [];
+    reviewPhotos.push(photo);
+    photosByReviewId.set(photo.reviewId, reviewPhotos);
   }
+
+  const mappedReviews = (reviews ?? []).map((review) =>
+    mapReview(
+      {
+        ...review,
+        order_number: orderNumbersById.get(review.order_id) ?? ""
+      },
+      photosByReviewId.get(review.id) ?? []
+    )
+  );
 
   return mappedReviews;
 }

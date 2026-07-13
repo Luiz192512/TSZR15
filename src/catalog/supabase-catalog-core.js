@@ -15,7 +15,11 @@ export function toCatalogProduct(row) {
     imageUrls: row.image_urls ?? [],
     checkoutChannel: row.checkout_channel,
     internalPurchaseSource: row.internal_purchase_source ?? {},
-    notes: row.notes ?? ""
+    notes: row.notes ?? "",
+    variationStock: (row.catalog_variation_stock ?? []).map((stock) => ({
+      quantity: stock.quantity,
+      variation: stock.variation
+    }))
   };
 }
 
@@ -35,7 +39,11 @@ const publicCatalogProductColumns = `
   image_urls,
   checkout_channel,
   internal_purchase_source,
-  notes
+  notes,
+  catalog_variation_stock(
+    variation,
+    quantity
+  )
 `;
 
 export async function readCatalogProductsFromSupabase(client) {

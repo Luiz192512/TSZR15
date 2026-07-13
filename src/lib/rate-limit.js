@@ -19,7 +19,13 @@ export const rateLimitProfiles = {
   coupon: {
     blockSeconds: 60,
     limit: 20,
-    scope: "coupon-validate",
+    scope: "coupon-validate-code",
+    windowSeconds: 60
+  },
+  couponGlobal: {
+    blockSeconds: 60,
+    limit: 30,
+    scope: "coupon-validate-ip",
     windowSeconds: 60
   }
 };
@@ -48,11 +54,9 @@ function toHeaderGetter(headersLike) {
 
 export function getRequestIp(headersLike) {
   const getHeader = toHeaderGetter(headersLike);
-  const forwardedFor = getHeader("x-forwarded-for");
-  const realIp = getHeader("x-real-ip");
-  const candidate = String(forwardedFor || realIp || "unknown")
-    .split(",")[0]
-    .trim();
+  const connectingIp = getHeader("cf-connecting-ip");
+  const trueClientIp = getHeader("true-client-ip");
+  const candidate = String(connectingIp || trueClientIp || "unknown").trim();
 
   return candidate || "unknown";
 }
