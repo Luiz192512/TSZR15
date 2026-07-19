@@ -345,6 +345,13 @@ test("datas de analytics e rastreio usam explicitamente America Sao Paulo", asyn
   assert.match(trackingSource, /formatBrasiliaDateTime\(value\)/);
 });
 
+test("layout Cloudflare nao injeta endpoints exclusivos da Vercel", async () => {
+  const layoutSource = await readFile(new URL("../app/layout.js", import.meta.url), "utf8");
+
+  assert.doesNotMatch(layoutSource, /@vercel\/analytics|@vercel\/speed-insights/);
+  assert.doesNotMatch(layoutSource, /<Analytics\s*\/>|<SpeedInsights\s*\/>/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 
