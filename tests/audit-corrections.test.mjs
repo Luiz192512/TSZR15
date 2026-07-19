@@ -164,6 +164,24 @@ test("rastreio envia pedido e contato por POST sem gravar PII na URL", async () 
   assert.match(lookupSource, /<form[\s\S]*?action=\{formAction\}/);
 });
 
+test("rastreio publico aplica limite por IP antes de consultar pedidos", async () => {
+  const rateLimit = await importOptional("../src/lib/rate-limit.js");
+  const actionSource = await readFile(
+    new URL("../app/rastreio/actions.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.deepEqual(rateLimit.rateLimitProfiles.tracking, {
+    blockSeconds: 5 * 60,
+    limit: 10,
+    scope: "public-order-tracking",
+    windowSeconds: 5 * 60
+  });
+  assert.match(actionSource, /consumeRateLimit\(\{[\s\S]*rateLimitProfiles\.tracking/);
+  assert.match(actionSource, /identifier: getRequestIp\(headerStore\)/);
+  assert.match(actionSource, /if \(!rateLimit\.allowed\)/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 

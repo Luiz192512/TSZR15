@@ -27,6 +27,16 @@ function formatDateTime(value) {
 }
 
 function TrackingResult({ result }) {
+  if (result.status === "rate-limited") {
+    return (
+      <section className={cx(globalStyles, "tracking-result-panel")}>
+        <p className={cx(globalStyles, "section-label")}>Aguarde para consultar novamente</p>
+        <h2>Limite de consultas atingido.</h2>
+        <p className={cx(globalStyles, "helper-text")}>{result.message}</p>
+      </section>
+    );
+  }
+
   if (result.status === "setup-required") {
     return (
       <section className={cx(globalStyles, "tracking-result-panel")}>
