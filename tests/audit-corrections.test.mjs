@@ -182,6 +182,31 @@ test("rastreio publico aplica limite por IP antes de consultar pedidos", async (
   assert.match(actionSource, /if \(!rateLimit\.allowed\)/);
 });
 
+test("checkout e rastreio nao devolvem mensagens internas do banco ao cliente", async () => {
+  const checkoutSource = await readFile(
+    new URL("../app/api/checkout/whatsapp/route.js", import.meta.url),
+    "utf8"
+  );
+  const trackingActionSource = await readFile(
+    new URL("../app/rastreio/actions.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(
+    checkoutSource,
+    /errorResponse\(`Nao foi possivel salvar o pedido: \$\{error\.message\}`/
+  );
+  assert.match(
+    checkoutSource,
+    /return errorResponse\("Nao foi possivel salvar o pedido\. Tente novamente\.", 500\)/
+  );
+  assert.doesNotMatch(
+    trackingActionSource,
+    /message: error instanceof Error \? error\.message/
+  );
+  assert.match(trackingActionSource, /logServerEvent\("error", "tracking_lookup_failed"/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 

@@ -175,7 +175,7 @@ export async function POST(request) {
       logServerEvent("error", "checkout_persistence_error", {
         reason: error.message
       });
-      return errorResponse(`Nao foi possivel salvar o pedido: ${error.message}`, 500);
+      return errorResponse("Nao foi possivel salvar o pedido. Tente novamente.", 500);
     }
 
     logServerEvent("error", "checkout_unhandled_persistence_error", {

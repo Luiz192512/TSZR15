@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 
 import { consumeRateLimit, getRequestIp, rateLimitProfiles } from "@/src/lib/rate-limit.js";
+import { logServerEvent } from "@/src/lib/logger.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { findPublicOrderTracking } from "@/src/tracking/order-tracking.js";
 
@@ -30,8 +31,12 @@ export async function lookupOrderTracking(_previousState, formData) {
   try {
     return await findPublicOrderTracking({ contact, orderNumber, supabase });
   } catch (error) {
+    logServerEvent("error", "tracking_lookup_failed", {
+      reason: error instanceof Error ? error.message : "unknown"
+    });
+
     return {
-      message: error instanceof Error ? error.message : "Falha ao consultar o rastreio.",
+      message: "Nao foi possivel consultar o rastreio agora. Tente novamente em instantes.",
       status: "setup-required"
     };
   }
