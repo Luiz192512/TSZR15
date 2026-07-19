@@ -20,6 +20,7 @@ import { consumeRateLimit, getRequestIp, rateLimitProfiles } from "@/src/lib/rat
 import { createRateLimitResponse } from "@/src/lib/rate-limit-response.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
+import { isJsonRequest, isSameOriginRequest } from "@/src/security/origin.js";
 
 function getRequestContext(request) {
   const ipAddress = getRequestIp(request);
@@ -66,6 +67,14 @@ async function attachInternalProductCosts(products, supabase) {
 }
 
 export async function POST(request) {
+  if (!isSameOriginRequest(request)) {
+    return errorResponse("Origem da requisicao nao permitida.", 403);
+  }
+
+  if (!isJsonRequest(request)) {
+    return errorResponse("Envie o checkout como application/json.", 415);
+  }
+
   const serviceSupabase = createServiceRoleSupabaseClient();
   const rateLimit = await consumeRateLimit({
     ...rateLimitProfiles.checkout,

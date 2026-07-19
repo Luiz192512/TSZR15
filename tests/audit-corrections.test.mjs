@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import * as adminSession from "../src/admin/admin-session.js";
@@ -80,6 +81,23 @@ test("origem administrativa exige Origin e Host iguais", async () => {
     ),
     false
   );
+});
+
+test("checkout exige mesma origem e corpo JSON", async () => {
+  const originPolicy = await importOptional("../src/security/origin.js");
+  const checkoutRoute = await readFile(
+    new URL("../app/api/checkout/whatsapp/route.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(typeof originPolicy.isJsonRequest, "function");
+  assert.equal(
+    originPolicy.isJsonRequest(new Headers({ "content-type": "application/json; charset=utf-8" })),
+    true
+  );
+  assert.equal(originPolicy.isJsonRequest(new Headers({ "content-type": "text/plain" })), false);
+  assert.match(checkoutRoute, /if \(!isSameOriginRequest\(request\)\)/);
+  assert.match(checkoutRoute, /if \(!isJsonRequest\(request\)\)/);
 });
 
 test("cupom publico omite descricao e segmentacao internas", () => {
