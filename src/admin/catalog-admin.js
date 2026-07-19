@@ -651,8 +651,8 @@ export async function upsertAdminCatalogProduct(formData) {
 
   const { data: currentStockRows, error: currentStockError } = await supabase
     .from("catalog_variation_stock")
-    .eq("product_id", id)
-    .select("variation");
+    .select("variation")
+    .eq("product_id", id);
 
   if (currentStockError) {
     throw new Error(currentStockError.message);
