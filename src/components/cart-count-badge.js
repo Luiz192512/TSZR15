@@ -4,11 +4,11 @@ import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
 import { useEffect, useState } from "react";
 
-const cartStorageKey = "tszr15-cart";
+import { cartChangedEventName, getCartStorageKey } from "@/src/cart/cart-storage.js";
 
-function readCartCount() {
+function readCartCount(userId) {
   try {
-    const storedValue = window.localStorage.getItem(cartStorageKey);
+    const storedValue = window.localStorage.getItem(getCartStorageKey(userId));
     const parsedItems = storedValue ? JSON.parse(storedValue) : [];
 
     if (!Array.isArray(parsedItems)) {
@@ -24,23 +24,23 @@ function readCartCount() {
   }
 }
 
-export function CartCountBadge() {
+export function CartCountBadge({ userId }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     function refreshCount() {
-      setCount(readCartCount());
+      setCount(readCartCount(userId));
     }
 
     refreshCount();
     window.addEventListener("storage", refreshCount);
-    window.addEventListener("tszr15-cart-changed", refreshCount);
+    window.addEventListener(cartChangedEventName, refreshCount);
 
     return () => {
       window.removeEventListener("storage", refreshCount);
-      window.removeEventListener("tszr15-cart-changed", refreshCount);
+      window.removeEventListener(cartChangedEventName, refreshCount);
     };
-  }, []);
+  }, [userId]);
 
   return (
     <span aria-hidden="true" className={cx(globalStyles, "cart-count-badge")}>

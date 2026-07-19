@@ -34,7 +34,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
           >
             <CartIcon />
             <span className={cx(globalStyles, "sr-only")}>Carrinho</span>
-            <CartCountBadge />
+            <CartCountBadge userId={user?.id} />
           </Link>
           <details className={cx(globalStyles, "mobile-nav-details")}>
             <summary
@@ -73,7 +73,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
         >
           <CartIcon />
           <span className={cx(globalStyles, "sr-only")}>Carrinho</span>
-          <CartCountBadge />
+          <CartCountBadge userId={user?.id} />
         </Link>
         <Link href="/rastreio">Rastreio</Link>
         {showAccountNav ? (

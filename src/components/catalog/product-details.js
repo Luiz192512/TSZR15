@@ -186,7 +186,7 @@ export function ProductDetails({
       return;
     }
 
-    const currentCart = readStoredCart();
+    const currentCart = readStoredCart(currentUser?.id);
     const cartKey = getCartItemKey(product.id, selectedVariation);
     const existingItem = currentCart.find((item) => item.cartKey === cartKey);
 
@@ -216,7 +216,7 @@ export function ProductDetails({
           }
         ];
 
-    writeStoredCart(nextItems);
+    writeStoredCart(nextItems, currentUser?.id);
     setFeedback("Produto adicionado ao carrinho.");
     setWasAdded(true);
   }

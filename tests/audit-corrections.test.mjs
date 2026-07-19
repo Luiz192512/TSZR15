@@ -255,6 +255,22 @@ test("edicao de review valida todas as fotos antes de substituir as atuais", asy
   assert.match(orderReviewsSource, /replaceReviewPhotos\(\{/);
 });
 
+test("carrinho local e isolado por usuario no mesmo navegador", async () => {
+  const cartStorage = await importOptional("../src/cart/cart-storage.js");
+  const useCartSource = await readFile(
+    new URL("../src/components/catalog/hooks/use-cart.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(cartStorage.getCartStorageKey(), "tszr15-cart");
+  assert.equal(cartStorage.getCartStorageKey("user-a"), "tszr15-cart:user:user-a");
+  assert.equal(cartStorage.getCartStorageKey("user-b"), "tszr15-cart:user:user-b");
+  assert.notEqual(cartStorage.getCartStorageKey("user-a"), cartStorage.getCartStorageKey("user-b"));
+  assert.match(useCartSource, /readStoredCart\(resolvedUserId\)/);
+  assert.match(useCartSource, /loadedCartUserId !== resolvedUserId/);
+  assert.doesNotMatch(useCartSource, /readStoredCart\(\)/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 
