@@ -69,6 +69,17 @@ export function useCheckout({
       return;
     }
 
+    const whatsappWindow = window.open("", "_blank");
+
+    if (!whatsappWindow) {
+      setCheckoutFeedback(
+        "O navegador bloqueou o pop-up do WhatsApp. Permita pop-ups e tente novamente."
+      );
+      return;
+    }
+
+    whatsappWindow.opener = null;
+
     setCheckoutFeedback("");
     setIsSubmittingCheckout(true);
 
@@ -98,9 +109,10 @@ export function useCheckout({
             ? `Mensagem pronta. ${data.order.reason}`
             : "Mensagem pronta. Abrindo WhatsApp."
       );
+      whatsappWindow.location.replace(data.whatsappUrl);
       clearCart();
-      window.open(data.whatsappUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
+      whatsappWindow.close();
       setCheckoutFeedback(
         error instanceof Error ? error.message : "Não foi possível finalizar o pedido agora."
       );
