@@ -1,6 +1,7 @@
 "use client";
 
 import globalStyles from "@/app/storefront.module.css";
+import { getCoverCropRect } from "@/src/admin/product-image-crop.js";
 import { cx } from "@/src/lib/classnames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -130,17 +131,15 @@ async function cropDraftToFile(draft, index) {
 
   const sourceWidth = image.naturalWidth || image.width;
   const sourceHeight = image.naturalHeight || image.height;
-  const scale = Math.min(outputWidth / sourceWidth, outputHeight / sourceHeight) * draft.zoom;
-  const drawWidth = sourceWidth * scale;
-  const drawHeight = sourceHeight * scale;
-  const offsetX =
-    drawWidth > outputWidth
-      ? -((drawWidth - outputWidth) * draft.positionX) / 100
-      : ((outputWidth - drawWidth) * draft.positionX) / 100;
-  const offsetY =
-    drawHeight > outputHeight
-      ? -((drawHeight - outputHeight) * draft.positionY) / 100
-      : ((outputHeight - drawHeight) * draft.positionY) / 100;
+  const { drawHeight, drawWidth, offsetX, offsetY } = getCoverCropRect({
+    outputHeight,
+    outputWidth,
+    positionX: draft.positionX,
+    positionY: draft.positionY,
+    sourceHeight,
+    sourceWidth,
+    zoom: draft.zoom
+  });
 
   canvas.width = outputWidth;
   canvas.height = outputHeight;
