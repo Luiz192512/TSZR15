@@ -12,6 +12,7 @@ import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js
 import { isAdminTokenConfigured, startAdminSession } from "@/src/admin/admin-auth.js";
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
 import { getCustomerPasswordError } from "@/src/auth/password-policy.js";
+import { rollbackCreatedCustomerAuthUser } from "@/src/auth/signup-compensation.js";
 
 import {
   buildPasswordResetRedirectUrl,
@@ -314,6 +315,18 @@ async function createConfirmedCustomerAccount({ email, formData, password, supab
   });
 
   if (persistenceError) {
+    const { error: rollbackError } = await rollbackCreatedCustomerAuthUser({
+      adminSupabase,
+      userId: data.user.id
+    });
+
+    if (rollbackError) {
+      logServerEvent("error", "signup_auth_rollback_failed", {
+        reason: rollbackError.message,
+        userId: data.user.id
+      });
+    }
+
     return { handled: true, error: persistenceError };
   }
 

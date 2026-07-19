@@ -271,6 +271,28 @@ test("carrinho local e isolado por usuario no mesmo navegador", async () => {
   assert.doesNotMatch(useCartSource, /readStoredCart\(\)/);
 });
 
+test("cadastro confirmado remove usuario auth quando dados secundarios falham", async () => {
+  const compensation = await importOptional("../src/auth/signup-compensation.js");
+  const authActionSource = await readFile(
+    new URL("../app/auth/actions.js", import.meta.url),
+    "utf8"
+  );
+  const deleteUser = async (userId) => ({ data: { user: { id: userId } }, error: null });
+  const adminSupabase = { auth: { admin: { deleteUser } } };
+
+  assert.equal(typeof compensation.rollbackCreatedCustomerAuthUser, "function");
+  const result = await compensation.rollbackCreatedCustomerAuthUser({
+    adminSupabase,
+    userId: "user-new"
+  });
+
+  assert.equal(result.error, null);
+  assert.match(
+    authActionSource,
+    /if \(persistenceError\) \{[\s\S]*rollbackCreatedCustomerAuthUser\(\{[\s\S]*userId: data\.user\.id/
+  );
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 
