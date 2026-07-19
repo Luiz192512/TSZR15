@@ -29,6 +29,7 @@ import {
   supplierSourceStatuses
 } from "@/src/orders/status.js";
 import { paymentMethods, shippingOptions } from "@/src/checkout/whatsapp.js";
+import { AdminProductForm } from "@/src/components/admin/admin-product-form.js";
 import { ProductImageUploader } from "@/src/components/admin/product-image-uploader.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import {
@@ -1056,10 +1057,10 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
   const selectedFamily = product?.productFamily ?? families[0] ?? "slider";
 
   return (
-    <form
+    <AdminProductForm
       action={upsertAdminProductAction}
       className={cx(globalStyles, "admin-operation-form admin-product-form")}
-      encType="multipart/form-data"
+      errorClassName={cx(globalStyles, "form-alert")}
     >
       <input name="productId" type="hidden" value={product?.id ?? ""} />
       <input name="previousSlug" type="hidden" value={product?.slug ?? ""} />
@@ -1232,7 +1233,7 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
           Salvar produto
         </button>
       </div>
-    </form>
+    </AdminProductForm>
   );
 }
 

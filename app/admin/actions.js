@@ -29,6 +29,10 @@ function redirectWithError(path, message) {
   redirect(`${path}${separator}error=${encodeURIComponent(message)}`);
 }
 
+function getActionErrorMessage(error) {
+  return error instanceof Error ? error.message : "Nao foi possivel salvar o produto.";
+}
+
 async function isSameOriginAdminRequest() {
   const headerStore = await headers();
 
@@ -115,15 +119,15 @@ export async function createAdminOrderAction(formData) {
   redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=pedido-criado`);
 }
 
-export async function upsertAdminProductAction(formData) {
+export async function upsertAdminProductAction(_previousState, formData) {
   const previousSlug = formValue(formData, "previousSlug");
 
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin?tab=produtos", "Sessao administrativa expirada.");
+    return { error: "Sessao administrativa expirada." };
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin?tab=produtos", "Requisicao administrativa rejeitada.");
+    return { error: "Requisicao administrativa rejeitada." };
   }
 
   let result;
@@ -133,7 +137,7 @@ export async function upsertAdminProductAction(formData) {
     revalidateCatalogPaths([previousSlug, result.slug]);
     revalidatePath("/admin");
   } catch (error) {
-    redirectWithError("/admin?tab=produtos", error.message);
+    return { error: getActionErrorMessage(error) };
   }
 
   redirect(`/admin?tab=produtos&produto=${encodeURIComponent(result.id)}&status=produto-salvo`);
