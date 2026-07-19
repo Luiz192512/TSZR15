@@ -8,7 +8,14 @@ import {
 import { normalizeCouponCode } from "@/src/checkout/coupons.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
 import { isValidImageUrl, resolveImageOrder } from "@/src/admin/catalog-image-order.js";
-import { getAdminProductImageFiles } from "@/src/admin/catalog-product-images.js";
+import {
+  getAdminProductImageFiles,
+  getRemovedAdminProductImagePaths,
+  loadAdminProductImageUrls,
+  removeAdminProductImagePaths,
+  runWithAdminProductImageCleanup,
+  uploadAdminProductImages
+} from "@/src/admin/catalog-product-images.js";
 import {
   archiveAdminCouponById,
   saveAdminCoupon
@@ -20,9 +27,6 @@ import {
 } from "@/src/admin/admin-form-values.js";
 import { collectAdminVariationInventory } from "@/src/admin/catalog-variations.js";
 
-const productImageBucket = "product-images";
-const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const maxImageBytes = 5 * 1024 * 1024;
 const adminProductPageSize = 24;
 const adminCouponPageSize = 30;
 const adminCouponProductOptionLimit = 500;
@@ -206,71 +210,6 @@ function toAdminCoupon(row) {
     updatedAt: row.updated_at,
     createdAt: row.created_at
   };
-}
-
-function safeFileName(value) {
-  const cleaned = slugify(value).slice(0, 80);
-  return cleaned || "produto";
-}
-
-function getFileExtension(file) {
-  const fromName = String(file.name ?? "")
-    .split(".")
-    .pop()
-    ?.toLowerCase();
-
-  if (fromName && /^[a-z0-9]{2,5}$/.test(fromName)) {
-    return fromName;
-  }
-
-  return file.type === "image/png"
-    ? "png"
-    : file.type === "image/webp"
-      ? "webp"
-      : file.type === "image/gif"
-        ? "gif"
-        : "jpg";
-}
-
-async function uploadProductImages({ formData, productId, supabase }) {
-  const files = getAdminProductImageFiles(formData);
-
-  if (files.length === 0) {
-    return [];
-  }
-
-  const uploadedUrls = [];
-
-  for (const file of files) {
-    if (!allowedImageTypes.has(file.type)) {
-      throw new Error("Envie imagens JPG, PNG, WEBP ou GIF.");
-    }
-
-    if (file.size > maxImageBytes) {
-      throw new Error("Cada imagem deve ter no maximo 5MB.");
-    }
-
-    const extension = getFileExtension(file);
-    const filePath = `${productId}/${Date.now()}-${crypto.randomUUID()}-${safeFileName(file.name)}.${extension}`;
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { error } = await supabase.storage.from(productImageBucket).upload(filePath, fileBuffer, {
-      cacheControl: "31536000",
-      contentType: file.type,
-      upsert: false
-    });
-
-    if (error) {
-      throw new Error(`Upload de imagem falhou: ${error.message}`);
-    }
-
-    const { data } = supabase.storage.from(productImageBucket).getPublicUrl(filePath);
-
-    if (data?.publicUrl) {
-      uploadedUrls.push(data.publicUrl);
-    }
-  }
-
-  return uploadedUrls;
 }
 
 function collectProductPayload(formData) {
@@ -621,7 +560,14 @@ export async function upsertAdminCatalogProduct(formData) {
     variationImageTokens,
     variationStock
   } = collectProductPayload(formData);
-  const uploadedImageUrls = await uploadProductImages({ formData, productId: id, supabase });
+  getAdminProductImageFiles(formData);
+  const previousImageUrls = await loadAdminProductImageUrls({
+    persistenceMode,
+    productId: id,
+    supabase
+  });
+  const { paths: uploadedImagePaths, urls: uploadedImageUrls } =
+    await uploadAdminProductImages({ formData, productId: id, supabase });
   const finalVariationImages = usesVariationCards
     ? variationImageTokens.map((group) => ({
         image_urls: resolveImageOrder(group.imageTokens, uploadedImageUrls),
@@ -638,7 +584,11 @@ export async function upsertAdminCatalogProduct(formData) {
     image_urls: finalImageUrls,
     variation_images: finalVariationImages
   };
-  await saveAdminCatalogProductRow({ persistenceMode, row: finalRow, supabase });
+  await runWithAdminProductImageCleanup({
+    operation: () => saveAdminCatalogProductRow({ persistenceMode, row: finalRow, supabase }),
+    paths: uploadedImagePaths,
+    supabase
+  });
 
   const { data: currentStockRows, error: currentStockError } = await supabase
     .from("catalog_variation_stock")
@@ -724,6 +674,16 @@ export async function upsertAdminCatalogProduct(formData) {
   if (relationError) {
     throw new Error(relationError.message);
   }
+
+  const removedImagePaths = getRemovedAdminProductImagePaths({
+    finalImageUrls: [
+      ...finalRow.image_urls,
+      ...finalRow.variation_images.flatMap((group) => group.image_urls)
+    ],
+    previousImageUrls,
+    productId: id
+  });
+  await removeAdminProductImagePaths({ paths: removedImagePaths, supabase });
 
   return {
     id,
