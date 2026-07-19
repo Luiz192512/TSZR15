@@ -207,6 +207,54 @@ test("checkout e rastreio nao devolvem mensagens internas do banco ao cliente", 
   assert.match(trackingActionSource, /logServerEvent\("error", "tracking_lookup_failed"/);
 });
 
+test("edicao de review valida todas as fotos antes de substituir as atuais", async () => {
+  const photoReplacement = await importOptional("../src/reviews/review-photo-replacement.js");
+  const orderReviewsSource = await readFile(
+    new URL("../src/reviews/order-reviews.js", import.meta.url),
+    "utf8"
+  );
+  let storageCalls = 0;
+  let databaseCalls = 0;
+  const supabase = {
+    from: () => {
+      databaseCalls += 1;
+      throw new Error("Banco nao deveria ser acessado antes da validacao completa.");
+    },
+    storage: {
+      from: () => {
+        storageCalls += 1;
+        throw new Error("Storage nao deveria ser acessado antes da validacao completa.");
+      }
+    }
+  };
+  const files = [
+    {
+      arrayBuffer: async () => Uint8Array.from([0xff, 0xd8, 0xff, 0x00]).buffer,
+      size: 4,
+      type: "image/jpeg"
+    },
+    {
+      arrayBuffer: async () => Uint8Array.from([0x00, 0x01, 0x02, 0x03]).buffer,
+      size: 4,
+      type: "image/jpeg"
+    }
+  ];
+
+  assert.equal(typeof photoReplacement.replaceReviewPhotos, "function");
+  await assert.rejects(
+    photoReplacement.replaceReviewPhotos({
+      files,
+      reviewId: "review-1",
+      supabase,
+      userId: "user-1"
+    }),
+    /Envie fotos JPG, PNG, WEBP ou GIF/
+  );
+  assert.equal(storageCalls, 0);
+  assert.equal(databaseCalls, 0);
+  assert.match(orderReviewsSource, /replaceReviewPhotos\(\{/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 
