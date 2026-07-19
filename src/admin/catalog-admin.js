@@ -8,6 +8,7 @@ import {
 import { normalizeCouponCode } from "@/src/checkout/coupons.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
 import { isValidImageUrl, resolveImageOrder } from "@/src/admin/catalog-image-order.js";
+import { getAdminProductImageFiles } from "@/src/admin/catalog-product-images.js";
 import {
   archiveAdminCouponById,
   saveAdminCoupon
@@ -207,16 +208,6 @@ function toAdminCoupon(row) {
   };
 }
 
-function hasUploadFile(value) {
-  return (
-    value &&
-    typeof value === "object" &&
-    typeof value.arrayBuffer === "function" &&
-    typeof value.name === "string" &&
-    value.size > 0
-  );
-}
-
 function safeFileName(value) {
   const cleaned = slugify(value).slice(0, 80);
   return cleaned || "produto";
@@ -242,7 +233,7 @@ function getFileExtension(file) {
 }
 
 async function uploadProductImages({ formData, productId, supabase }) {
-  const files = formData.getAll("imageFiles").filter(hasUploadFile).slice(0, 8);
+  const files = getAdminProductImageFiles(formData);
 
   if (files.length === 0) {
     return [];
