@@ -146,6 +146,24 @@ test("vinculo de pedido convidado aceita apenas o primeiro usuario concorrente",
   assert.match(orderReviewsSource, /claimUnownedOrder\(\{/);
 });
 
+test("rastreio envia pedido e contato por POST sem gravar PII na URL", async () => {
+  const pageSource = await readFile(new URL("../app/rastreio/page.js", import.meta.url), "utf8");
+  const actionSource = await readFile(
+    new URL("../app/rastreio/actions.js", import.meta.url),
+    "utf8"
+  );
+  const lookupSource = await readFile(
+    new URL("../src/components/tracking/tracking-lookup.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(pageSource, /searchParams|params\?\.contato|method="GET"/);
+  assert.match(pageSource, /<TrackingLookup\s*\/>/);
+  assert.match(actionSource, /findPublicOrderTracking\(\{/);
+  assert.match(lookupSource, /useActionState\(lookupOrderTracking/);
+  assert.match(lookupSource, /<form[\s\S]*?action=\{formAction\}/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 
