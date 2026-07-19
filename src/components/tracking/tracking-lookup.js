@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import globalStyles from "@/app/storefront.module.css";
 import { lookupOrderTracking } from "@/app/rastreio/actions.js";
 import { cx } from "@/src/lib/classnames";
+import { formatBrasiliaDateTime } from "@/src/lib/brasilia-date.js";
 
 const emptyTrackingState = { status: "empty" };
 
@@ -20,10 +21,7 @@ function formatDateTime(value) {
     return "Nao informado";
   }
 
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
+  return formatBrasiliaDateTime(value);
 }
 
 function TrackingResult({ result }) {

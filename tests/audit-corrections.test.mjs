@@ -327,6 +327,24 @@ test("analytics admin limita custos e itens ao mesmo conjunto de pedidos", async
   );
 });
 
+test("datas de analytics e rastreio usam explicitamente America Sao Paulo", async () => {
+  const brasiliaDate = await importOptional("../src/lib/brasilia-date.js");
+  const trackingSource = await readFile(
+    new URL("../src/components/tracking/tracking-lookup.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(
+    brasiliaDate.getBrasiliaDateKey("2026-07-20T02:30:00.000Z"),
+    "2026-07-19"
+  );
+  assert.match(
+    brasiliaDate.formatBrasiliaDateTime("2026-07-20T02:30:00.000Z"),
+    /19\/07\/2026.*23:30/
+  );
+  assert.match(trackingSource, /formatBrasiliaDateTime\(value\)/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 
