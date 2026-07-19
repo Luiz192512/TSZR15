@@ -293,6 +293,23 @@ test("cadastro confirmado remove usuario auth quando dados secundarios falham", 
   );
 });
 
+test("checkout nao usa numero ficticio quando WhatsApp nao esta configurado", async () => {
+  const whatsappConfig = await importOptional("../src/checkout/whatsapp-config.js");
+  const checkoutSource = await readFile(
+    new URL("../app/api/checkout/whatsapp/route.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(whatsappConfig.getConfiguredWhatsAppNumber({}), "");
+  assert.equal(
+    whatsappConfig.getConfiguredWhatsAppNumber({ WHATSAPP_BUSINESS_NUMBER: "5511999999999" }),
+    "5511999999999"
+  );
+  assert.doesNotMatch(checkoutSource, /"5511999999999"/);
+  assert.match(checkoutSource, /if \(!phoneNumber\) \{/);
+  assert.ok(checkoutSource.indexOf("if (!phoneNumber)") < checkoutSource.indexOf("persistCheckoutOrder({"));
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 

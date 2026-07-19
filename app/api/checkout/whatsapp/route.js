@@ -1,4 +1,5 @@
 import { buildWhatsAppCheckoutUrl } from "@/src/checkout/whatsapp.js";
+import { getConfiguredWhatsAppNumber } from "@/src/checkout/whatsapp-config.js";
 import { sendOrderConfirmation } from "@/src/checkout/order-email.js";
 import {
   buildCheckoutOrderDraft,
@@ -75,6 +76,12 @@ export async function POST(request) {
     return errorResponse("Envie o checkout como application/json.", 415);
   }
 
+  const phoneNumber = getConfiguredWhatsAppNumber();
+
+  if (!phoneNumber) {
+    return errorResponse("WhatsApp Business indisponivel no momento.", 503);
+  }
+
   const serviceSupabase = createServiceRoleSupabaseClient();
   const rateLimit = await consumeRateLimit({
     ...rateLimitProfiles.checkout,
@@ -105,10 +112,6 @@ export async function POST(request) {
   }
 
   const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
-  const phoneNumber =
-    process.env.WHATSAPP_BUSINESS_NUMBER ??
-    process.env.NEXT_PUBLIC_WHATSAPP_BUSINESS_NUMBER ??
-    "5511999999999";
   const userSupabase = await createServerSupabaseClient();
   const supabase = serviceSupabase ?? userSupabase;
 
