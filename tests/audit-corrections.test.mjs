@@ -310,6 +310,23 @@ test("checkout nao usa numero ficticio quando WhatsApp nao esta configurado", as
   assert.ok(checkoutSource.indexOf("if (!phoneNumber)") < checkoutSource.indexOf("persistCheckoutOrder({"));
 });
 
+test("analytics admin limita custos e itens ao mesmo conjunto de pedidos", async () => {
+  const orderAdminSource = await readFile(
+    new URL("../src/admin/order-admin.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(orderAdminSource, /const orderIds = \(orders \?\? \[\]\)\.map/);
+  assert.match(
+    orderAdminSource,
+    /\.from\("supplier_purchases"\)[\s\S]*?\.in\("order_id", orderIds\)/
+  );
+  assert.match(
+    orderAdminSource,
+    /\.from\("order_items"\)[\s\S]*?\.in\("order_id", orderIds\)/
+  );
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 
