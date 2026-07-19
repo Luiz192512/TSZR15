@@ -12,6 +12,7 @@ import {
   archiveAdminCouponById,
   saveAdminCoupon
 } from "@/src/admin/catalog-coupon-persistence.js";
+import { saveAdminCatalogProductRow } from "@/src/admin/catalog-product-persistence.js";
 import {
   parseAdminDateTimeInput,
   parseAdminMoneyToCents
@@ -284,6 +285,7 @@ async function uploadProductImages({ formData, productId, supabase }) {
 function collectProductPayload(formData) {
   const name = cleanString(formData.get("name"), 180);
   const previousId = cleanString(formData.get("productId"), 160);
+  const persistenceMode = previousId ? "update" : "create";
   const slug = slugify(formData.get("slug") || name);
   const id = previousId || slug;
   const storefrontCategoryIds = getSelectedCategoryIds(formData);
@@ -344,6 +346,7 @@ function collectProductPayload(formData) {
     costCents,
     id,
     imageOrderTokens,
+    persistenceMode,
     usesVariationCards,
     variationImageTokens,
     variationStock,
@@ -621,6 +624,7 @@ export async function upsertAdminCatalogProduct(formData) {
     costCents,
     id,
     imageOrderTokens,
+    persistenceMode,
     row,
     usesVariationCards,
     variationImageTokens,
@@ -643,11 +647,7 @@ export async function upsertAdminCatalogProduct(formData) {
     image_urls: finalImageUrls,
     variation_images: finalVariationImages
   };
-  const { error } = await supabase.from("catalog_products").upsert(finalRow, { onConflict: "id" });
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await saveAdminCatalogProductRow({ persistenceMode, row: finalRow, supabase });
 
   const { data: currentStockRows, error: currentStockError } = await supabase
     .from("catalog_variation_stock")
