@@ -100,6 +100,52 @@ test("checkout exige mesma origem e corpo JSON", async () => {
   assert.match(checkoutRoute, /if \(!isJsonRequest\(request\)\)/);
 });
 
+test("vinculo de pedido convidado aceita apenas o primeiro usuario concorrente", async () => {
+  const orderClaim = await importOptional("../src/reviews/order-claim.js");
+  const orderReviewsSource = await readFile(
+    new URL("../src/reviews/order-reviews.js", import.meta.url),
+    "utf8"
+  );
+  let ownerId = null;
+
+  function supabaseForClaim() {
+    let nextOwnerId = null;
+    const builder = {
+      eq: () => builder,
+      is: () => builder,
+      maybeSingle: async () => {
+        if (ownerId !== null) return { data: null, error: null };
+        ownerId = nextOwnerId;
+        return { data: { id: "order-1" }, error: null };
+      },
+      select: () => builder,
+      update: ({ user_id: userId }) => {
+        nextOwnerId = userId;
+        return builder;
+      }
+    };
+
+    return { from: () => builder };
+  }
+
+  assert.equal(typeof orderClaim.claimUnownedOrder, "function");
+  const first = await orderClaim.claimUnownedOrder({
+    orderId: "order-1",
+    supabase: supabaseForClaim(),
+    userId: "user-a"
+  });
+  const second = await orderClaim.claimUnownedOrder({
+    orderId: "order-1",
+    supabase: supabaseForClaim(),
+    userId: "user-b"
+  });
+
+  assert.equal(first, true);
+  assert.equal(second, false);
+  assert.equal(ownerId, "user-a");
+  assert.match(orderReviewsSource, /claimUnownedOrder\(\{/);
+});
+
 test("cupom publico omite descricao e segmentacao internas", () => {
   assert.equal(typeof coupons.toPublicCheckoutCoupon, "function");
 

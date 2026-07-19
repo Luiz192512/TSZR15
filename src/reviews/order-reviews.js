@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
+import { claimUnownedOrder } from "./order-claim.js";
 import { buildPublicOrderTrackingView } from "@/src/tracking/order-tracking.js";
 import { contactMatchesOrder } from "@/src/customer/order-contact.js";
 import {
@@ -358,13 +359,14 @@ export async function claimCustomerOrder({ formData, user }) {
   }
 
   if (!order.user_id) {
-    const { error: updateError } = await supabase
-      .from("orders")
-      .update({ user_id: user.id })
-      .eq("id", order.id);
+    const claimed = await claimUnownedOrder({
+      orderId: order.id,
+      supabase,
+      userId: user.id
+    });
 
-    if (updateError) {
-      throw new Error(updateError.message);
+    if (!claimed) {
+      throw new Error("Este pedido ja esta vinculado a outra conta.");
     }
 
     await supabase.from("audit_logs").insert({
