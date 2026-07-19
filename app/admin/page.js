@@ -15,6 +15,7 @@ import {
   updateAdminOrderAction
 } from "@/app/admin/actions.js";
 import { isAdminSessionValid, isAdminTokenConfigured } from "@/src/admin/admin-auth.js";
+import { getAdminLoadErrorState } from "@/src/admin/admin-load-error.js";
 import { getAdminCatalogState } from "@/src/admin/catalog-admin.js";
 import { getAdminDashboardState } from "@/src/admin/order-admin.js";
 import { formatCategoryLabels } from "@/src/catalog/categories.js";
@@ -200,17 +201,23 @@ function AdminSetup({ message, mode = "env" }) {
   const config = getPublicSupabaseConfig();
   const projectRef = config.projectRef || "SEU_PROJECT_REF";
   const isDatabaseIssue = mode === "database";
+  const isServiceIssue = mode === "service";
+  const serviceLabel = isServiceIssue ? "Servico indisponivel" : "Configuracao pendente";
+  const sectionLabel = isDatabaseIssue ? "Banco pendente" : serviceLabel;
+  const heading = isDatabaseIssue
+    ? "Aplique a migration do Supabase."
+    : isServiceIssue
+      ? "Nao foi possivel carregar o painel."
+      : "Ative o painel administrativo.";
 
   return (
     <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader showAccountNav={false} />
       <section className={cx(globalStyles, "setup-panel")}>
         <p className={cx(globalStyles, "section-label")}>
-          {isDatabaseIssue ? "Banco pendente" : "Configuracao pendente"}
+          {sectionLabel}
         </p>
-        <h1>
-          {isDatabaseIssue ? "Aplique a migration do Supabase." : "Ative o painel administrativo."}
-        </h1>
+        <h1>{heading}</h1>
         {isDatabaseIssue ? (
           <>
             <p>
@@ -227,6 +234,11 @@ npx supabase db push`}
               `supabase/migrations/20260520_customer_accounts.sql`.
             </p>
           </>
+        ) : isServiceIssue ? (
+          <p>
+            A configuracao administrativa existe, mas a consulta ao Supabase falhou. Tente novamente
+            e revise os logs do servidor se o problema continuar.
+          </p>
         ) : (
           <p>
             Configure `TSZR15_ADMIN_TOKEN`, a URL do Supabase e uma chave privilegiada do Supabase
@@ -1615,10 +1627,12 @@ export default async function AdminPage({ searchParams }) {
           })
         : await getAdminDashboardState({ selectedOrderNumber: params?.pedido });
   } catch (error) {
+    const loadError = getAdminLoadErrorState(error);
+
     return (
       <AdminSetup
-        mode="database"
-        message={`Supabase conectado, mas a estrutura do banco ainda nao esta pronta: ${error.message}. Rode a migration antes de usar o painel.`}
+        message={loadError.message}
+        mode={loadError.kind === "schema" ? "database" : "service"}
       />
     );
   }

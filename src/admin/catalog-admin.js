@@ -6,6 +6,7 @@ import {
   technicalFamilies
 } from "@/src/catalog/categories.js";
 import { normalizeCouponCode } from "@/src/checkout/coupons.js";
+import { createAdminCatalogLoadError } from "@/src/admin/admin-load-error.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
 import { isValidImageUrl, resolveImageOrder } from "@/src/admin/catalog-image-order.js";
 import {
@@ -464,7 +465,7 @@ export async function getAdminCatalogState(options = {}) {
     selectedCouponError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminCatalogLoadError(firstError);
   }
 
   const productPagination = getPageMetadata({
@@ -491,7 +492,7 @@ export async function getAdminCatalogState(options = {}) {
       .range(correctedFrom, correctedFrom + adminProductPageSize - 1);
 
     if (correctedError) {
-      throw new Error(correctedError.message);
+      throw createAdminCatalogLoadError(correctedError);
     }
 
     pagedProductRows = correctedRows ?? [];
@@ -508,7 +509,7 @@ export async function getAdminCatalogState(options = {}) {
       .range(correctedFrom, correctedFrom + adminCouponPageSize - 1);
 
     if (correctedError) {
-      throw new Error(correctedError.message);
+      throw createAdminCatalogLoadError(correctedError);
     }
 
     pagedCouponRows = correctedRows ?? [];
