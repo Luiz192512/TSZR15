@@ -183,6 +183,7 @@ export function ProductImageUploader({
   const cardListRef = useRef(null);
   const draggingCardIdRef = useRef(null);
   const uploadCardIdRef = useRef(null);
+  const cropPendingRef = useRef(false);
   const initialKey = useMemo(
     () =>
       JSON.stringify({
@@ -207,6 +208,7 @@ export function ProductImageUploader({
   const [activeDraft, setActiveDraft] = useState(null);
   const [draggingCardId, setDraggingCardId] = useState(null);
   const [feedback, setFeedback] = useState("");
+  const [isCropPending, setIsCropPending] = useState(false);
 
   const serializedCards = useMemo(() => {
     let uploadIndex = 0;
@@ -417,7 +419,10 @@ export function ProductImageUploader({
   }
 
   async function addCroppedImage() {
-    if (!activeDraft) return;
+    if (!activeDraft || cropPendingRef.current) return;
+
+    cropPendingRef.current = true;
+    setIsCropPending(true);
 
     try {
       setFeedback("Gerando enquadramento da imagem...");
@@ -449,6 +454,9 @@ export function ProductImageUploader({
       setFeedback("");
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Não foi possível recortar a imagem.");
+    } finally {
+      cropPendingRef.current = false;
+      setIsCropPending(false);
     }
   }
 
@@ -579,10 +587,11 @@ export function ProductImageUploader({
             <div className={cx(globalStyles, "admin-image-crop-actions")}>
               <button
                 className={cx(globalStyles, "button button-primary")}
+                disabled={isCropPending}
                 onClick={addCroppedImage}
                 type="button"
               >
-                Adicionar ao card
+                {isCropPending ? "Adicionando..." : "Adicionar ao card"}
               </button>
               <button
                 className={cx(globalStyles, "button button-secondary")}

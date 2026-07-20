@@ -1,12 +1,14 @@
 /** @vitest-environment jsdom */
 
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 
 import { ProductImageUploader } from "../src/components/admin/product-image-uploader.js";
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 function variationCards(container) {
@@ -124,6 +126,55 @@ describe("ProductImageUploader variation cards", () => {
       imageTokens: [],
       quantity: "",
       variation: ""
+    });
+  });
+
+  it("adds a cropped image only once while crop processing is pending", async () => {
+    let objectUrlIndex = 0;
+    vi.spyOn(URL, "createObjectURL").mockImplementation(() => `blob:test-${++objectUrlIndex}`);
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.stubGlobal(
+      "Image",
+      class FakeImage {
+        naturalHeight = 900;
+        naturalWidth = 1200;
+
+        set src(_value) {
+          queueMicrotask(() => this.onload?.());
+        }
+      }
+    );
+    vi.stubGlobal("DataTransfer", undefined);
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage() {},
+      fillRect() {},
+      fillStyle: "",
+      imageSmoothingEnabled: false,
+      imageSmoothingQuality: "low"
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => {
+      setTimeout(() => callback(new Blob(["image"], { type: "image/webp" })), 10);
+    });
+
+    const { container } = render(
+      <ProductImageUploader
+        initialCards={[{ imageUrls: [], quantity: "1", variation: "Preto" }]}
+      />
+    );
+    const picker = container.querySelector('input[type="file"]:not([name])');
+    const file = new File(["source"], "preto.png", { type: "image/png" });
+
+    fireEvent.click(within(container).getByRole("button", { name: "Adicionar fotos" }));
+    fireEvent.change(picker, { target: { files: [file] } });
+
+    const addButton = await within(container).findByRole("button", {
+      name: "Adicionar ao card"
+    });
+    fireEvent.click(addButton);
+    fireEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(variationCards(container)[0].imageTokens).toHaveLength(1);
     });
   });
 });
