@@ -326,12 +326,13 @@ test("analytics admin limita custos e itens ao mesmo conjunto de pedidos", async
   assert.match(orderAdminSource, /const orderIds = \(orders \?\? \[\]\)\.map/);
   assert.match(
     orderAdminSource,
-    /\.from\("supplier_purchases"\)[\s\S]*?\.in\("order_id", orderIds\)/
+    /\.from\("supplier_purchases"\)[\s\S]*?\.in\("order_id", chunk\)/
   );
   assert.match(
     orderAdminSource,
-    /\.from\("order_items"\)[\s\S]*?\.in\("order_id", orderIds\)/
+    /\.from\("order_items"\)[\s\S]*?\.in\("order_id", chunk\)/
   );
+  assert.match(orderAdminSource, /fetchRowsForOrderIds\(\{/);
 });
 
 test("datas de analytics e rastreio usam explicitamente America Sao Paulo", async () => {
