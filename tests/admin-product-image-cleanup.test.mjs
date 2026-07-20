@@ -122,5 +122,40 @@ test("catalog save wires upload rollback and post-save removal cleanup", async (
   assert.match(source, /uploadAdminProductImages\(\{ formData, productId: id, supabase \}\)/);
   assert.match(source, /runWithAdminProductImageCleanup\(\{[\s\S]*?saveAdminCatalogProductAggregate/);
   assert.match(source, /getRemovedAdminProductImagePaths\(\{/);
-  assert.match(source, /removeAdminProductImagePaths\(\{ paths: removedImagePaths, supabase \}\)/);
+  assert.match(source, /removeAdminProductImagePathsSafely\(\{ paths: removedImagePaths, supabase \}\)/);
+});
+
+test("post-save cleanup failures are logged without failing the already saved product", async () => {
+  const { removeAdminProductImagePathsSafely } = await import(
+    "../src/admin/catalog-product-images.js"
+  );
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+
+  const supabase = {
+    storage: {
+      from() {
+        return {
+          async remove() {
+            return { error: { message: "storage unavailable" } };
+          }
+        };
+      }
+    }
+  };
+
+  try {
+    await removeAdminProductImagePathsSafely({
+      paths: ["produto-1/removida.webp"],
+      supabase
+    });
+
+    assert.ok(
+      warnings.some((entry) => entry.includes("admin_product_image_cleanup_failed")),
+      "a falha de limpeza pos-save deve ser logada"
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
 });

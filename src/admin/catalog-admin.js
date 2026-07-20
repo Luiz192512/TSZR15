@@ -13,7 +13,7 @@ import {
   getAdminProductImageFiles,
   getRemovedAdminProductImagePaths,
   loadAdminProductImageUrls,
-  removeAdminProductImagePaths,
+  removeAdminProductImagePathsSafely,
   runWithAdminProductImageCleanup,
   uploadAdminProductImages
 } from "@/src/admin/catalog-product-images.js";
@@ -607,7 +607,7 @@ export async function upsertAdminCatalogProduct(formData) {
     previousImageUrls,
     productId: id
   });
-  await removeAdminProductImagePaths({ paths: removedImagePaths, supabase });
+  await removeAdminProductImagePathsSafely({ paths: removedImagePaths, supabase });
 
   return {
     id,

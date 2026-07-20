@@ -1,3 +1,5 @@
+import { logServerEvent } from "../lib/logger.js";
+
 export const maxAdminProductImages = 12;
 const productImageBucket = "product-images";
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -71,6 +73,19 @@ export async function removeAdminProductImagePaths({ paths, supabase }) {
 
   if (error) {
     throw new Error(`Limpeza de imagens falhou: ${error.message}`);
+  }
+}
+
+// Uso pos-save: o produto ja foi persistido, entao uma falha ao remover
+// imagens substituidas nao pode virar erro para o admin — so log.
+export async function removeAdminProductImagePathsSafely({ paths, supabase }) {
+  try {
+    await removeAdminProductImagePaths({ paths, supabase });
+  } catch (error) {
+    logServerEvent("warn", "admin_product_image_cleanup_failed", {
+      pathCount: paths.length,
+      reason: errorMessage(error)
+    });
   }
 }
 
