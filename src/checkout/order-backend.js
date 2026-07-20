@@ -304,9 +304,11 @@ export async function persistCheckoutOrder({ draft, requestContext = {}, supabas
     };
   }
 
-  if (!user && !getSupabaseServiceRoleKey()) {
+  // create_checkout_order e executavel apenas pelo service role; sem a key o
+  // caminho autenticado falharia com permission denied no FOR UPDATE.
+  if (!getSupabaseServiceRoleKey()) {
     return {
-      reason: "Pedido de convidado precisa de SUPABASE_SERVICE_ROLE_KEY no servidor.",
+      reason: "Pedido precisa de SUPABASE_SERVICE_ROLE_KEY no servidor.",
       saved: false
     };
   }

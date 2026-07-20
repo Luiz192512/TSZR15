@@ -62,7 +62,28 @@ test("cancelamento devolve estoque e des-cancelamento re-reserva com a mesma che
   assert.match(operationBody, /revoke all on function public\.save_admin_order_operation[\s\S]+from authenticated/i);
 });
 
+test("sem service role key o pedido nao e persistido nem para usuario logado", async () => {
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let rpcCalls = 0;
+  const supabase = {
+    async rpc() {
+      rpcCalls += 1;
+      return { data: null, error: null };
+    }
+  };
+
+  const result = await persistCheckoutOrder({
+    draft: { databaseItems: [] },
+    supabase,
+    user: { id: "user-1" }
+  });
+
+  assert.equal(result.saved, false);
+  assert.equal(rpcCalls, 0);
+});
+
 test("persistCheckoutOrder converte o marcador de estoque em erro amigavel 409", async () => {
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
   const draft = {
     addressSnapshot: {},
     consentSnapshot: {},
@@ -102,6 +123,7 @@ test("persistCheckoutOrder converte o marcador de estoque em erro amigavel 409",
 });
 
 test("persistCheckoutOrder mantem erro generico para outras falhas de persistencia", async () => {
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
   const draft = {
     addressSnapshot: {},
     consentSnapshot: {},
