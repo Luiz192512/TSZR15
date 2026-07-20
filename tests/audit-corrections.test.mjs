@@ -269,6 +269,13 @@ test("carrinho local e isolado por usuario no mesmo navegador", async () => {
   assert.match(useCartSource, /readStoredCart\(resolvedUserId\)/);
   assert.match(useCartSource, /loadedCartUserId !== resolvedUserId/);
   assert.doesNotMatch(useCartSource, /readStoredCart\(\)/);
+  assert.equal(typeof cartStorage.migrateGuestCartToUser, "function");
+  assert.ok(
+    useCartSource.indexOf("migrateGuestCartToUser(resolvedUserId)") >= 0 &&
+      useCartSource.indexOf("migrateGuestCartToUser(resolvedUserId)") <
+        useCartSource.indexOf("readStoredCart(resolvedUserId)"),
+    "o hook deve migrar o carrinho de convidado antes de carregar o carrinho do usuario"
+  );
 });
 
 test("cadastro confirmado remove usuario auth quando dados secundarios falham", async () => {

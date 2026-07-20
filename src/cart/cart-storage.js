@@ -40,6 +40,34 @@ export function writeStoredCart(items, userId) {
   window.dispatchEvent(new Event(cartChangedEventName));
 }
 
+export function migrateGuestCartToUser(userId) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const normalizedUserId = String(userId ?? "").trim();
+
+  if (!normalizedUserId) {
+    return;
+  }
+
+  const guestItems = readStoredCart("");
+
+  if (guestItems.length === 0) {
+    return;
+  }
+
+  const userItems = readStoredCart(normalizedUserId);
+  const userCartKeys = new Set(userItems.map((item) => item?.cartKey));
+  const migratedItems = [
+    ...userItems,
+    ...guestItems.filter((item) => !userCartKeys.has(item?.cartKey))
+  ];
+
+  writeStoredCart(migratedItems, normalizedUserId);
+  window.localStorage.removeItem(getCartStorageKey(""));
+}
+
 export function clearStoredCart(userId) {
   if (typeof window === "undefined") {
     return;
