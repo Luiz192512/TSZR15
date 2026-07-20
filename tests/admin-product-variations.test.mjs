@@ -26,6 +26,19 @@ test("existing variation stock query starts the select before filters", async ()
   );
 });
 
+test("admin product edit query loads the saved variation image groups", async () => {
+  const catalogAdminSource = await readFile(
+    new URL("../src/admin/catalog-admin.js", import.meta.url),
+    "utf8",
+  );
+  const adminProductColumns =
+    catalogAdminSource.match(
+      /const adminProductColumns = \[([\s\S]*?)\]\.join\(","\);/,
+    )?.[1] ?? "";
+
+  assert.match(adminProductColumns, /"variation_images"/);
+});
+
 test("variation cards keep names, stock and image tokens in the same order", () => {
   const inventory = collectAdminVariationInventory(
     variationCardsFormData([

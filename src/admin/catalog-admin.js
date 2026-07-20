@@ -45,6 +45,7 @@ const adminProductColumns = [
   "lead_time_days",
   "shipping_class",
   "image_urls",
+  "variation_images",
   "notes",
   "is_published",
   "updated_at",
