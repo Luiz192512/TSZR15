@@ -120,7 +120,7 @@ test("catalog save wires upload rollback and post-save removal cleanup", async (
 
   assert.match(source, /loadAdminProductImageUrls\(\{[\s\S]*?persistenceMode/);
   assert.match(source, /uploadAdminProductImages\(\{ formData, productId: id, supabase \}\)/);
-  assert.match(source, /runWithAdminProductImageCleanup\(\{[\s\S]*?saveAdminCatalogProductRow/);
+  assert.match(source, /runWithAdminProductImageCleanup\(\{[\s\S]*?saveAdminCatalogProductAggregate/);
   assert.match(source, /getRemovedAdminProductImagePaths\(\{/);
   assert.match(source, /removeAdminProductImagePaths\(\{ paths: removedImagePaths, supabase \}\)/);
 });

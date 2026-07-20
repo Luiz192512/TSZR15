@@ -21,7 +21,7 @@ import {
   archiveAdminCouponById,
   saveAdminCoupon
 } from "@/src/admin/catalog-coupon-persistence.js";
-import { saveAdminCatalogProductRow } from "@/src/admin/catalog-product-persistence.js";
+import { saveAdminCatalogProductAggregate } from "@/src/admin/catalog-product-persistence.js";
 import {
   parseAdminDateTimeInput,
   parseAdminMoneyToCents
@@ -587,95 +587,17 @@ export async function upsertAdminCatalogProduct(formData) {
     variation_images: finalVariationImages
   };
   await runWithAdminProductImageCleanup({
-    operation: () => saveAdminCatalogProductRow({ persistenceMode, row: finalRow, supabase }),
+    operation: () =>
+      saveAdminCatalogProductAggregate({
+        costCents,
+        persistenceMode,
+        row: finalRow,
+        supabase,
+        variationStock
+      }),
     paths: uploadedImagePaths,
     supabase
   });
-
-  const { data: currentStockRows, error: currentStockError } = await supabase
-    .from("catalog_variation_stock")
-    .select("variation")
-    .eq("product_id", id);
-
-  if (currentStockError) {
-    throw new Error(currentStockError.message);
-  }
-
-  const staleVariations = (currentStockRows ?? [])
-    .map((stock) => stock.variation)
-    .filter((variation) => !finalRow.variations.includes(variation));
-
-  if (staleVariations.length > 0) {
-    const staleDeletes = await Promise.all(
-      staleVariations.map((variation) =>
-        supabase
-          .from("catalog_variation_stock")
-          .delete()
-          .eq("product_id", id)
-          .eq("variation", variation)
-      )
-    );
-    const staleDeleteError = staleDeletes.find(({ error: deleteError }) => deleteError)?.error;
-
-    if (staleDeleteError) {
-      throw new Error(staleDeleteError.message);
-    }
-  }
-
-  const { error: stockError } = await supabase.from("catalog_variation_stock").upsert(
-    variationStock.map((stock) => ({ ...stock, product_id: id })),
-    { onConflict: "product_id,variation" }
-  );
-
-  if (stockError) {
-    throw new Error(stockError.message);
-  }
-
-  if (Number.isInteger(costCents)) {
-    const { error: costError } = await supabase.from("catalog_product_costs").upsert(
-      {
-        cost_cents: costCents,
-        currency: "BRL",
-        product_id: id
-      },
-      { onConflict: "product_id" }
-    );
-
-    if (costError) {
-      throw new Error(costError.message);
-    }
-  } else {
-    const { error: costDeleteError } = await supabase
-      .from("catalog_product_costs")
-      .delete()
-      .eq("product_id", id);
-
-    if (costDeleteError) {
-      throw new Error(costDeleteError.message);
-    }
-  }
-
-  const { error: deleteError } = await supabase
-    .from("catalog_product_categories")
-    .delete()
-    .eq("product_id", id);
-
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
-
-  const relationRows = finalRow.storefront_category_ids.map((categoryId) => ({
-    product_id: id,
-    category_id: categoryId
-  }));
-
-  const { error: relationError } = await supabase
-    .from("catalog_product_categories")
-    .insert(relationRows);
-
-  if (relationError) {
-    throw new Error(relationError.message);
-  }
 
   const removedImagePaths = getRemovedAdminProductImagePaths({
     finalImageUrls: [

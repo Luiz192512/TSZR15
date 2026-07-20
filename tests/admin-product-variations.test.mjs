@@ -10,20 +10,18 @@ function variationCardsFormData(cards) {
   return formData;
 }
 
-test("existing variation stock query starts the select before filters", async () => {
+test("variation stock save uses the atomic RPC instead of a fragile query chain", async () => {
   const catalogAdminSource = await readFile(
     new URL("../src/admin/catalog-admin.js", import.meta.url),
     "utf8",
   );
-  const currentStockQuery =
-    catalogAdminSource.match(
-      /const \{ data: currentStockRows, error: currentStockError \} = await supabase([\s\S]*?);/,
-    )?.[0] ?? "";
-
-  assert.match(
-    currentStockQuery,
-    /\.from\("catalog_variation_stock"\)\s*\.select\("variation"\)\s*\.eq\("product_id", id\)/,
+  const saveSource = catalogAdminSource.slice(
+    catalogAdminSource.indexOf("export async function upsertAdminCatalogProduct"),
+    catalogAdminSource.indexOf("export async function upsertAdminCoupon"),
   );
+
+  assert.match(saveSource, /saveAdminCatalogProductAggregate\([\s\S]*?variationStock/);
+  assert.doesNotMatch(saveSource, /\.from\("catalog_variation_stock"\)/);
 });
 
 test("admin product edit query loads the saved variation image groups", async () => {

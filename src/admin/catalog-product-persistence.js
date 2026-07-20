@@ -10,20 +10,24 @@ function throwCatalogProductError(error) {
   throw new Error(error.message);
 }
 
-export async function saveAdminCatalogProductRow({ persistenceMode, row, supabase }) {
-  if (persistenceMode === "create") {
-    const { error } = await supabase.from("catalog_products").insert(row);
-    throwCatalogProductError(error);
-    return;
+export async function saveAdminCatalogProductAggregate({
+  costCents,
+  persistenceMode,
+  row,
+  supabase,
+  variationStock
+}) {
+  if (persistenceMode !== "create" && persistenceMode !== "update") {
+    throw new Error("Modo de persistencia de produto invalido.");
   }
 
-  if (persistenceMode === "update") {
-    const { error } = await supabase
-      .from("catalog_products")
-      .upsert(row, { onConflict: "id" });
-    throwCatalogProductError(error);
-    return;
-  }
+  const { data, error } = await supabase.rpc("save_admin_catalog_product", {
+    p_cost_cents: Number.isInteger(costCents) ? costCents : null,
+    p_persistence_mode: persistenceMode,
+    p_product: row,
+    p_variation_stock: variationStock
+  });
 
-  throw new Error("Modo de persistencia de produto invalido.");
+  throwCatalogProductError(error);
+  return data;
 }
