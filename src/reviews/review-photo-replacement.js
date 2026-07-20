@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { logServerEvent } from "../lib/logger.js";
 import {
   detectImageMimeType,
   getReviewImageExtension,
@@ -48,7 +49,15 @@ async function removeStorageRows(supabase, rows) {
 
   for (const [bucket, paths] of pathsByBucket.entries()) {
     if (paths.length > 0) {
-      await supabase.storage.from(bucket).remove(paths);
+      const { error } = await supabase.storage.from(bucket).remove(paths);
+
+      if (error) {
+        logServerEvent("warn", "review_photo_storage_cleanup_failed", {
+          bucket,
+          pathCount: paths.length,
+          reason: error.message
+        });
+      }
     }
   }
 }
