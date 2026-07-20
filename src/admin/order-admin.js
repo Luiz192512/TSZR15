@@ -424,38 +424,17 @@ export async function setAdminInternalOrderStatus(formData) {
     throw new Error("Status interno invalido.");
   }
 
-  const updatedAt = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("orders")
-    .update({
-      internal_order_status: internalOrderStatus,
-      internal_order_status_updated_at: updatedAt
-    })
-    .eq("id", orderId)
-    .select("order_number")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("set_admin_internal_order_status", {
+    p_internal_status: internalOrderStatus,
+    p_order_id: orderId
+  });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  if (!data) {
-    throw new Error("Pedido nao encontrado.");
-  }
-
-  const resolvedOrderNumber = data.order_number ?? orderNumber;
-
-  await supabase.from("audit_logs").insert({
-    action: "admin_internal_order_status_updated",
-    metadata: {
-      internalOrderStatus,
-      orderNumber: resolvedOrderNumber
-    },
-    order_id: orderId
-  });
-
   return {
-    internalOrderStatus,
-    orderNumber: resolvedOrderNumber
+    internalOrderStatus: data?.internalOrderStatus ?? internalOrderStatus,
+    orderNumber: data?.orderNumber ?? orderNumber
   };
 }
