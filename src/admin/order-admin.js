@@ -3,6 +3,7 @@ import "server-only";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { buildCheckoutOrderDraft, persistCheckoutOrder } from "@/src/checkout/order-backend.js";
 import { buildAdminOrderAnalytics } from "@/src/admin/order-analytics.js";
+import { fetchRowsForOrderIds } from "@/src/admin/order-related-rows.js";
 import {
   buildAdminOrderOperationRpcArgs,
   saveAdminOrderOperation
@@ -147,34 +148,51 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
     return buildAdminOrderAnalytics();
   }
 
+  const { data: orders, error: orderError } = await supabase
+    .from("orders")
+    .select(
+      "id, customer_name, customer_email, customer_whatsapp, total_cents, payment_status, operational_status, internal_order_status, created_at"
+    )
+    .order("created_at", { ascending: false })
+    .limit(1000);
+
+  if (orderError) {
+    throw new Error(orderError.message);
+  }
+
+  const orderIds = (orders ?? []).map((order) => order.id);
   const [
-    { data: orders, error: orderError },
     { data: supplierPurchases, error: supplierError },
     { data: orderItems, error: itemError },
     { data: reviews, error: reviewError }
   ] = await Promise.all([
-      supabase
-        .from("orders")
-        .select(
-          "id, customer_name, customer_email, customer_whatsapp, total_cents, payment_status, operational_status, internal_order_status, created_at"
-        )
-        .order("created_at", { ascending: false })
-        .limit(1000),
-      supabase
-        .from("supplier_purchases")
-        .select("order_id, product_cost_cents, shipping_cost_cents")
-        .limit(1000),
-      supabase
-        .from("order_items")
-        .select("order_id, product_id, product_slug, product_name, quantity, subtotal_cents, subtotal_cost_cents")
-        .limit(5000),
-      supabase
-        .from("order_item_reviews")
-        .select("product_id, product_name, rating, status")
-        .limit(5000)
-    ]);
+    fetchRowsForOrderIds({
+      buildQuery: (chunk) =>
+        supabase
+          .from("supplier_purchases")
+          .select("order_id, product_cost_cents, shipping_cost_cents")
+          .in("order_id", chunk)
+          .limit(5000),
+      orderIds
+    }),
+    fetchRowsForOrderIds({
+      buildQuery: (chunk) =>
+        supabase
+          .from("order_items")
+          .select(
+            "order_id, product_id, product_slug, product_name, quantity, subtotal_cents, subtotal_cost_cents"
+          )
+          .in("order_id", chunk)
+          .limit(5000),
+      orderIds
+    }),
+    supabase
+      .from("order_item_reviews")
+      .select("product_id, product_name, rating, status")
+      .limit(5000)
+  ]);
 
-  const firstError = orderError ?? supplierError ?? itemError ?? reviewError;
+  const firstError = supplierError ?? itemError ?? reviewError;
 
   if (firstError) {
     throw new Error(firstError.message);

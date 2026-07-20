@@ -28,3 +28,13 @@ export function isSameOriginRequest(headersLike) {
     return false;
   }
 }
+
+export function isJsonRequest(headersLike) {
+  const getHeader = toHeaderGetter(headersLike);
+  const contentType = getHeader("content-type");
+
+  return String(contentType ?? "")
+    .split(";", 1)[0]
+    .trim()
+    .toLowerCase() === "application/json";
+}

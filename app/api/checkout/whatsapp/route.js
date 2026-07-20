@@ -1,4 +1,5 @@
 import { buildWhatsAppCheckoutUrl } from "@/src/checkout/whatsapp.js";
+import { getConfiguredWhatsAppNumber } from "@/src/checkout/whatsapp-config.js";
 import { sendOrderConfirmation } from "@/src/checkout/order-email.js";
 import {
   buildCheckoutOrderDraft,
@@ -20,6 +21,7 @@ import { consumeRateLimit, getRequestIp, rateLimitProfiles } from "@/src/lib/rat
 import { createRateLimitResponse } from "@/src/lib/rate-limit-response.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
+import { isJsonRequest, isSameOriginRequest } from "@/src/security/origin.js";
 
 function getRequestContext(request) {
   const ipAddress = getRequestIp(request);
@@ -66,6 +68,20 @@ async function attachInternalProductCosts(products, supabase) {
 }
 
 export async function POST(request) {
+  if (!isSameOriginRequest(request)) {
+    return errorResponse("Origem da requisicao nao permitida.", 403);
+  }
+
+  if (!isJsonRequest(request)) {
+    return errorResponse("Envie o checkout como application/json.", 415);
+  }
+
+  const phoneNumber = getConfiguredWhatsAppNumber();
+
+  if (!phoneNumber) {
+    return errorResponse("WhatsApp Business indisponivel no momento.", 503);
+  }
+
   const serviceSupabase = createServiceRoleSupabaseClient();
   const rateLimit = await consumeRateLimit({
     ...rateLimitProfiles.checkout,
@@ -96,10 +112,6 @@ export async function POST(request) {
   }
 
   const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
-  const phoneNumber =
-    process.env.WHATSAPP_BUSINESS_NUMBER ??
-    process.env.NEXT_PUBLIC_WHATSAPP_BUSINESS_NUMBER ??
-    "5511999999999";
   const userSupabase = await createServerSupabaseClient();
   const supabase = serviceSupabase ?? userSupabase;
 
@@ -166,7 +178,7 @@ export async function POST(request) {
       logServerEvent("error", "checkout_persistence_error", {
         reason: error.message
       });
-      return errorResponse(`Nao foi possivel salvar o pedido: ${error.message}`, 500);
+      return errorResponse("Nao foi possivel salvar o pedido. Tente novamente.", 500);
     }
 
     logServerEvent("error", "checkout_unhandled_persistence_error", {

@@ -19,10 +19,20 @@ import {
 } from "@/src/catalog/product-presentation.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
+import {
+  cartChangedEventName,
+  clearStoredCart,
+  guestCartStorageKey,
+  migrateGuestCartToUser,
+  readStoredCart,
+  writeStoredCart
+} from "@/src/cart/cart-storage.js";
 export const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? "TSZR15";
-export const cartStorageKey = "tszr15-cart";
+export const cartStorageKey = guestCartStorageKey;
 export const brandLogoSrc = "/brand/logo-tszr15-store.webp";
 export const heroBoardSrc = "/brand/tszr15-hero-r15-dark.webp";
+
+export { clearStoredCart, migrateGuestCartToUser, readStoredCart, writeStoredCart };
 
 const productImageSizes = {
   card: "(max-width: 720px) 92vw, 366px",
@@ -66,65 +76,27 @@ export function getInitialCustomer(initialCustomer) {
   };
 }
 
-export function readStoredCart() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const storedValue = window.localStorage.getItem(cartStorageKey);
-    const parsedItems = storedValue ? JSON.parse(storedValue) : [];
-
-    return Array.isArray(parsedItems) ? parsedItems : [];
-  } catch {
-    return [];
-  }
-}
-
-export function writeStoredCart(items) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  if (!Array.isArray(items) || items.length === 0) {
-    window.localStorage.removeItem(cartStorageKey);
-  } else {
-    window.localStorage.setItem(cartStorageKey, JSON.stringify(items));
-  }
-
-  window.dispatchEvent(new Event("tszr15-cart-changed"));
-}
-
-export function clearStoredCart() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem(cartStorageKey);
-  window.dispatchEvent(new Event("tszr15-cart-changed"));
-}
-
 export function getCartCount(items) {
   return items.reduce((total, item) => total + item.quantity, 0);
 }
 
-export function useCartCount() {
+export function useCartCount(userId) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     function refreshCount() {
-      setCount(getCartCount(readStoredCart()));
+      setCount(getCartCount(readStoredCart(userId)));
     }
 
     refreshCount();
     window.addEventListener("storage", refreshCount);
-    window.addEventListener("tszr15-cart-changed", refreshCount);
+    window.addEventListener(cartChangedEventName, refreshCount);
 
     return () => {
       window.removeEventListener("storage", refreshCount);
-      window.removeEventListener("tszr15-cart-changed", refreshCount);
+      window.removeEventListener(cartChangedEventName, refreshCount);
     };
-  }, []);
+  }, [userId]);
 
   return count;
 }
@@ -289,7 +261,7 @@ export function StoreHeader({
   resolveAccount = true,
   showSearch = true
 }) {
-  const cartCount = useCartCount();
+  const cartCount = useCartCount(currentUser?.id);
 
   return (
     <header

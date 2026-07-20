@@ -1,3 +1,5 @@
+import { formatBrasiliaDate, getBrasiliaDateKey } from "../lib/brasilia-date.js";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function sumCents(values) {
@@ -5,13 +7,7 @@ function sumCents(values) {
 }
 
 function getDateKey(value) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toISOString().slice(0, 10);
+  return getBrasiliaDateKey(value);
 }
 
 function getCustomerKey(order) {
@@ -166,7 +162,7 @@ export function buildAdminOrderAnalytics({
     dayBuckets.push({
       count: 0,
       key,
-      label: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      label: formatBrasiliaDate(date, { day: "2-digit", month: "2-digit" }),
       totalCents: 0
     });
   }

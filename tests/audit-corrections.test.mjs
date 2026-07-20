@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import * as adminSession from "../src/admin/admin-session.js";
@@ -80,6 +81,350 @@ test("origem administrativa exige Origin e Host iguais", async () => {
     ),
     false
   );
+});
+
+test("checkout exige mesma origem e corpo JSON", async () => {
+  const originPolicy = await importOptional("../src/security/origin.js");
+  const checkoutRoute = await readFile(
+    new URL("../app/api/checkout/whatsapp/route.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(typeof originPolicy.isJsonRequest, "function");
+  assert.equal(
+    originPolicy.isJsonRequest(new Headers({ "content-type": "application/json; charset=utf-8" })),
+    true
+  );
+  assert.equal(originPolicy.isJsonRequest(new Headers({ "content-type": "text/plain" })), false);
+  assert.match(checkoutRoute, /if \(!isSameOriginRequest\(request\)\)/);
+  assert.match(checkoutRoute, /if \(!isJsonRequest\(request\)\)/);
+});
+
+test("vinculo de pedido convidado aceita apenas o primeiro usuario concorrente", async () => {
+  const orderClaim = await importOptional("../src/reviews/order-claim.js");
+  const orderReviewsSource = await readFile(
+    new URL("../src/reviews/order-reviews.js", import.meta.url),
+    "utf8"
+  );
+  let ownerId = null;
+
+  function supabaseForClaim() {
+    let nextOwnerId = null;
+    const builder = {
+      eq: () => builder,
+      is: () => builder,
+      maybeSingle: async () => {
+        if (ownerId !== null) return { data: null, error: null };
+        ownerId = nextOwnerId;
+        return { data: { id: "order-1" }, error: null };
+      },
+      select: () => builder,
+      update: ({ user_id: userId }) => {
+        nextOwnerId = userId;
+        return builder;
+      }
+    };
+
+    return { from: () => builder };
+  }
+
+  assert.equal(typeof orderClaim.claimUnownedOrder, "function");
+  const first = await orderClaim.claimUnownedOrder({
+    orderId: "order-1",
+    supabase: supabaseForClaim(),
+    userId: "user-a"
+  });
+  const second = await orderClaim.claimUnownedOrder({
+    orderId: "order-1",
+    supabase: supabaseForClaim(),
+    userId: "user-b"
+  });
+
+  assert.equal(first, true);
+  assert.equal(second, false);
+  assert.equal(ownerId, "user-a");
+  assert.match(orderReviewsSource, /claimUnownedOrder\(\{/);
+});
+
+test("rastreio envia pedido e contato por POST sem gravar PII na URL", async () => {
+  const pageSource = await readFile(new URL("../app/rastreio/page.js", import.meta.url), "utf8");
+  const actionSource = await readFile(
+    new URL("../app/rastreio/actions.js", import.meta.url),
+    "utf8"
+  );
+  const lookupSource = await readFile(
+    new URL("../src/components/tracking/tracking-lookup.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(pageSource, /searchParams|params\?\.contato|method="GET"/);
+  assert.match(pageSource, /<TrackingLookup\s*\/>/);
+  assert.match(actionSource, /findPublicOrderTracking\(\{/);
+  assert.match(lookupSource, /useActionState\(lookupOrderTracking/);
+  assert.match(lookupSource, /<form[\s\S]*?action=\{formAction\}/);
+});
+
+test("rastreio publico aplica limite por IP antes de consultar pedidos", async () => {
+  const rateLimit = await importOptional("../src/lib/rate-limit.js");
+  const actionSource = await readFile(
+    new URL("../app/rastreio/actions.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.deepEqual(rateLimit.rateLimitProfiles.tracking, {
+    blockSeconds: 5 * 60,
+    limit: 10,
+    scope: "public-order-tracking",
+    windowSeconds: 5 * 60
+  });
+  assert.match(actionSource, /consumeRateLimit\(\{[\s\S]*rateLimitProfiles\.tracking/);
+  assert.match(actionSource, /identifier: getRequestIp\(headerStore\)/);
+  assert.match(actionSource, /if \(!rateLimit\.allowed\)/);
+});
+
+test("checkout e rastreio nao devolvem mensagens internas do banco ao cliente", async () => {
+  const checkoutSource = await readFile(
+    new URL("../app/api/checkout/whatsapp/route.js", import.meta.url),
+    "utf8"
+  );
+  const trackingActionSource = await readFile(
+    new URL("../app/rastreio/actions.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(
+    checkoutSource,
+    /errorResponse\(`Nao foi possivel salvar o pedido: \$\{error\.message\}`/
+  );
+  assert.match(
+    checkoutSource,
+    /return errorResponse\("Nao foi possivel salvar o pedido\. Tente novamente\.", 500\)/
+  );
+  assert.doesNotMatch(
+    trackingActionSource,
+    /message: error instanceof Error \? error\.message/
+  );
+  assert.match(trackingActionSource, /logServerEvent\("error", "tracking_lookup_failed"/);
+});
+
+test("edicao de review valida todas as fotos antes de substituir as atuais", async () => {
+  const photoReplacement = await importOptional("../src/reviews/review-photo-replacement.js");
+  const orderReviewsSource = await readFile(
+    new URL("../src/reviews/order-reviews.js", import.meta.url),
+    "utf8"
+  );
+  let storageCalls = 0;
+  let databaseCalls = 0;
+  const supabase = {
+    from: () => {
+      databaseCalls += 1;
+      throw new Error("Banco nao deveria ser acessado antes da validacao completa.");
+    },
+    storage: {
+      from: () => {
+        storageCalls += 1;
+        throw new Error("Storage nao deveria ser acessado antes da validacao completa.");
+      }
+    }
+  };
+  const files = [
+    {
+      arrayBuffer: async () => Uint8Array.from([0xff, 0xd8, 0xff, 0x00]).buffer,
+      size: 4,
+      type: "image/jpeg"
+    },
+    {
+      arrayBuffer: async () => Uint8Array.from([0x00, 0x01, 0x02, 0x03]).buffer,
+      size: 4,
+      type: "image/jpeg"
+    }
+  ];
+
+  assert.equal(typeof photoReplacement.replaceReviewPhotos, "function");
+  await assert.rejects(
+    photoReplacement.replaceReviewPhotos({
+      files,
+      reviewId: "review-1",
+      supabase,
+      userId: "user-1"
+    }),
+    /Envie fotos JPG, PNG, WEBP ou GIF/
+  );
+  assert.equal(storageCalls, 0);
+  assert.equal(databaseCalls, 0);
+  assert.match(orderReviewsSource, /replaceReviewPhotos\(\{/);
+});
+
+test("falha na limpeza do storage de fotos antigas e registrada sem quebrar a troca", async () => {
+  const photoReplacement = await importOptional("../src/reviews/review-photo-replacement.js");
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+
+  const insertedRows = [];
+  const removedPaths = [];
+  const supabase = {
+    from: () => ({
+      delete: () => ({
+        in: async () => ({ error: null })
+      }),
+      insert: async (rows) => {
+        insertedRows.push(...rows);
+        return { error: null };
+      },
+      select: () => ({
+        eq: async () => ({
+          data: [
+            {
+              id: "photo-old",
+              storage_bucket: "review-photos",
+              storage_path: "user-1/review-1/antiga.jpg"
+            }
+          ],
+          error: null
+        })
+      })
+    }),
+    storage: {
+      from: () => ({
+        remove: async (paths) => {
+          removedPaths.push(...paths);
+          return { error: { message: "storage indisponivel" } };
+        },
+        upload: async () => ({ error: null })
+      })
+    }
+  };
+
+  try {
+    const rows = await photoReplacement.replaceReviewPhotos({
+      files: [
+        {
+          arrayBuffer: async () => Uint8Array.from([0xff, 0xd8, 0xff, 0x00]).buffer,
+          size: 4,
+          type: "image/jpeg"
+        }
+      ],
+      reviewId: "review-1",
+      supabase,
+      userId: "user-1"
+    });
+
+    assert.equal(rows.length, 1);
+    assert.equal(insertedRows.length, 1);
+    assert.deepEqual(removedPaths, ["user-1/review-1/antiga.jpg"]);
+    assert.ok(
+      warnings.some((entry) => entry.includes("review_photo_storage_cleanup_failed")),
+      "a falha de limpeza do storage deve ser logada"
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
+test("carrinho local e isolado por usuario no mesmo navegador", async () => {
+  const cartStorage = await importOptional("../src/cart/cart-storage.js");
+  const useCartSource = await readFile(
+    new URL("../src/components/catalog/hooks/use-cart.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(cartStorage.getCartStorageKey(), "tszr15-cart");
+  assert.equal(cartStorage.getCartStorageKey("user-a"), "tszr15-cart:user:user-a");
+  assert.equal(cartStorage.getCartStorageKey("user-b"), "tszr15-cart:user:user-b");
+  assert.notEqual(cartStorage.getCartStorageKey("user-a"), cartStorage.getCartStorageKey("user-b"));
+  assert.match(useCartSource, /readStoredCart\(resolvedUserId\)/);
+  assert.match(useCartSource, /loadedCartUserId !== resolvedUserId/);
+  assert.doesNotMatch(useCartSource, /readStoredCart\(\)/);
+  assert.equal(typeof cartStorage.migrateGuestCartToUser, "function");
+  assert.ok(
+    useCartSource.indexOf("migrateGuestCartToUser(resolvedUserId)") >= 0 &&
+      useCartSource.indexOf("migrateGuestCartToUser(resolvedUserId)") <
+        useCartSource.indexOf("readStoredCart(resolvedUserId)"),
+    "o hook deve migrar o carrinho de convidado antes de carregar o carrinho do usuario"
+  );
+});
+
+test("cadastro confirmado remove usuario auth quando dados secundarios falham", async () => {
+  const compensation = await importOptional("../src/auth/signup-compensation.js");
+  const authActionSource = await readFile(
+    new URL("../app/auth/actions.js", import.meta.url),
+    "utf8"
+  );
+  const deleteUser = async (userId) => ({ data: { user: { id: userId } }, error: null });
+  const adminSupabase = { auth: { admin: { deleteUser } } };
+
+  assert.equal(typeof compensation.rollbackCreatedCustomerAuthUser, "function");
+  const result = await compensation.rollbackCreatedCustomerAuthUser({
+    adminSupabase,
+    userId: "user-new"
+  });
+
+  assert.equal(result.error, null);
+  assert.match(
+    authActionSource,
+    /if \(persistenceError\) \{[\s\S]*rollbackCreatedCustomerAuthUser\(\{[\s\S]*userId: data\.user\.id/
+  );
+});
+
+test("checkout nao usa numero ficticio quando WhatsApp nao esta configurado", async () => {
+  const whatsappConfig = await importOptional("../src/checkout/whatsapp-config.js");
+  const checkoutSource = await readFile(
+    new URL("../app/api/checkout/whatsapp/route.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(whatsappConfig.getConfiguredWhatsAppNumber({}), "");
+  assert.equal(
+    whatsappConfig.getConfiguredWhatsAppNumber({ WHATSAPP_BUSINESS_NUMBER: "5511999999999" }),
+    "5511999999999"
+  );
+  assert.doesNotMatch(checkoutSource, /"5511999999999"/);
+  assert.match(checkoutSource, /if \(!phoneNumber\) \{/);
+  assert.ok(checkoutSource.indexOf("if (!phoneNumber)") < checkoutSource.indexOf("persistCheckoutOrder({"));
+});
+
+test("analytics admin limita custos e itens ao mesmo conjunto de pedidos", async () => {
+  const orderAdminSource = await readFile(
+    new URL("../src/admin/order-admin.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(orderAdminSource, /const orderIds = \(orders \?\? \[\]\)\.map/);
+  assert.match(
+    orderAdminSource,
+    /\.from\("supplier_purchases"\)[\s\S]*?\.in\("order_id", chunk\)/
+  );
+  assert.match(
+    orderAdminSource,
+    /\.from\("order_items"\)[\s\S]*?\.in\("order_id", chunk\)/
+  );
+  assert.match(orderAdminSource, /fetchRowsForOrderIds\(\{/);
+});
+
+test("datas de analytics e rastreio usam explicitamente America Sao Paulo", async () => {
+  const brasiliaDate = await importOptional("../src/lib/brasilia-date.js");
+  const trackingSource = await readFile(
+    new URL("../src/components/tracking/tracking-lookup.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.equal(
+    brasiliaDate.getBrasiliaDateKey("2026-07-20T02:30:00.000Z"),
+    "2026-07-19"
+  );
+  assert.match(
+    brasiliaDate.formatBrasiliaDateTime("2026-07-20T02:30:00.000Z"),
+    /19\/07\/2026.*23:30/
+  );
+  assert.match(trackingSource, /formatBrasiliaDateTime\(value\)/);
+});
+
+test("layout Cloudflare nao injeta endpoints exclusivos da Vercel", async () => {
+  const layoutSource = await readFile(new URL("../app/layout.js", import.meta.url), "utf8");
+
+  assert.doesNotMatch(layoutSource, /@vercel\/analytics|@vercel\/speed-insights/);
+  assert.doesNotMatch(layoutSource, /<Analytics\s*\/>|<SpeedInsights\s*\/>/);
 });
 
 test("cupom publico omite descricao e segmentacao internas", () => {

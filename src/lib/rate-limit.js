@@ -27,6 +27,12 @@ export const rateLimitProfiles = {
     limit: 30,
     scope: "coupon-validate-ip",
     windowSeconds: 60
+  },
+  tracking: {
+    blockSeconds: 5 * 60,
+    limit: 10,
+    scope: "public-order-tracking",
+    windowSeconds: 5 * 60
   }
 };
 

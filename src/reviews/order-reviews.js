@@ -1,23 +1,18 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
+import { claimUnownedOrder } from "./order-claim.js";
 import { buildPublicOrderTrackingView } from "@/src/tracking/order-tracking.js";
 import { contactMatchesOrder } from "@/src/customer/order-contact.js";
 import {
   buildReviewSummary,
   cleanReviewString,
-  detectImageMimeType,
-  getReviewImageExtension,
   maxReviewPhotos,
   sanitizePublicReviewerName,
-  validateReviewImageMeta,
   validateReviewInput
 } from "@/src/reviews/review-utils.js";
 import { createSignedPhotoUrls } from "@/src/reviews/photo-urls.js";
-
-const reviewPhotoBucket = "review-photos";
+import { replaceReviewPhotos } from "@/src/reviews/review-photo-replacement.js";
 
 function cleanString(value, maxLength = 500) {
   return String(value ?? "")
@@ -35,95 +30,6 @@ function getReviewUploadFiles(formData) {
   }
 
   return files;
-}
-
-async function uploadReviewPhotos({ files, reviewId, supabase, userId }) {
-  const rows = [];
-
-  for (const [index, file] of files.entries()) {
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const detectedMimeType = detectImageMimeType(bytes);
-    const errors = validateReviewImageMeta({
-      detectedMimeType,
-      sizeBytes: Number(file.size)
-    });
-
-    if (file.type && file.type !== detectedMimeType) {
-      errors.push("O tipo da foto nao confere com o conteudo do arquivo.");
-    }
-
-    if (errors.length > 0) {
-      throw new Error(errors[0]);
-    }
-
-    const extension = getReviewImageExtension(detectedMimeType);
-    const storagePath = `${userId}/${reviewId}/${randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage
-      .from(reviewPhotoBucket)
-      .upload(storagePath, Buffer.from(arrayBuffer), {
-        cacheControl: "3600",
-        contentType: detectedMimeType,
-        upsert: false
-      });
-
-    if (uploadError) {
-      throw new Error(`Upload de foto falhou: ${uploadError.message}`);
-    }
-
-    rows.push({
-      mime_type: detectedMimeType,
-      review_id: reviewId,
-      size_bytes: Number(file.size),
-      sort_order: index,
-      storage_bucket: reviewPhotoBucket,
-      storage_path: storagePath
-    });
-  }
-
-  if (rows.length === 0) {
-    return [];
-  }
-
-  const { error } = await supabase.from("order_review_photos").insert(rows);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return rows;
-}
-
-async function deleteReviewPhotos({ reviewId, supabase }) {
-  const { data: existingPhotos, error: lookupError } = await supabase
-    .from("order_review_photos")
-    .select("id, storage_bucket, storage_path")
-    .eq("review_id", reviewId);
-
-  if (lookupError) {
-    throw new Error(lookupError.message);
-  }
-
-  const pathsByBucket = new Map();
-
-  for (const photo of existingPhotos ?? []) {
-    const bucket = photo.storage_bucket ?? reviewPhotoBucket;
-    const paths = pathsByBucket.get(bucket) ?? [];
-    paths.push(photo.storage_path);
-    pathsByBucket.set(bucket, paths);
-  }
-
-  for (const [bucket, paths] of pathsByBucket.entries()) {
-    if (paths.length > 0) {
-      await supabase.storage.from(bucket).remove(paths);
-    }
-  }
-
-  const { error } = await supabase.from("order_review_photos").delete().eq("review_id", reviewId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
 }
 
 function mapReview(row, photos = []) {
@@ -358,13 +264,14 @@ export async function claimCustomerOrder({ formData, user }) {
   }
 
   if (!order.user_id) {
-    const { error: updateError } = await supabase
-      .from("orders")
-      .update({ user_id: user.id })
-      .eq("id", order.id);
+    const claimed = await claimUnownedOrder({
+      orderId: order.id,
+      supabase,
+      userId: user.id
+    });
 
-    if (updateError) {
-      throw new Error(updateError.message);
+    if (!claimed) {
+      throw new Error("Este pedido ja esta vinculado a outra conta.");
     }
 
     await supabase.from("audit_logs").insert({
@@ -461,8 +368,7 @@ export async function submitOrderItemReview({ formData, user }) {
     throw new Error(reviewError.message);
   }
 
-  await deleteReviewPhotos({ reviewId: review.id, supabase });
-  await uploadReviewPhotos({
+  await replaceReviewPhotos({
     files: getReviewUploadFiles(formData),
     reviewId: review.id,
     supabase,

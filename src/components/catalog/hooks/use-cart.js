@@ -10,23 +10,34 @@ import {
 } from "@/src/cart/cart-items.js";
 import { getVariationStockStatus } from "@/src/catalog/stock.js";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/client.js";
-import { clearStoredCart, readStoredCart, writeStoredCart } from "../catalog-shared.js";
+import {
+  clearStoredCart,
+  migrateGuestCartToUser,
+  readStoredCart,
+  writeStoredCart
+} from "../catalog-shared.js";
 
 export function useCart(products, resolvedUser) {
   const [cartItems, setCartItems] = useState([]);
   const [hasLoadedCart, setHasLoadedCart] = useState(false);
   const [cartSyncFeedback, setCartSyncFeedback] = useState("");
   const [syncedCartUserId, setSyncedCartUserId] = useState("");
+  const [loadedCartUserId, setLoadedCartUserId] = useState(null);
+  const resolvedUserId = resolvedUser?.id ?? "";
 
   useEffect(() => {
-    const sanitizedItems = sanitizeCartItems(readStoredCart(), products);
+    setHasLoadedCart(false);
+    setSyncedCartUserId("");
+    migrateGuestCartToUser(resolvedUserId);
+    const sanitizedItems = sanitizeCartItems(readStoredCart(resolvedUserId), products);
     setCartItems(sanitizedItems);
+    setLoadedCartUserId(resolvedUserId);
     setHasLoadedCart(true);
-    writeStoredCart(sanitizedItems);
-  }, [products]);
+    writeStoredCart(sanitizedItems, resolvedUserId);
+  }, [products, resolvedUserId]);
 
   useEffect(() => {
-    if (!resolvedUser || !hasLoadedCart) return undefined;
+    if (!resolvedUserId || !hasLoadedCart || loadedCartUserId !== resolvedUserId) return undefined;
 
     const supabase = createBrowserSupabaseClient();
 
@@ -42,7 +53,7 @@ export function useCart(products, resolvedUser) {
       const { data, error } = await supabase
         .from("customer_carts")
         .select("items")
-        .eq("user_id", resolvedUser.id)
+        .eq("user_id", resolvedUserId)
         .maybeSingle();
 
       if (error) throw error;
@@ -53,10 +64,10 @@ export function useCart(products, resolvedUser) {
       setCartItems(nextItems);
       const { error: upsertError } = await supabase
         .from("customer_carts")
-        .upsert({ items: nextItems, user_id: resolvedUser.id });
+        .upsert({ items: nextItems, user_id: resolvedUserId });
 
       if (upsertError) throw upsertError;
-      if (isMounted) setSyncedCartUserId(resolvedUser.id);
+      if (isMounted) setSyncedCartUserId(resolvedUserId);
     }
 
     syncCart().catch(() => {
@@ -70,15 +81,15 @@ export function useCart(products, resolvedUser) {
     return () => {
       isMounted = false;
     };
-  }, [hasLoadedCart, products, resolvedUser]);
+  }, [hasLoadedCart, loadedCartUserId, products, resolvedUserId]);
 
   useEffect(() => {
     if (!hasLoadedCart) return;
-    writeStoredCart(cartItems);
-  }, [cartItems, hasLoadedCart]);
+    writeStoredCart(cartItems, loadedCartUserId);
+  }, [cartItems, hasLoadedCart, loadedCartUserId]);
 
   useEffect(() => {
-    if (!resolvedUser || !hasLoadedCart || syncedCartUserId !== resolvedUser.id) return undefined;
+    if (!resolvedUserId || !hasLoadedCart || syncedCartUserId !== resolvedUserId) return undefined;
     const supabase = createBrowserSupabaseClient();
     if (!supabase) return undefined;
 
@@ -86,7 +97,7 @@ export function useCart(products, resolvedUser) {
 
     supabase
       .from("customer_carts")
-      .upsert({ items: cartItems, user_id: resolvedUser.id })
+      .upsert({ items: cartItems, user_id: resolvedUserId })
       .then(({ error }) => {
         if (error && isMounted) {
           setCartSyncFeedback(
@@ -98,13 +109,13 @@ export function useCart(products, resolvedUser) {
     return () => {
       isMounted = false;
     };
-  }, [cartItems, hasLoadedCart, resolvedUser, syncedCartUserId]);
+  }, [cartItems, hasLoadedCart, resolvedUserId, syncedCartUserId]);
 
   return {
     cartItems,
     cartSyncFeedback,
     clearCart: () => {
-      clearStoredCart();
+      clearStoredCart(resolvedUserId);
       setCartItems([]);
     },
     deleteItem: (cartKey) => setCartItems((currentItems) => removeCartItem(currentItems, cartKey)),

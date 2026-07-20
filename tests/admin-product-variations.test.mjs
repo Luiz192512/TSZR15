@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { collectAdminVariationInventory } from "../src/admin/catalog-variations.js";
@@ -8,6 +9,22 @@ function variationCardsFormData(cards) {
   formData.set("variationCards", JSON.stringify(cards));
   return formData;
 }
+
+test("existing variation stock query starts the select before filters", async () => {
+  const catalogAdminSource = await readFile(
+    new URL("../src/admin/catalog-admin.js", import.meta.url),
+    "utf8",
+  );
+  const currentStockQuery =
+    catalogAdminSource.match(
+      /const \{ data: currentStockRows, error: currentStockError \} = await supabase([\s\S]*?);/,
+    )?.[0] ?? "";
+
+  assert.match(
+    currentStockQuery,
+    /\.from\("catalog_variation_stock"\)\s*\.select\("variation"\)\s*\.eq\("product_id", id\)/,
+  );
+});
 
 test("variation cards keep names, stock and image tokens in the same order", () => {
   const inventory = collectAdminVariationInventory(

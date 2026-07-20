@@ -73,3 +73,22 @@ test("admin sales analytics do not rank customers without paid orders", () => {
   assert.equal(analytics.salesCount, 0);
   assert.deepEqual(analytics.topCustomers, []);
 });
+
+test("admin sales analytics group midnight UTC sales in the Brasilia business day", () => {
+  const analytics = buildAdminOrderAnalytics({
+    now: new Date("2026-07-20T12:00:00.000Z"),
+    orders: [
+      {
+        id: "paid-near-midnight",
+        created_at: "2026-07-20T02:30:00.000Z",
+        customer_name: "Brasilia Customer",
+        operational_status: "pagamento_confirmado",
+        payment_status: "pagamento_confirmado",
+        total_cents: 25000,
+      },
+    ],
+  });
+
+  assert.equal(analytics.dailySales.find((day) => day.key === "2026-07-19")?.count, 1);
+  assert.equal(analytics.dailySales.find((day) => day.key === "2026-07-20")?.count, 0);
+});
