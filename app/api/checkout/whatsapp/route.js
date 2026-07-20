@@ -4,6 +4,7 @@ import { sendOrderConfirmation } from "@/src/checkout/order-email.js";
 import {
   buildCheckoutOrderDraft,
   CheckoutPersistenceError,
+  CheckoutStockError,
   CheckoutValidationError,
   persistCheckoutOrder
 } from "@/src/checkout/order-backend.js";
@@ -174,6 +175,14 @@ export async function POST(request) {
       user
     });
   } catch (error) {
+    if (error instanceof CheckoutStockError) {
+      logServerEvent("warn", "checkout_stock_unavailable", {
+        productId: error.productId,
+        variation: error.variation
+      });
+      return errorResponse(error.message, 409);
+    }
+
     if (error instanceof CheckoutPersistenceError) {
       logServerEvent("error", "checkout_persistence_error", {
         reason: error.message

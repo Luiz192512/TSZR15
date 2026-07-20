@@ -29,6 +29,37 @@ export class CheckoutPersistenceError extends Error {
   }
 }
 
+export class CheckoutStockError extends Error {
+  constructor(message, { productId, variation } = {}) {
+    super(message);
+    this.name = "CheckoutStockError";
+    this.productId = productId ?? "";
+    this.variation = variation ?? "";
+  }
+}
+
+const stockErrorMarker = "estoque_insuficiente:";
+
+function toCheckoutStockError(rpcErrorMessage, databaseItems) {
+  const marker = String(rpcErrorMessage ?? "");
+
+  if (!marker.startsWith(stockErrorMarker)) {
+    return null;
+  }
+
+  const [productId = "", variation = ""] = marker.slice(stockErrorMarker.length).split("|", 2);
+  const item = (databaseItems ?? []).find(
+    (databaseItem) =>
+      databaseItem.productId === productId && databaseItem.variation === variation
+  );
+  const itemLabel = item?.name ? `${item.name} (${variation})` : `${productId} (${variation})`;
+
+  return new CheckoutStockError(
+    `Estoque esgotado para ${itemLabel}. Atualize o carrinho e tente novamente.`,
+    { productId, variation }
+  );
+}
+
 function cleanString(value, maxLength = 500) {
   return String(value ?? "")
     .trim()
@@ -294,6 +325,12 @@ export async function persistCheckoutOrder({ draft, requestContext = {}, supabas
   });
 
   if (error) {
+    const stockError = toCheckoutStockError(error.message, draft.databaseItems);
+
+    if (stockError) {
+      throw stockError;
+    }
+
     throw new CheckoutPersistenceError(error.message);
   }
 
