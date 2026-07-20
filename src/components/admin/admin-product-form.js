@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState } from "react";
+import { startTransition, useActionState, useEffect, useRef } from "react";
 
 const initialProductFormState = {
   error: ""
@@ -25,9 +25,24 @@ function buildProductFormData(form) {
 
 export function AdminProductForm({ action, children, className, errorClassName }) {
   const [state, submitAction, isPending] = useActionState(action, initialProductFormState);
+  // isPending so muda apos a transicao agendar; a ref bloqueia o segundo
+  // submit disparado antes disso (duplo clique no botao salvar).
+  const submitPendingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isPending) {
+      submitPendingRef.current = false;
+    }
+  }, [isPending]);
 
   function handleSubmit(event) {
     event.preventDefault();
+
+    if (submitPendingRef.current) {
+      return;
+    }
+
+    submitPendingRef.current = true;
     const formData = buildProductFormData(event.currentTarget);
 
     startTransition(() => {

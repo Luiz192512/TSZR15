@@ -38,4 +38,33 @@ describe("AdminProductForm", () => {
     expect(submittedFormData.get("name")).toBe("Produto alterado");
     expect(submittedFormData.get("imageFiles").name).toBe("produto.webp");
   });
+
+  it("ignores repeated submits while the server action is still pending", async () => {
+    let resolveAction;
+    const action = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveAction = resolve;
+        })
+    );
+    const { container } = render(
+      <AdminProductForm action={action} className="product-form">
+        <input defaultValue="Produto" name="name" />
+        <button type="submit">Salvar</button>
+      </AdminProductForm>
+    );
+    const form = container.querySelector("form");
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+
+    resolveAction({ error: "Falha ao salvar o produto." });
+    await screen.findByRole("alert");
+
+    fireEvent.submit(form);
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+  });
 });
