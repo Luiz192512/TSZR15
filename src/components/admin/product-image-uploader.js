@@ -1,6 +1,7 @@
 "use client";
 
 import globalStyles from "@/app/storefront.module.css";
+import { getCoverCropRect } from "@/src/admin/product-image-crop.js";
 import { cx } from "@/src/lib/classnames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -130,17 +131,15 @@ async function cropDraftToFile(draft, index) {
 
   const sourceWidth = image.naturalWidth || image.width;
   const sourceHeight = image.naturalHeight || image.height;
-  const scale = Math.min(outputWidth / sourceWidth, outputHeight / sourceHeight) * draft.zoom;
-  const drawWidth = sourceWidth * scale;
-  const drawHeight = sourceHeight * scale;
-  const offsetX =
-    drawWidth > outputWidth
-      ? -((drawWidth - outputWidth) * draft.positionX) / 100
-      : ((outputWidth - drawWidth) * draft.positionX) / 100;
-  const offsetY =
-    drawHeight > outputHeight
-      ? -((drawHeight - outputHeight) * draft.positionY) / 100
-      : ((outputHeight - drawHeight) * draft.positionY) / 100;
+  const { drawHeight, drawWidth, offsetX, offsetY } = getCoverCropRect({
+    outputHeight,
+    outputWidth,
+    positionX: draft.positionX,
+    positionY: draft.positionY,
+    sourceHeight,
+    sourceWidth,
+    zoom: draft.zoom
+  });
 
   canvas.width = outputWidth;
   canvas.height = outputHeight;
@@ -184,6 +183,7 @@ export function ProductImageUploader({
   const cardListRef = useRef(null);
   const draggingCardIdRef = useRef(null);
   const uploadCardIdRef = useRef(null);
+  const cropPendingRef = useRef(false);
   const initialKey = useMemo(
     () =>
       JSON.stringify({
@@ -208,6 +208,7 @@ export function ProductImageUploader({
   const [activeDraft, setActiveDraft] = useState(null);
   const [draggingCardId, setDraggingCardId] = useState(null);
   const [feedback, setFeedback] = useState("");
+  const [isCropPending, setIsCropPending] = useState(false);
 
   const serializedCards = useMemo(() => {
     let uploadIndex = 0;
@@ -418,7 +419,10 @@ export function ProductImageUploader({
   }
 
   async function addCroppedImage() {
-    if (!activeDraft) return;
+    if (!activeDraft || cropPendingRef.current) return;
+
+    cropPendingRef.current = true;
+    setIsCropPending(true);
 
     try {
       setFeedback("Gerando enquadramento da imagem...");
@@ -450,6 +454,9 @@ export function ProductImageUploader({
       setFeedback("");
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Não foi possível recortar a imagem.");
+    } finally {
+      cropPendingRef.current = false;
+      setIsCropPending(false);
     }
   }
 
@@ -580,10 +587,11 @@ export function ProductImageUploader({
             <div className={cx(globalStyles, "admin-image-crop-actions")}>
               <button
                 className={cx(globalStyles, "button button-primary")}
+                disabled={isCropPending}
                 onClick={addCroppedImage}
                 type="button"
               >
-                Adicionar ao card
+                {isCropPending ? "Adicionando..." : "Adicionar ao card"}
               </button>
               <button
                 className={cx(globalStyles, "button button-secondary")}

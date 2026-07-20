@@ -6,21 +6,28 @@ import {
   technicalFamilies
 } from "@/src/catalog/categories.js";
 import { normalizeCouponCode } from "@/src/checkout/coupons.js";
+import { createAdminCatalogLoadError } from "@/src/admin/admin-load-error.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
 import { isValidImageUrl, resolveImageOrder } from "@/src/admin/catalog-image-order.js";
+import {
+  getAdminProductImageFiles,
+  getRemovedAdminProductImagePaths,
+  loadAdminProductImageUrls,
+  removeAdminProductImagePathsSafely,
+  runWithAdminProductImageCleanup,
+  uploadAdminProductImages
+} from "@/src/admin/catalog-product-images.js";
 import {
   archiveAdminCouponById,
   saveAdminCoupon
 } from "@/src/admin/catalog-coupon-persistence.js";
+import { saveAdminCatalogProductAggregate } from "@/src/admin/catalog-product-persistence.js";
 import {
   parseAdminDateTimeInput,
   parseAdminMoneyToCents
 } from "@/src/admin/admin-form-values.js";
 import { collectAdminVariationInventory } from "@/src/admin/catalog-variations.js";
 
-const productImageBucket = "product-images";
-const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const maxImageBytes = 5 * 1024 * 1024;
 const adminProductPageSize = 24;
 const adminCouponPageSize = 30;
 const adminCouponProductOptionLimit = 500;
@@ -38,6 +45,7 @@ const adminProductColumns = [
   "lead_time_days",
   "shipping_class",
   "image_urls",
+  "variation_images",
   "notes",
   "is_published",
   "updated_at",
@@ -206,84 +214,10 @@ function toAdminCoupon(row) {
   };
 }
 
-function hasUploadFile(value) {
-  return (
-    value &&
-    typeof value === "object" &&
-    typeof value.arrayBuffer === "function" &&
-    typeof value.name === "string" &&
-    value.size > 0
-  );
-}
-
-function safeFileName(value) {
-  const cleaned = slugify(value).slice(0, 80);
-  return cleaned || "produto";
-}
-
-function getFileExtension(file) {
-  const fromName = String(file.name ?? "")
-    .split(".")
-    .pop()
-    ?.toLowerCase();
-
-  if (fromName && /^[a-z0-9]{2,5}$/.test(fromName)) {
-    return fromName;
-  }
-
-  return file.type === "image/png"
-    ? "png"
-    : file.type === "image/webp"
-      ? "webp"
-      : file.type === "image/gif"
-        ? "gif"
-        : "jpg";
-}
-
-async function uploadProductImages({ formData, productId, supabase }) {
-  const files = formData.getAll("imageFiles").filter(hasUploadFile).slice(0, 8);
-
-  if (files.length === 0) {
-    return [];
-  }
-
-  const uploadedUrls = [];
-
-  for (const file of files) {
-    if (!allowedImageTypes.has(file.type)) {
-      throw new Error("Envie imagens JPG, PNG, WEBP ou GIF.");
-    }
-
-    if (file.size > maxImageBytes) {
-      throw new Error("Cada imagem deve ter no maximo 5MB.");
-    }
-
-    const extension = getFileExtension(file);
-    const filePath = `${productId}/${Date.now()}-${crypto.randomUUID()}-${safeFileName(file.name)}.${extension}`;
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { error } = await supabase.storage.from(productImageBucket).upload(filePath, fileBuffer, {
-      cacheControl: "31536000",
-      contentType: file.type,
-      upsert: false
-    });
-
-    if (error) {
-      throw new Error(`Upload de imagem falhou: ${error.message}`);
-    }
-
-    const { data } = supabase.storage.from(productImageBucket).getPublicUrl(filePath);
-
-    if (data?.publicUrl) {
-      uploadedUrls.push(data.publicUrl);
-    }
-  }
-
-  return uploadedUrls;
-}
-
 function collectProductPayload(formData) {
   const name = cleanString(formData.get("name"), 180);
   const previousId = cleanString(formData.get("productId"), 160);
+  const persistenceMode = previousId ? "update" : "create";
   const slug = slugify(formData.get("slug") || name);
   const id = previousId || slug;
   const storefrontCategoryIds = getSelectedCategoryIds(formData);
@@ -344,6 +278,7 @@ function collectProductPayload(formData) {
     costCents,
     id,
     imageOrderTokens,
+    persistenceMode,
     usesVariationCards,
     variationImageTokens,
     variationStock,
@@ -531,7 +466,7 @@ export async function getAdminCatalogState(options = {}) {
     selectedCouponError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminCatalogLoadError(firstError);
   }
 
   const productPagination = getPageMetadata({
@@ -558,7 +493,7 @@ export async function getAdminCatalogState(options = {}) {
       .range(correctedFrom, correctedFrom + adminProductPageSize - 1);
 
     if (correctedError) {
-      throw new Error(correctedError.message);
+      throw createAdminCatalogLoadError(correctedError);
     }
 
     pagedProductRows = correctedRows ?? [];
@@ -575,7 +510,7 @@ export async function getAdminCatalogState(options = {}) {
       .range(correctedFrom, correctedFrom + adminCouponPageSize - 1);
 
     if (correctedError) {
-      throw new Error(correctedError.message);
+      throw createAdminCatalogLoadError(correctedError);
     }
 
     pagedCouponRows = correctedRows ?? [];
@@ -621,12 +556,20 @@ export async function upsertAdminCatalogProduct(formData) {
     costCents,
     id,
     imageOrderTokens,
+    persistenceMode,
     row,
     usesVariationCards,
     variationImageTokens,
     variationStock
   } = collectProductPayload(formData);
-  const uploadedImageUrls = await uploadProductImages({ formData, productId: id, supabase });
+  getAdminProductImageFiles(formData);
+  const previousImageUrls = await loadAdminProductImageUrls({
+    persistenceMode,
+    productId: id,
+    supabase
+  });
+  const { paths: uploadedImagePaths, urls: uploadedImageUrls } =
+    await uploadAdminProductImages({ formData, productId: id, supabase });
   const finalVariationImages = usesVariationCards
     ? variationImageTokens.map((group) => ({
         image_urls: resolveImageOrder(group.imageTokens, uploadedImageUrls),
@@ -643,96 +586,28 @@ export async function upsertAdminCatalogProduct(formData) {
     image_urls: finalImageUrls,
     variation_images: finalVariationImages
   };
-  const { error } = await supabase.from("catalog_products").upsert(finalRow, { onConflict: "id" });
+  await runWithAdminProductImageCleanup({
+    operation: () =>
+      saveAdminCatalogProductAggregate({
+        costCents,
+        persistenceMode,
+        row: finalRow,
+        supabase,
+        variationStock
+      }),
+    paths: uploadedImagePaths,
+    supabase
+  });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const { data: currentStockRows, error: currentStockError } = await supabase
-    .from("catalog_variation_stock")
-    .select("variation")
-    .eq("product_id", id);
-
-  if (currentStockError) {
-    throw new Error(currentStockError.message);
-  }
-
-  const staleVariations = (currentStockRows ?? [])
-    .map((stock) => stock.variation)
-    .filter((variation) => !finalRow.variations.includes(variation));
-
-  if (staleVariations.length > 0) {
-    const staleDeletes = await Promise.all(
-      staleVariations.map((variation) =>
-        supabase
-          .from("catalog_variation_stock")
-          .delete()
-          .eq("product_id", id)
-          .eq("variation", variation)
-      )
-    );
-    const staleDeleteError = staleDeletes.find(({ error: deleteError }) => deleteError)?.error;
-
-    if (staleDeleteError) {
-      throw new Error(staleDeleteError.message);
-    }
-  }
-
-  const { error: stockError } = await supabase.from("catalog_variation_stock").upsert(
-    variationStock.map((stock) => ({ ...stock, product_id: id })),
-    { onConflict: "product_id,variation" }
-  );
-
-  if (stockError) {
-    throw new Error(stockError.message);
-  }
-
-  if (Number.isInteger(costCents)) {
-    const { error: costError } = await supabase.from("catalog_product_costs").upsert(
-      {
-        cost_cents: costCents,
-        currency: "BRL",
-        product_id: id
-      },
-      { onConflict: "product_id" }
-    );
-
-    if (costError) {
-      throw new Error(costError.message);
-    }
-  } else {
-    const { error: costDeleteError } = await supabase
-      .from("catalog_product_costs")
-      .delete()
-      .eq("product_id", id);
-
-    if (costDeleteError) {
-      throw new Error(costDeleteError.message);
-    }
-  }
-
-  const { error: deleteError } = await supabase
-    .from("catalog_product_categories")
-    .delete()
-    .eq("product_id", id);
-
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
-
-  const relationRows = finalRow.storefront_category_ids.map((categoryId) => ({
-    product_id: id,
-    category_id: categoryId
-  }));
-
-  const { error: relationError } = await supabase
-    .from("catalog_product_categories")
-    .insert(relationRows);
-
-  if (relationError) {
-    throw new Error(relationError.message);
-  }
+  const removedImagePaths = getRemovedAdminProductImagePaths({
+    finalImageUrls: [
+      ...finalRow.image_urls,
+      ...finalRow.variation_images.flatMap((group) => group.image_urls)
+    ],
+    previousImageUrls,
+    productId: id
+  });
+  await removeAdminProductImagePathsSafely({ paths: removedImagePaths, supabase });
 
   return {
     id,
