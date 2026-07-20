@@ -23,6 +23,7 @@ import {
   cartChangedEventName,
   clearStoredCart,
   guestCartStorageKey,
+  migrateGuestCartToUser,
   readStoredCart,
   writeStoredCart
 } from "@/src/cart/cart-storage.js";
@@ -31,7 +32,7 @@ export const cartStorageKey = guestCartStorageKey;
 export const brandLogoSrc = "/brand/logo-tszr15-store.webp";
 export const heroBoardSrc = "/brand/tszr15-hero-r15-dark.webp";
 
-export { clearStoredCart, readStoredCart, writeStoredCart };
+export { clearStoredCart, migrateGuestCartToUser, readStoredCart, writeStoredCart };
 
 const productImageSizes = {
   card: "(max-width: 720px) 92vw, 366px",

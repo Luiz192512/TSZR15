@@ -10,7 +10,12 @@ import {
 } from "@/src/cart/cart-items.js";
 import { getVariationStockStatus } from "@/src/catalog/stock.js";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/client.js";
-import { clearStoredCart, readStoredCart, writeStoredCart } from "../catalog-shared.js";
+import {
+  clearStoredCart,
+  migrateGuestCartToUser,
+  readStoredCart,
+  writeStoredCart
+} from "../catalog-shared.js";
 
 export function useCart(products, resolvedUser) {
   const [cartItems, setCartItems] = useState([]);
@@ -23,6 +28,7 @@ export function useCart(products, resolvedUser) {
   useEffect(() => {
     setHasLoadedCart(false);
     setSyncedCartUserId("");
+    migrateGuestCartToUser(resolvedUserId);
     const sanitizedItems = sanitizeCartItems(readStoredCart(resolvedUserId), products);
     setCartItems(sanitizedItems);
     setLoadedCartUserId(resolvedUserId);

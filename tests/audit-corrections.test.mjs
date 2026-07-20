@@ -255,6 +255,73 @@ test("edicao de review valida todas as fotos antes de substituir as atuais", asy
   assert.match(orderReviewsSource, /replaceReviewPhotos\(\{/);
 });
 
+test("falha na limpeza do storage de fotos antigas e registrada sem quebrar a troca", async () => {
+  const photoReplacement = await importOptional("../src/reviews/review-photo-replacement.js");
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args.join(" "));
+
+  const insertedRows = [];
+  const removedPaths = [];
+  const supabase = {
+    from: () => ({
+      delete: () => ({
+        in: async () => ({ error: null })
+      }),
+      insert: async (rows) => {
+        insertedRows.push(...rows);
+        return { error: null };
+      },
+      select: () => ({
+        eq: async () => ({
+          data: [
+            {
+              id: "photo-old",
+              storage_bucket: "review-photos",
+              storage_path: "user-1/review-1/antiga.jpg"
+            }
+          ],
+          error: null
+        })
+      })
+    }),
+    storage: {
+      from: () => ({
+        remove: async (paths) => {
+          removedPaths.push(...paths);
+          return { error: { message: "storage indisponivel" } };
+        },
+        upload: async () => ({ error: null })
+      })
+    }
+  };
+
+  try {
+    const rows = await photoReplacement.replaceReviewPhotos({
+      files: [
+        {
+          arrayBuffer: async () => Uint8Array.from([0xff, 0xd8, 0xff, 0x00]).buffer,
+          size: 4,
+          type: "image/jpeg"
+        }
+      ],
+      reviewId: "review-1",
+      supabase,
+      userId: "user-1"
+    });
+
+    assert.equal(rows.length, 1);
+    assert.equal(insertedRows.length, 1);
+    assert.deepEqual(removedPaths, ["user-1/review-1/antiga.jpg"]);
+    assert.ok(
+      warnings.some((entry) => entry.includes("review_photo_storage_cleanup_failed")),
+      "a falha de limpeza do storage deve ser logada"
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
 test("carrinho local e isolado por usuario no mesmo navegador", async () => {
   const cartStorage = await importOptional("../src/cart/cart-storage.js");
   const useCartSource = await readFile(
@@ -269,6 +336,13 @@ test("carrinho local e isolado por usuario no mesmo navegador", async () => {
   assert.match(useCartSource, /readStoredCart\(resolvedUserId\)/);
   assert.match(useCartSource, /loadedCartUserId !== resolvedUserId/);
   assert.doesNotMatch(useCartSource, /readStoredCart\(\)/);
+  assert.equal(typeof cartStorage.migrateGuestCartToUser, "function");
+  assert.ok(
+    useCartSource.indexOf("migrateGuestCartToUser(resolvedUserId)") >= 0 &&
+      useCartSource.indexOf("migrateGuestCartToUser(resolvedUserId)") <
+        useCartSource.indexOf("readStoredCart(resolvedUserId)"),
+    "o hook deve migrar o carrinho de convidado antes de carregar o carrinho do usuario"
+  );
 });
 
 test("cadastro confirmado remove usuario auth quando dados secundarios falham", async () => {
@@ -319,12 +393,13 @@ test("analytics admin limita custos e itens ao mesmo conjunto de pedidos", async
   assert.match(orderAdminSource, /const orderIds = \(orders \?\? \[\]\)\.map/);
   assert.match(
     orderAdminSource,
-    /\.from\("supplier_purchases"\)[\s\S]*?\.in\("order_id", orderIds\)/
+    /\.from\("supplier_purchases"\)[\s\S]*?\.in\("order_id", chunk\)/
   );
   assert.match(
     orderAdminSource,
-    /\.from\("order_items"\)[\s\S]*?\.in\("order_id", orderIds\)/
+    /\.from\("order_items"\)[\s\S]*?\.in\("order_id", chunk\)/
   );
+  assert.match(orderAdminSource, /fetchRowsForOrderIds\(\{/);
 });
 
 test("datas de analytics e rastreio usam explicitamente America Sao Paulo", async () => {

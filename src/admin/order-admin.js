@@ -3,6 +3,7 @@ import "server-only";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { buildCheckoutOrderDraft, persistCheckoutOrder } from "@/src/checkout/order-backend.js";
 import { buildAdminOrderAnalytics } from "@/src/admin/order-analytics.js";
+import { fetchRowsForOrderIds } from "@/src/admin/order-related-rows.js";
 import {
   buildAdminOrderOperationRpcArgs,
   saveAdminOrderOperation
@@ -160,28 +161,31 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
   }
 
   const orderIds = (orders ?? []).map((order) => order.id);
-  const emptyRelatedRows = Promise.resolve({ data: [], error: null });
   const [
     { data: supplierPurchases, error: supplierError },
     { data: orderItems, error: itemError },
     { data: reviews, error: reviewError }
   ] = await Promise.all([
-    orderIds.length > 0
-      ? supabase
+    fetchRowsForOrderIds({
+      buildQuery: (chunk) =>
+        supabase
           .from("supplier_purchases")
           .select("order_id, product_cost_cents, shipping_cost_cents")
-          .in("order_id", orderIds)
-          .limit(5000)
-      : emptyRelatedRows,
-    orderIds.length > 0
-      ? supabase
+          .in("order_id", chunk)
+          .limit(5000),
+      orderIds
+    }),
+    fetchRowsForOrderIds({
+      buildQuery: (chunk) =>
+        supabase
           .from("order_items")
           .select(
             "order_id, product_id, product_slug, product_name, quantity, subtotal_cents, subtotal_cost_cents"
           )
-          .in("order_id", orderIds)
-          .limit(5000)
-      : emptyRelatedRows,
+          .in("order_id", chunk)
+          .limit(5000),
+      orderIds
+    }),
     supabase
       .from("order_item_reviews")
       .select("product_id, product_name, rating, status")
