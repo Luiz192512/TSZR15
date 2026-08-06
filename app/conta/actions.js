@@ -54,7 +54,7 @@ export async function submitOrderItemReviewAction(formData) {
   try {
     await submitOrderItemReview({ formData, user });
     revalidatePath("/conta");
-    revalidatePath("/admin");
+    revalidatePath("/admin", "layout");
   } catch (error) {
     redirectWithError(error.message);
   }
