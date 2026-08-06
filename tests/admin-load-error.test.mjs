@@ -67,12 +67,28 @@ test("catalog queries preserve Supabase error metadata for the page classifier",
 });
 
 test("admin page shows migration guidance only for schema failures", async () => {
-  const pageSource = await readFile(new URL("../app/admin/page.js", import.meta.url), "utf8");
+  const routes = [
+    "../app/admin/pedidos/page.js",
+    "../app/admin/analise/page.js",
+    "../app/admin/produtos/page.js",
+    "../app/admin/cupons/page.js"
+  ];
 
-  assert.match(pageSource, /const loadError = getAdminLoadErrorState\(error\);/);
-  assert.match(
-    pageSource,
-    /mode=\{loadError\.kind === "schema" \? "database" : "service"\}/
+  for (const route of routes) {
+    const pageSource = await readFile(new URL(route, import.meta.url), "utf8");
+
+    assert.match(pageSource, /const loadError = getAdminLoadErrorState\(error\);/, route);
+    assert.match(
+      pageSource,
+      /mode=\{loadError\.kind === "schema" \? "database" : "service"\}/,
+      route
+    );
+  }
+
+  const setupSource = await readFile(
+    new URL("../app/admin/_components/admin-ui.js", import.meta.url),
+    "utf8"
   );
-  assert.match(pageSource, /isServiceIssue \? "Servico indisponivel"/);
+
+  assert.match(setupSource, /isServiceIssue \? "Servico indisponivel"/);
 });

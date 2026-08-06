@@ -29,6 +29,10 @@ function redirectWithError(path, message) {
   redirect(`${path}${separator}error=${encodeURIComponent(message)}`);
 }
 
+function revalidateAdminPanel() {
+  revalidatePath("/admin", "layout");
+}
+
 function getActionErrorMessage(error) {
   return error instanceof Error ? error.message : "Nao foi possivel salvar o produto.";
 }
@@ -52,71 +56,75 @@ export async function updateAdminOrderAction(formData) {
   const orderNumber = formValue(formData, "orderNumber");
 
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin", "Sessao administrativa expirada.");
+    redirectWithError("/admin/pedidos", "Sessao administrativa expirada.");
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin", "Requisicao administrativa rejeitada.");
+    redirectWithError("/admin/pedidos", "Requisicao administrativa rejeitada.");
   }
 
   let result;
 
   try {
     result = await updateAdminOrderOperation(formData);
-    revalidatePath("/admin");
+    revalidateAdminPanel();
   } catch (error) {
-    const path = orderNumber ? `/admin?pedido=${encodeURIComponent(orderNumber)}` : "/admin";
+    const path = orderNumber
+      ? `/admin/pedidos?pedido=${encodeURIComponent(orderNumber)}`
+      : "/admin/pedidos";
     redirectWithError(path, error.message);
   }
 
-  redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=salvo`);
+  redirect(`/admin/pedidos?pedido=${encodeURIComponent(result.orderNumber)}&status=salvo`);
 }
 
 export async function setAdminInternalOrderStatusAction(formData) {
   const orderNumber = formValue(formData, "orderNumber");
 
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin", "Sessao administrativa expirada.");
+    redirectWithError("/admin/pedidos", "Sessao administrativa expirada.");
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin", "Requisicao administrativa rejeitada.");
+    redirectWithError("/admin/pedidos", "Requisicao administrativa rejeitada.");
   }
 
   let result;
 
   try {
     result = await setAdminInternalOrderStatus(formData);
-    revalidatePath("/admin");
+    revalidateAdminPanel();
   } catch (error) {
-    const path = orderNumber ? `/admin?pedido=${encodeURIComponent(orderNumber)}` : "/admin";
+    const path = orderNumber
+      ? `/admin/pedidos?pedido=${encodeURIComponent(orderNumber)}`
+      : "/admin/pedidos";
     redirectWithError(path, error.message);
   }
 
   const status =
     result.internalOrderStatus === "confirmado" ? "pedido-confirmado" : "pedido-recusado";
-  redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=${status}`);
+  redirect(`/admin/pedidos?pedido=${encodeURIComponent(result.orderNumber)}&status=${status}`);
 }
 
 export async function createAdminOrderAction(formData) {
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin?novoPedido=1", "Sessao administrativa expirada.");
+    redirectWithError("/admin/pedidos?novoPedido=1", "Sessao administrativa expirada.");
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin?novoPedido=1", "Requisicao administrativa rejeitada.");
+    redirectWithError("/admin/pedidos?novoPedido=1", "Requisicao administrativa rejeitada.");
   }
 
   let result;
 
   try {
     result = await createAdminManualOrder(formData);
-    revalidatePath("/admin");
+    revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin?novoPedido=1", error.message);
+    redirectWithError("/admin/pedidos?novoPedido=1", error.message);
   }
 
-  redirect(`/admin?pedido=${encodeURIComponent(result.orderNumber)}&status=pedido-criado`);
+  redirect(`/admin/pedidos?pedido=${encodeURIComponent(result.orderNumber)}&status=pedido-criado`);
 }
 
 export async function upsertAdminProductAction(_previousState, formData) {
@@ -135,21 +143,21 @@ export async function upsertAdminProductAction(_previousState, formData) {
   try {
     result = await upsertAdminCatalogProduct(formData);
     revalidateCatalogPaths([previousSlug, result.slug]);
-    revalidatePath("/admin");
+    revalidateAdminPanel();
   } catch (error) {
     return { error: getActionErrorMessage(error) };
   }
 
-  redirect(`/admin?tab=produtos&produto=${encodeURIComponent(result.id)}&status=produto-salvo`);
+  redirect(`/admin/produtos?produto=${encodeURIComponent(result.id)}&status=produto-salvo`);
 }
 
 export async function archiveAdminProductAction(formData) {
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin?tab=produtos", "Sessao administrativa expirada.");
+    redirectWithError("/admin/produtos", "Sessao administrativa expirada.");
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin?tab=produtos", "Requisicao administrativa rejeitada.");
+    redirectWithError("/admin/produtos", "Requisicao administrativa rejeitada.");
   }
 
   let result;
@@ -157,21 +165,21 @@ export async function archiveAdminProductAction(formData) {
   try {
     result = await archiveAdminCatalogProduct(formData);
     revalidateCatalogPaths([result.slug]);
-    revalidatePath("/admin");
+    revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin?tab=produtos", error.message);
+    redirectWithError("/admin/produtos", error.message);
   }
 
-  redirect("/admin?tab=produtos&status=produto-arquivado");
+  redirect("/admin/produtos?status=produto-arquivado");
 }
 
 export async function upsertAdminCouponAction(formData) {
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin?tab=cupons", "Sessao administrativa expirada.");
+    redirectWithError("/admin/cupons", "Sessao administrativa expirada.");
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin?tab=cupons", "Requisicao administrativa rejeitada.");
+    redirectWithError("/admin/cupons", "Requisicao administrativa rejeitada.");
   }
 
   let result;
@@ -179,56 +187,56 @@ export async function upsertAdminCouponAction(formData) {
   try {
     result = await upsertAdminCoupon(formData);
     revalidateCatalogPaths();
-    revalidatePath("/admin");
+    revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin?tab=cupons", error.message);
+    redirectWithError("/admin/cupons", error.message);
   }
 
-  redirect(`/admin?tab=cupons&cupom=${encodeURIComponent(result.code)}&status=cupom-salvo`);
+  redirect(`/admin/cupons?cupom=${encodeURIComponent(result.code)}&status=cupom-salvo`);
 }
 
 export async function archiveAdminCouponAction(formData) {
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin?tab=cupons", "Sessao administrativa expirada.");
+    redirectWithError("/admin/cupons", "Sessao administrativa expirada.");
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin?tab=cupons", "Requisicao administrativa rejeitada.");
+    redirectWithError("/admin/cupons", "Requisicao administrativa rejeitada.");
   }
 
   try {
     await archiveAdminCoupon(formData);
     revalidateCatalogPaths();
-    revalidatePath("/admin");
+    revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin?tab=cupons", error.message);
+    redirectWithError("/admin/cupons", error.message);
   }
 
-  redirect("/admin?tab=cupons&status=cupom-arquivado");
+  redirect("/admin/cupons?status=cupom-arquivado");
 }
 
 export async function moderateOrderReviewAction(formData) {
   if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin?tab=analise", "Sessao administrativa expirada.");
+    redirectWithError("/admin/analise", "Sessao administrativa expirada.");
   }
 
   if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin?tab=analise", "Requisicao administrativa rejeitada.");
+    redirectWithError("/admin/analise", "Requisicao administrativa rejeitada.");
   }
 
   let result;
 
   try {
     result = await moderateOrderReview({ formData });
-    revalidatePath("/admin");
+    revalidateAdminPanel();
     revalidatePath("/produto/[slug]", "page");
 
     if (result.productSlug) {
       revalidatePath(`/produto/${result.productSlug}`);
     }
   } catch (error) {
-    redirectWithError("/admin?tab=analise", error.message);
+    redirectWithError("/admin/analise", error.message);
   }
 
-  redirect(`/admin?tab=analise&status=avaliacao-${result.status}`);
+  redirect(`/admin/analise?status=avaliacao-${result.status}`);
 }

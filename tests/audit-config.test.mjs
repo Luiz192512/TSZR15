@@ -142,14 +142,59 @@ test("logger do Worker nao depende de pino ou transports Node", async () => {
 
 test("estado do catalogo admin usa colunas explicitas e paginas limitadas", async () => {
   const adminCatalog = await source("src/admin/catalog-admin.js");
-  const stateLoader = adminCatalog.match(/export async function getAdminCatalogState[\s\S]*?\n\}/)?.[0] ?? "";
+  const productsLoader =
+    adminCatalog.match(/export async function getAdminProductsState[\s\S]*?\n\}/)?.[0] ?? "";
+  const couponsLoader =
+    adminCatalog.match(/export async function getAdminCouponsState[\s\S]*?\n\}/)?.[0] ?? "";
 
-  assert.doesNotMatch(stateLoader, /\.select\("\*"\)/);
-  assert.match(stateLoader, /\.range\(/);
-  assert.match(stateLoader, /catalog_products/);
-  assert.match(stateLoader, /catalog_coupons/);
-  assert.match(stateLoader, /productPagination\.page !== productPage/);
-  assert.match(stateLoader, /couponPagination\.page !== couponPage/);
+  assert.doesNotMatch(productsLoader, /\.select\("\*"\)/);
+  assert.match(productsLoader, /\.range\(/);
+  assert.match(productsLoader, /catalog_products/);
+  assert.match(productsLoader, /productPagination\.page !== productPage/);
+
+  assert.doesNotMatch(couponsLoader, /\.select\("\*"\)/);
+  assert.match(couponsLoader, /\.range\(/);
+  assert.match(couponsLoader, /catalog_coupons/);
+  assert.match(couponsLoader, /catalog_products/);
+  assert.match(couponsLoader, /couponPagination\.page !== couponPage/);
+});
+
+test("cada rota do admin carrega apenas o estado que renderiza", async () => {
+  const [ordersPage, analyticsPage, productsPage, couponsPage] = await Promise.all([
+    source("app/admin/pedidos/page.js"),
+    source("app/admin/analise/page.js"),
+    source("app/admin/produtos/page.js"),
+    source("app/admin/cupons/page.js")
+  ]);
+
+  assert.match(ordersPage, /getAdminOrdersState/);
+  assert.doesNotMatch(ordersPage, /getAdminAnalyticsState|getAdminCatalogState/);
+
+  assert.match(analyticsPage, /getAdminAnalyticsState/);
+  assert.doesNotMatch(analyticsPage, /getAdminOrdersState|listAdminOrders/);
+
+  assert.match(productsPage, /getAdminProductsState/);
+  assert.doesNotMatch(productsPage, /getAdminCouponsState/);
+
+  assert.match(couponsPage, /getAdminCouponsState/);
+  assert.doesNotMatch(couponsPage, /getAdminProductsState/);
+});
+
+test("todas as rotas do admin repetem o guard de sessao alem do layout", async () => {
+  const routes = [
+    "app/admin/layout.js",
+    "app/admin/pedidos/page.js",
+    "app/admin/analise/page.js",
+    "app/admin/produtos/page.js",
+    "app/admin/cupons/page.js"
+  ];
+
+  for (const route of routes) {
+    const content = await source(route);
+
+    assert.match(content, /isAdminSessionValid\(\)/, `${route} sem checagem de sessao`);
+    assert.match(content, /isAdminTokenConfigured\(\)/, `${route} sem checagem de token`);
+  }
 });
 
 test("API publica projeta cupom antes de responder", async () => {
