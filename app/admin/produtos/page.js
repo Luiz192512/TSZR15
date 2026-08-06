@@ -16,9 +16,9 @@ import {
 } from "@/app/admin/_components/admin-products-view.js";
 import { isAdminSessionValid, isAdminTokenConfigured } from "@/src/admin/admin-auth.js";
 import { getAdminLoadErrorState } from "@/src/admin/admin-load-error.js";
-import { getAdminCatalogState } from "@/src/admin/catalog-admin.js";
+import { getAdminProductsState } from "@/src/admin/catalog-admin.js";
 
-export const revalidate = 600;
+export const revalidate = 300;
 
 export default async function AdminProductsPage({ searchParams }) {
   const params = await searchParams;
@@ -37,10 +37,8 @@ export default async function AdminProductsPage({ searchParams }) {
   let state;
 
   try {
-    state = await getAdminCatalogState({
-      couponPage: getAdminPage(params, "paginaCupons"),
+    state = await getAdminProductsState({
       productPage,
-      selectedCouponCode: params?.cupom ?? "",
       selectedProductId: params?.produto ?? ""
     });
   } catch (error) {

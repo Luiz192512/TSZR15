@@ -388,26 +388,17 @@ function collectCouponPayload(formData) {
   };
 }
 
-export async function getAdminCatalogState(options = {}) {
-  const {
-    couponPage: requestedCouponPage = 1,
-    productPage: requestedProductPage = 1,
-    selectedCouponCode = "",
-    selectedProductId = ""
-  } = options;
+export async function getAdminProductsState(options = {}) {
+  const { productPage: requestedProductPage = 1, selectedProductId = "" } = options;
   const { isConfigured, supabase } = getAdminSupabaseStatus();
-  const couponPage = normalizePage(requestedCouponPage);
   const productPage = normalizePage(requestedProductPage);
 
   if (!isConfigured) {
     return {
       categories: storefrontCategories,
-      couponProductOptions: [],
-      coupons: [],
       families: technicalFamilies,
       isConfigured,
       pagination: {
-        coupons: getPageMetadata({ count: 0, page: 1, pageSize: adminCouponPageSize }),
         products: getPageMetadata({ count: 0, page: 1, pageSize: adminProductPageSize })
       },
       products: []
@@ -415,13 +406,9 @@ export async function getAdminCatalogState(options = {}) {
   }
 
   const productFrom = (productPage - 1) * adminProductPageSize;
-  const couponFrom = (couponPage - 1) * adminCouponPageSize;
   const [
     { count: productCount, data: productRows, error: productError },
-    { count: couponCount, data: couponRows, error: couponError },
-    { count: couponProductOptionCount, data: couponProductOptionRows, error: optionError },
-    { data: selectedProductRow, error: selectedProductError },
-    { data: selectedCouponRow, error: selectedCouponError }
+    { data: selectedProductRow, error: selectedProductError }
   ] = await Promise.all([
     supabase
       .from("catalog_products")
@@ -430,40 +417,16 @@ export async function getAdminCatalogState(options = {}) {
       .order("updated_at", { ascending: false })
       .order("name", { ascending: true })
       .range(productFrom, productFrom + adminProductPageSize - 1),
-    supabase
-      .from("catalog_coupons")
-      .select(adminCouponColumns, { count: "exact" })
-      .order("is_active", { ascending: false })
-      .order("updated_at", { ascending: false })
-      .order("code", { ascending: true })
-      .range(couponFrom, couponFrom + adminCouponPageSize - 1),
-    supabase
-      .from("catalog_products")
-      .select("id,name", { count: "exact" })
-      .order("name", { ascending: true })
-      .range(0, adminCouponProductOptionLimit - 1),
     selectedProductId
       ? supabase
           .from("catalog_products")
           .select(adminProductColumns)
           .eq("id", selectedProductId)
           .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    selectedCouponCode
-      ? supabase
-          .from("catalog_coupons")
-          .select(adminCouponColumns)
-          .eq("code", normalizeCouponCode(selectedCouponCode))
-          .maybeSingle()
       : Promise.resolve({ data: null, error: null })
   ]);
 
-  const firstError =
-    productError ??
-    couponError ??
-    optionError ??
-    selectedProductError ??
-    selectedCouponError;
+  const firstError = productError ?? selectedProductError;
 
   if (firstError) {
     throw createAdminCatalogLoadError(firstError);
@@ -474,13 +437,7 @@ export async function getAdminCatalogState(options = {}) {
     page: productPage,
     pageSize: adminProductPageSize
   });
-  const couponPagination = getPageMetadata({
-    count: couponCount,
-    page: couponPage,
-    pageSize: adminCouponPageSize
-  });
   let pagedProductRows = productRows ?? [];
-  let pagedCouponRows = couponRows ?? [];
 
   if (productPagination.total > 0 && productPagination.page !== productPage) {
     const correctedFrom = (productPagination.page - 1) * adminProductPageSize;
@@ -499,6 +456,76 @@ export async function getAdminCatalogState(options = {}) {
     pagedProductRows = correctedRows ?? [];
   }
 
+  const visibleProductRows = mergeRowsByKey(pagedProductRows, selectedProductRow, "id");
+
+  return {
+    categories: storefrontCategories,
+    families: technicalFamilies,
+    isConfigured,
+    pagination: {
+      products: productPagination
+    },
+    products: visibleProductRows.map(toAdminProduct)
+  };
+}
+
+export async function getAdminCouponsState(options = {}) {
+  const { couponPage: requestedCouponPage = 1, selectedCouponCode = "" } = options;
+  const { isConfigured, supabase } = getAdminSupabaseStatus();
+  const couponPage = normalizePage(requestedCouponPage);
+
+  if (!isConfigured) {
+    return {
+      categories: storefrontCategories,
+      couponProductOptions: [],
+      coupons: [],
+      isConfigured,
+      pagination: {
+        coupons: getPageMetadata({ count: 0, page: 1, pageSize: adminCouponPageSize })
+      }
+    };
+  }
+
+  const couponFrom = (couponPage - 1) * adminCouponPageSize;
+  const [
+    { count: couponCount, data: couponRows, error: couponError },
+    { count: couponProductOptionCount, data: couponProductOptionRows, error: optionError },
+    { data: selectedCouponRow, error: selectedCouponError }
+  ] = await Promise.all([
+    supabase
+      .from("catalog_coupons")
+      .select(adminCouponColumns, { count: "exact" })
+      .order("is_active", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .order("code", { ascending: true })
+      .range(couponFrom, couponFrom + adminCouponPageSize - 1),
+    supabase
+      .from("catalog_products")
+      .select("id,name", { count: "exact" })
+      .order("name", { ascending: true })
+      .range(0, adminCouponProductOptionLimit - 1),
+    selectedCouponCode
+      ? supabase
+          .from("catalog_coupons")
+          .select(adminCouponColumns)
+          .eq("code", normalizeCouponCode(selectedCouponCode))
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null })
+  ]);
+
+  const firstError = couponError ?? optionError ?? selectedCouponError;
+
+  if (firstError) {
+    throw createAdminCatalogLoadError(firstError);
+  }
+
+  const couponPagination = getPageMetadata({
+    count: couponCount,
+    page: couponPage,
+    pageSize: adminCouponPageSize
+  });
+  let pagedCouponRows = couponRows ?? [];
+
   if (couponPagination.total > 0 && couponPagination.page !== couponPage) {
     const correctedFrom = (couponPagination.page - 1) * adminCouponPageSize;
     const { data: correctedRows, error: correctedError } = await supabase
@@ -516,7 +543,6 @@ export async function getAdminCatalogState(options = {}) {
     pagedCouponRows = correctedRows ?? [];
   }
 
-  const visibleProductRows = mergeRowsByKey(pagedProductRows, selectedProductRow, "id");
   const visibleCouponRows = mergeRowsByKey(pagedCouponRows, selectedCouponRow, "id");
   const couponProductOptions = [...(couponProductOptionRows ?? [])];
   const optionIds = new Set(couponProductOptions.map((product) => product.id));
@@ -535,13 +561,10 @@ export async function getAdminCatalogState(options = {}) {
       Number.isInteger(couponProductOptionCount) &&
       couponProductOptionCount > adminCouponProductOptionLimit,
     coupons: visibleCouponRows.map(toAdminCoupon),
-    families: technicalFamilies,
     isConfigured,
     pagination: {
-      coupons: couponPagination,
-      products: productPagination
-    },
-    products: visibleProductRows.map(toAdminProduct)
+      coupons: couponPagination
+    }
   };
 }
 

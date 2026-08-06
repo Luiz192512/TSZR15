@@ -274,7 +274,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
   };
 }
 
-export async function getAdminDashboardState({ selectedOrderNumber } = {}) {
+export async function getAdminOrdersState({ selectedOrderNumber } = {}) {
   const { isConfigured, supabase } = getAdminSupabaseStatus();
 
   if (!isConfigured) {
@@ -287,22 +287,43 @@ export async function getAdminDashboardState({ selectedOrderNumber } = {}) {
 
   await markStaleInternalOrdersPending({ supabase });
 
-  const [orders, products, analytics, pendingReviews] = await Promise.all([
+  const [orders, products] = await Promise.all([
     listAdminOrders({ supabase }),
-    listAdminOrderProducts({ supabase }),
-    getAdminOrderAnalytics({ supabase }),
-    listPendingOrderReviews({ supabase })
+    listAdminOrderProducts({ supabase })
   ]);
   const selectedOrder =
     selectedOrderNumber ?? orders.find((order) => order.order_number)?.order_number ?? "";
 
   return {
-    analytics,
     isConfigured,
     orders,
-    pendingReviews,
     products,
     selected: await getAdminOrder({ orderNumber: selectedOrder, supabase })
+  };
+}
+
+export async function getAdminAnalyticsState() {
+  const { isConfigured, supabase } = getAdminSupabaseStatus();
+
+  if (!isConfigured) {
+    return {
+      analytics: buildAdminOrderAnalytics(),
+      isConfigured,
+      pendingReviews: []
+    };
+  }
+
+  await markStaleInternalOrdersPending({ supabase });
+
+  const [analytics, pendingReviews] = await Promise.all([
+    getAdminOrderAnalytics({ supabase }),
+    listPendingOrderReviews({ supabase })
+  ]);
+
+  return {
+    analytics,
+    isConfigured,
+    pendingReviews
   };
 }
 

@@ -12,9 +12,9 @@ import {
 import { AdminCoupons } from "@/app/admin/_components/admin-coupons-view.js";
 import { isAdminSessionValid, isAdminTokenConfigured } from "@/src/admin/admin-auth.js";
 import { getAdminLoadErrorState } from "@/src/admin/admin-load-error.js";
-import { getAdminCatalogState } from "@/src/admin/catalog-admin.js";
+import { getAdminCouponsState } from "@/src/admin/catalog-admin.js";
 
-export const revalidate = 600;
+export const revalidate = 300;
 
 export default async function AdminCouponsPage({ searchParams }) {
   const params = await searchParams;
@@ -32,11 +32,9 @@ export default async function AdminCouponsPage({ searchParams }) {
   let state;
 
   try {
-    state = await getAdminCatalogState({
+    state = await getAdminCouponsState({
       couponPage,
-      productPage: getAdminPage(params, "paginaProdutos"),
-      selectedCouponCode: params?.cupom ?? "",
-      selectedProductId: params?.produto ?? ""
+      selectedCouponCode: params?.cupom ?? ""
     });
   } catch (error) {
     const loadError = getAdminLoadErrorState(error);
