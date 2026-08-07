@@ -1,3 +1,5 @@
+import { createInternalActionError } from "../lib/action-error.js";
+
 export async function claimUnownedOrder({ orderId, supabase, userId }) {
   const { data, error } = await supabase
     .from("orders")
@@ -8,7 +10,7 @@ export async function claimUnownedOrder({ orderId, supabase, userId }) {
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw createInternalActionError(error, "vincular pedido sem dono");
   }
 
   return Boolean(data);

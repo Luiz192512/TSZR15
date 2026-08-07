@@ -23,9 +23,14 @@ function errorChain(error) {
   return chain;
 }
 
+// SQLSTATE (5 alfanumericos maiusculos, ex.: 23505, 42P01) ou codigo PostgREST.
+// Nao casa com codigo do Supabase Auth (invalid_credentials, user_already_exists),
+// que e mensagem legitima para o usuario e precisa passar intacta.
+const postgresCodePattern = /^(?:PGRST\d+|[0-9A-Z]{5})$/;
+
 function hasDatabaseMetadata(entry) {
   return (
-    typeof entry?.code === "string" ||
+    postgresCodePattern.test(String(entry?.code ?? "")) ||
     typeof entry?.hint === "string" ||
     typeof entry?.details === "string"
   );
