@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createAdminDatabaseError } from "@/src/admin/admin-action-error.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { buildCheckoutOrderDraft, persistCheckoutOrder } from "@/src/checkout/order-backend.js";
 import { buildAdminOrderAnalytics } from "@/src/admin/order-analytics.js";
@@ -15,6 +16,69 @@ import {
   internalOrderPendingAfterMs,
   isKnownStatus
 } from "@/src/orders/status.js";
+
+// Colunas lidas por OrderDetail em app/admin/_components/admin-orders-view.js.
+// Manter em sincronia com o que a tela renderiza: nada de select("*") aqui.
+const adminOrderDetailColumns = [
+  "id",
+  "order_number",
+  "customer_name",
+  "customer_email",
+  "customer_whatsapp",
+  "customer_phone",
+  "customer_tax_id",
+  "address_snapshot",
+  "total_cents",
+  "currency",
+  "payment_status",
+  "operational_status",
+  "internal_notes",
+  "assigned_operator",
+  "internal_order_status",
+  "created_at"
+].join(",");
+const adminOrderItemColumns = [
+  "id",
+  "product_name",
+  "variation",
+  "quantity",
+  "subtotal_cents",
+  "subtotal_cost_cents",
+  "currency",
+  "created_at"
+].join(",");
+const adminOrderPaymentColumns = ["id", "provider", "provider_reference", "created_at"].join(",");
+const adminSupplierPurchaseColumns = [
+  "id",
+  "internal_channel",
+  "source_status",
+  "source_store_name",
+  "source_order_number",
+  "source_product_url",
+  "operational_account",
+  "purchased_at",
+  "product_cost_cents",
+  "shipping_cost_cents",
+  "currency",
+  "exchange_rate",
+  "source_eta",
+  "carrier",
+  "tracking_code",
+  "proof_url",
+  "internal_notes",
+  "created_at"
+].join(",");
+const adminTrackingEventColumns = [
+  "id",
+  "event_status",
+  "event_at",
+  "description",
+  "created_at"
+].join(",");
+// support_threads e audit_logs sao carregados mas nenhuma tela os renderiza
+// hoje; ficam com o minimo identificavel ate a decisao de remover as consultas.
+const adminSupportThreadColumns = ["id", "order_id", "status", "created_at"].join(",");
+const adminAuditLogColumns = ["id", "order_id", "action", "created_at"].join(",");
 
 function cleanString(value, maxLength = 500) {
   return String(value ?? "").trim().slice(0, maxLength);
@@ -85,7 +149,7 @@ export async function listAdminOrders({ limit = 30, supabase } = {}) {
     .limit(limit);
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "listar pedidos");
   }
 
   return data ?? [];
@@ -111,7 +175,7 @@ export async function listAdminOrderProducts({ supabase, limit = 160 } = {}) {
   const firstError = error ?? costError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminDatabaseError(firstError, "listar produtos para pedido");
   }
 
   const costsByProductId = new Map((costRows ?? []).map((row) => [row.product_id, row.cost_cents]));
@@ -139,7 +203,7 @@ export async function markStaleInternalOrdersPending({ supabase, now = new Date(
     .lte("created_at", cutoff);
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "marcar pedidos internos pendentes");
   }
 }
 
@@ -157,7 +221,7 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
     .limit(1000);
 
   if (orderError) {
-    throw new Error(orderError.message);
+    throw createAdminDatabaseError(orderError, "carregar analytics de pedidos");
   }
 
   const orderIds = (orders ?? []).map((order) => order.id);
@@ -195,7 +259,7 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
   const firstError = supplierError ?? itemError ?? reviewError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminDatabaseError(firstError, "carregar analytics de pedidos");
   }
 
   return buildAdminOrderAnalytics({
@@ -213,7 +277,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
 
   let orderQuery = supabase
     .from("orders")
-    .select("*")
+    .select(adminOrderDetailColumns)
     .limit(1);
 
   orderQuery = orderId
@@ -223,7 +287,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
   const { data: order, error } = await orderQuery.maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "carregar pedido selecionado");
   }
 
   if (!order) {
@@ -238,19 +302,35 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
     { data: supportThreads, error: supportError },
     { data: auditLogs, error: auditError }
   ] = await Promise.all([
-    supabase.from("order_items").select("*").eq("order_id", order.id).order("created_at"),
-    supabase.from("payments").select("*").eq("order_id", order.id).order("created_at"),
-    supabase.from("supplier_purchases").select("*").eq("order_id", order.id).order("created_at"),
+    supabase
+      .from("order_items")
+      .select(adminOrderItemColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
+    supabase
+      .from("payments")
+      .select(adminOrderPaymentColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
+    supabase
+      .from("supplier_purchases")
+      .select(adminSupplierPurchaseColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
     supabase
       .from("supplier_tracking_events")
-      .select("*")
+      .select(adminTrackingEventColumns)
       .eq("order_id", order.id)
       .order("event_at", { ascending: false })
       .order("created_at", { ascending: false }),
-    supabase.from("support_threads").select("*").eq("order_id", order.id).order("created_at"),
+    supabase
+      .from("support_threads")
+      .select(adminSupportThreadColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
     supabase
       .from("audit_logs")
-      .select("*")
+      .select(adminAuditLogColumns)
       .eq("order_id", order.id)
       .order("created_at", { ascending: false })
       .limit(12)
@@ -260,7 +340,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
     itemsError ?? paymentsError ?? supplierError ?? trackingError ?? supportError ?? auditError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminDatabaseError(firstError, "carregar dados relacionados do pedido");
   }
 
   return {
@@ -397,7 +477,7 @@ export async function createAdminManualOrder(formData) {
       .eq("id", result.id);
 
     if (error) {
-      throw new Error(error.message);
+      throw createAdminDatabaseError(error, "criar pedido manual");
     }
   }
 
@@ -451,7 +531,7 @@ export async function setAdminInternalOrderStatus(formData) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "alterar status interno do pedido");
   }
 
   return {

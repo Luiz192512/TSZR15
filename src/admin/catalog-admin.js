@@ -6,6 +6,7 @@ import {
   technicalFamilies
 } from "@/src/catalog/categories.js";
 import { normalizeCouponCode } from "@/src/checkout/coupons.js";
+import { createAdminDatabaseError } from "@/src/admin/admin-action-error.js";
 import { createAdminCatalogLoadError } from "@/src/admin/admin-load-error.js";
 import { getAdminSupabaseStatus } from "@/src/admin/order-admin.js";
 import { isValidImageUrl, resolveImageOrder } from "@/src/admin/catalog-image-order.js";
@@ -683,7 +684,7 @@ export async function archiveAdminCatalogProduct(formData) {
     .eq("id", id);
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "arquivar produto do catalogo");
   }
 
   return {

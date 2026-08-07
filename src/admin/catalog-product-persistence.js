@@ -1,3 +1,5 @@
+import { createAdminDatabaseError } from "./admin-action-error.js";
+
 function throwCatalogProductError(error) {
   if (!error) {
     return;
@@ -7,7 +9,7 @@ function throwCatalogProductError(error) {
     throw new Error("Ja existe um produto com este slug/ID.");
   }
 
-  throw new Error(error.message);
+  throw createAdminDatabaseError(error, "gravar produto do catalogo");
 }
 
 // RESTRICAO: a RPC save_admin_catalog_product apaga e reinsere TODAS as linhas

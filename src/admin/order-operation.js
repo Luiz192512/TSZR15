@@ -1,3 +1,4 @@
+import { createAdminDatabaseError } from "./admin-action-error.js";
 import {
   parseAdminDateTimeInput,
   parseAdminMoneyToCents,
@@ -192,7 +193,7 @@ export async function saveAdminOrderOperation({ args, supabase }) {
   );
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "salvar operacao do pedido");
   }
 
   if (!data?.orderNumber) {

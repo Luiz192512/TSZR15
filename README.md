@@ -68,7 +68,7 @@ O Supabase CLI esta instalado localmente como dependencia de desenvolvimento, en
 - `/cadastrar`: cadastro do cliente com dados de compra
 - `/conta`: perfil, endereco principal e consentimento
 - `/rastreio`: consulta publica de status, transportadora e codigo de rastreio
-- `/admin`: painel interno para atualizar pagamento, compra em fornecedor e rastreio
+- `/admin`: painel interno, dividido em quatro segmentos de rota — `/admin/pedidos` (pagamento, compra em fornecedor e rastreio), `/admin/produtos`, `/admin/cupons` e `/admin/analise` (metricas e moderacao de avaliacoes). `/admin` redireciona para `/admin/pedidos` e mantem compatibilidade com os links antigos de `?tab=`
 - `/api/catalog`: JSON do catalogo publicado
 - `/api/checkout/whatsapp`: valida o pedido no backend, salva no Supabase quando configurado e retorna mensagem, totais e URL de checkout para WhatsApp
 

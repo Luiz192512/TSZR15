@@ -632,7 +632,7 @@ def add_next_react(story, s):
                 ["/produto/[slug]", "app/produto/[slug]/page.js", "Detalhe do produto, imagens, avaliacoes e relacionados."],
                 ["/pedido", "app/pedido/page.js", "Carrinho e checkout."],
                 ["/conta", "app/conta/page.js + actions.js", "Perfil, enderecos, pedidos e avaliacoes."],
-                ["/admin", "app/admin/page.js + actions.js", "Operacao interna, catalogo, cupons, pedidos e moderacao."],
+                ["/admin/*", "app/admin/<secao>/page.js + actions.js", "Operacao interna em quatro segmentos: pedidos, produtos, cupons e analise."],
                 ["/rastreio", "app/rastreio/page.js", "Consulta publica por pedido e contato."],
                 ["/api/checkout/whatsapp", "app/api/checkout/whatsapp/route.js", "Valida e persiste pedido, devolve URL do WhatsApp."],
             ],
