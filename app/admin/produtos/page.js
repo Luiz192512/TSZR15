@@ -18,7 +18,8 @@ import { isAdminSessionValid, isAdminTokenConfigured } from "@/src/admin/admin-a
 import { getAdminLoadErrorState } from "@/src/admin/admin-load-error.js";
 import { getAdminProductsState } from "@/src/admin/catalog-admin.js";
 
-export const revalidate = 300;
+// Sem export const revalidate: o guard chama cookies(), entao a rota e sempre
+// dinamica e o Full Route Cache nunca entra. Ver PR de follow-ups do admin.
 
 export default async function AdminProductsPage({ searchParams }) {
   const params = await searchParams;
