@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { createInternalActionError } from "../lib/action-error.js";
 import { logServerEvent } from "../lib/logger.js";
 import {
   detectImageMimeType,
@@ -85,7 +86,7 @@ export async function replaceReviewPhotos({ files, reviewId, supabase, userId })
     .eq("review_id", reviewId);
 
   if (lookupError) {
-    throw new Error(lookupError.message);
+    throw createInternalActionError(lookupError, "localizar fotos da avaliacao");
   }
 
   const newRows = preparedPhotos.map((photo, index) => ({
@@ -119,7 +120,7 @@ export async function replaceReviewPhotos({ files, reviewId, supabase, userId })
       const { error: insertError } = await supabase.from("order_review_photos").insert(newRows);
 
       if (insertError) {
-        throw new Error(insertError.message);
+        throw createInternalActionError(insertError, "salvar fotos da avaliacao");
       }
     }
   } catch (error) {
@@ -137,7 +138,7 @@ export async function replaceReviewPhotos({ files, reviewId, supabase, userId })
 
     if (deleteError) {
       await rollbackNewPhotos({ rows: newRows, supabase });
-      throw new Error(deleteError.message);
+      throw createInternalActionError(deleteError, "remover fotos antigas da avaliacao");
     }
   }
 

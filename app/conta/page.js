@@ -15,6 +15,7 @@ import {
   buildAddressLine,
   getCurrentCustomerSnapshot
 } from "@/src/customer/customer-data.js";
+import { getSafeActionErrorState } from "@/src/lib/action-error.js";
 import { SiteHeader } from "@/src/components/site-header.js";
 import { CepAddressFields } from "@/src/components/form/cep-address-fields.js";
 import { PendingSubmitButton } from "@/src/components/form/pending-submit-button.js";
@@ -615,7 +616,12 @@ export default async function AccountPage({ searchParams }) {
   try {
     accountOrders = await getCustomerAccountOrders({ user: snapshot.user });
   } catch (error) {
-    accountOrderError = error.message;
+    accountOrderError = getSafeActionErrorState(error, {
+      event: "account_orders_failed",
+      fallbackMessage:
+        "Nao foi possivel carregar seus pedidos agora. Atualize a pagina em instantes; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.",
+      prefix: "CON"
+    }).message;
   }
 
   const suggestionsCatalog = await getPublicCatalogProductsForStorefront();

@@ -3,7 +3,22 @@
 import { revalidatePath } from "next/cache";
 
 import { validateCustomerFieldFormats } from "@/src/customer/field-validation.js";
+import {
+  createInternalActionError,
+  getSafeActionErrorState
+} from "@/src/lib/action-error.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
+
+const addressFallbackMessage =
+  "Nao foi possivel salvar este endereco. Confira CEP, numero e cidade e tente novamente; se continuar, siga o pedido pelo WhatsApp informando a referencia abaixo.";
+
+function getAddressErrorMessage(error, operation) {
+  return getSafeActionErrorState(createInternalActionError(error, operation), {
+    event: "checkout_address_failed",
+    fallbackMessage: addressFallbackMessage,
+    prefix: "PED"
+  }).message;
+}
 
 /**
  * Saves a new delivery address for the signed-in customer and returns the row.
@@ -72,7 +87,7 @@ export async function saveCheckoutAddressAction(input) {
     .eq("user_id", user.id);
 
   if (resetError) {
-    return { error: resetError.message };
+    return { error: getAddressErrorMessage(resetError, "limpar endereco padrao") };
   }
 
   const { data: address, error } = await supabase
@@ -82,7 +97,7 @@ export async function saveCheckoutAddressAction(input) {
     .single();
 
   if (error) {
-    return { error: error.message };
+    return { error: getAddressErrorMessage(error, "salvar endereco do checkout") };
   }
 
   revalidatePath("/pedido");

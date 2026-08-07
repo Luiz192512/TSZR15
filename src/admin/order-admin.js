@@ -75,11 +75,6 @@ const adminTrackingEventColumns = [
   "description",
   "created_at"
 ].join(",");
-// support_threads e audit_logs sao carregados mas nenhuma tela os renderiza
-// hoje; ficam com o minimo identificavel ate a decisao de remover as consultas.
-const adminSupportThreadColumns = ["id", "order_id", "status", "created_at"].join(",");
-const adminAuditLogColumns = ["id", "order_id", "action", "created_at"].join(",");
-
 function cleanString(value, maxLength = 500) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
@@ -298,9 +293,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
     { data: items, error: itemsError },
     { data: payments, error: paymentsError },
     { data: supplierPurchases, error: supplierError },
-    { data: trackingEvents, error: trackingError },
-    { data: supportThreads, error: supportError },
-    { data: auditLogs, error: auditError }
+    { data: trackingEvents, error: trackingError }
   ] = await Promise.all([
     supabase
       .from("order_items")
@@ -322,34 +315,20 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
       .select(adminTrackingEventColumns)
       .eq("order_id", order.id)
       .order("event_at", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("support_threads")
-      .select(adminSupportThreadColumns)
-      .eq("order_id", order.id)
-      .order("created_at"),
-    supabase
-      .from("audit_logs")
-      .select(adminAuditLogColumns)
-      .eq("order_id", order.id)
       .order("created_at", { ascending: false })
-      .limit(12)
   ]);
 
-  const firstError =
-    itemsError ?? paymentsError ?? supplierError ?? trackingError ?? supportError ?? auditError;
+  const firstError = itemsError ?? paymentsError ?? supplierError ?? trackingError;
 
   if (firstError) {
     throw createAdminDatabaseError(firstError, "carregar dados relacionados do pedido");
   }
 
   return {
-    auditLogs: auditLogs ?? [],
     items: items ?? [],
     order,
     payments: payments ?? [],
     supplierPurchase: supplierPurchases?.[0] ?? null,
-    supportThreads: supportThreads ?? [],
     trackingEvents: trackingEvents ?? []
   };
 }

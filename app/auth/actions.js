@@ -19,6 +19,7 @@ import {
   getSiteOriginFromHeaders
 } from "@/src/auth/password-reset.js";
 
+import { getSafeActionErrorState } from "@/src/lib/action-error.js";
 import { logServerEvent } from "@/src/lib/logger.js";
 import {
   consumeRateLimit,
@@ -32,6 +33,17 @@ import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 function formValue(formData, key) {
   return String(formData.get(key) ?? "").trim();
+}
+
+// Erro do Supabase Auth ("Invalid login credentials") e mensagem legitima e
+// passa intacta; erro de Postgres vira texto acionavel + referencia, com o
+// detalhe apenas no log do servidor.
+function getAuthErrorMessage(error, fallbackMessage) {
+  return getSafeActionErrorState(error, {
+    event: "auth_action_failed",
+    fallbackMessage,
+    prefix: "AUT"
+  }).message;
 }
 
 function redirectWithError(path, message, nextPath = "") {
@@ -404,7 +416,7 @@ export async function signInAction(formData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirectWithError("/entrar", error.message, nextPath);
+    redirectWithError("/entrar", getAuthErrorMessage(error, "Nao foi possivel entrar agora. Tente novamente em instantes; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo."), nextPath);
   }
 
   revalidatePath("/", "layout");
@@ -441,7 +453,10 @@ export async function signUpAction(formData) {
 
   if (confirmedAccount.handled) {
     if (confirmedAccount.error) {
-      redirectWithError("/cadastrar", confirmedAccount.error.message);
+      redirectWithError(
+        "/cadastrar",
+        getAuthErrorMessage(confirmedAccount.error, "Nao foi possivel concluir o cadastro agora. Seus dados nao foram salvos; tente novamente em instantes e, se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.")
+      );
     }
 
     revalidatePath("/", "layout");
@@ -457,7 +472,7 @@ export async function signUpAction(formData) {
   });
 
   if (error) {
-    redirectWithError("/cadastrar", error.message);
+    redirectWithError("/cadastrar", getAuthErrorMessage(error, "Nao foi possivel concluir o cadastro agora. Seus dados nao foram salvos; tente novamente em instantes e, se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo."));
   }
 
   if (isPersistableSignUpUser(data.user)) {
@@ -469,7 +484,10 @@ export async function signUpAction(formData) {
     });
 
     if (persistenceError) {
-      redirectWithError("/cadastrar", persistenceError.message);
+      redirectWithError(
+        "/cadastrar",
+        getAuthErrorMessage(persistenceError, "Nao foi possivel concluir o cadastro agora. Seus dados nao foram salvos; tente novamente em instantes e, se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.")
+      );
     }
   }
 
@@ -527,7 +545,7 @@ export async function saveAccountProfileAction(formData) {
     .upsert(profilePayload, { onConflict: "user_id" });
 
   if (profileError) {
-    redirectWithError("/conta?tab=dados", profileError.message);
+    redirectWithError("/conta?tab=dados", getAuthErrorMessage(profileError, "Nao foi possivel salvar seus dados agora. Confira os campos e tente novamente; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo."));
   }
 
   revalidatePath("/", "layout");
@@ -573,7 +591,10 @@ export async function saveAccountAddressAction(formData) {
       .eq("user_id", user.id);
 
     if (resetError) {
-      redirectWithError("/conta?tab=enderecos", resetError.message);
+      redirectWithError(
+      "/conta?tab=enderecos",
+      getAuthErrorMessage(resetError, "Nao foi possivel salvar este endereco. Confira CEP, numero e cidade e tente novamente; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.")
+    );
     }
   }
 
@@ -583,13 +604,19 @@ export async function saveAccountAddressAction(formData) {
   const { error: addressError } = await addressRequest;
 
   if (addressError) {
-    redirectWithError("/conta?tab=enderecos", addressError.message);
+    redirectWithError(
+      "/conta?tab=enderecos",
+      getAuthErrorMessage(addressError, "Nao foi possivel salvar este endereco. Confira CEP, numero e cidade e tente novamente; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.")
+    );
   }
 
   const { error: consentError } = await insertConsent(supabase, user.id);
 
   if (consentError) {
-    redirectWithError("/conta?tab=enderecos", consentError.message);
+    redirectWithError(
+      "/conta?tab=enderecos",
+      getAuthErrorMessage(consentError, "Nao foi possivel salvar este endereco. Confira CEP, numero e cidade e tente novamente; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.")
+    );
   }
 
   revalidatePath("/", "layout");
@@ -627,7 +654,10 @@ export async function setDefaultAddressAction(formData) {
     .eq("user_id", user.id);
 
   if (resetError) {
-    redirectWithError("/conta?tab=enderecos", resetError.message);
+    redirectWithError(
+      "/conta?tab=enderecos",
+      getAuthErrorMessage(resetError, "Nao foi possivel salvar este endereco. Confira CEP, numero e cidade e tente novamente; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.")
+    );
   }
 
   const { error } = await supabase
@@ -637,7 +667,10 @@ export async function setDefaultAddressAction(formData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirectWithError("/conta?tab=enderecos", error.message);
+    redirectWithError(
+      "/conta?tab=enderecos",
+      getAuthErrorMessage(error, "Nao foi possivel salvar este endereco. Confira CEP, numero e cidade e tente novamente; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.")
+    );
   }
 
   revalidatePath("/", "layout");
@@ -667,7 +700,7 @@ export async function requestPasswordResetAction(formData) {
   });
 
   if (error) {
-    redirectWithError("/recuperar-senha", error.message);
+    redirectWithError("/recuperar-senha", getAuthErrorMessage(error, "Nao foi possivel enviar o email de recuperacao agora. Tente novamente em instantes; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo."));
   }
 
   redirectWithStatus("/recuperar-senha", "enviado");
@@ -709,7 +742,7 @@ export async function updatePasswordAction(formData) {
   });
 
   if (error) {
-    redirectWithError("/trocar-senha", error.message);
+    redirectWithError("/trocar-senha", getAuthErrorMessage(error, "Nao foi possivel concluir a troca de senha agora. Tente novamente em instantes; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo."));
   }
 
   await supabase.auth.signOut();

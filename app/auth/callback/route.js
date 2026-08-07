@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSafeAuthRedirectPath } from "@/src/auth/redirects.js";
+import { getSafeActionErrorState } from "@/src/lib/action-error.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 function buildRedirect(requestUrl, pathname, params = {}) {
@@ -38,7 +39,12 @@ export async function GET(request) {
 
   if (error) {
     return buildRedirect(requestUrl, "/entrar", {
-      error: error.message
+      error: getSafeActionErrorState(error, {
+        event: "auth_callback_failed",
+        fallbackMessage:
+          "Nao foi possivel concluir a autenticacao. Peca um novo link e abra-o no mesmo navegador; se continuar, fale com o atendimento pelo WhatsApp informando a referencia abaixo.",
+        prefix: "AUT"
+      }).message
     });
   }
 

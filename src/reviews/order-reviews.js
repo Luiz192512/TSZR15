@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createInternalActionError } from "@/src/lib/action-error.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { claimUnownedOrder } from "./order-claim.js";
 import { buildPublicOrderTrackingView } from "@/src/tracking/order-tracking.js";
@@ -97,7 +98,7 @@ export async function getCustomerAccountOrders({ user }) {
     .limit(80);
 
   if (orderError) {
-    throw new Error(orderError.message);
+    throw createInternalActionError(orderError, "carregar pedidos da conta");
   }
 
   const orderIds = (orders ?? []).map((order) => order.id);
@@ -140,7 +141,7 @@ export async function getCustomerAccountOrders({ user }) {
   const firstError = itemError ?? reviewError ?? supplierError ?? trackingError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createInternalActionError(firstError, "carregar dados dos pedidos da conta");
   }
 
   const reviewIds = (reviews ?? []).map((review) => review.id);
@@ -154,7 +155,7 @@ export async function getCustomerAccountOrders({ user }) {
       .order("sort_order", { ascending: true });
 
     if (photoError) {
-      throw new Error(photoError.message);
+      throw createInternalActionError(photoError, "carregar fotos das avaliacoes");
     }
 
     const signedPhotos = await createSignedPhotoUrls({ photos: photos ?? [], supabase });
@@ -252,7 +253,7 @@ export async function claimCustomerOrder({ formData, user }) {
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw createInternalActionError(error, "vincular pedido a conta");
   }
 
   if (!order || !contactMatchesOrder(order, contact)) {
@@ -330,7 +331,7 @@ export async function submitOrderItemReview({ formData, user }) {
   const firstError = orderError ?? itemError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createInternalActionError(firstError, "carregar pedido para avaliacao");
   }
 
   if (!order || order.user_id !== user.id || order.operational_status !== "entregue") {
@@ -365,7 +366,7 @@ export async function submitOrderItemReview({ formData, user }) {
     .single();
 
   if (reviewError) {
-    throw new Error(reviewError.message);
+    throw createInternalActionError(reviewError, "salvar avaliacao do pedido");
   }
 
   await replaceReviewPhotos({
@@ -418,7 +419,7 @@ export async function moderateOrderReview({ formData }) {
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw createInternalActionError(error, "moderar avaliacao");
   }
 
   if (!data) {
@@ -462,7 +463,7 @@ export async function getApprovedProductReviews({ productId, limit = 12 }) {
     .limit(limit);
 
   if (error) {
-    throw new Error(error.message);
+    throw createInternalActionError(error, "carregar avaliacoes aprovadas");
   }
 
   const reviewIds = (reviews ?? []).map((review) => review.id);
@@ -476,7 +477,7 @@ export async function getApprovedProductReviews({ productId, limit = 12 }) {
       .order("sort_order", { ascending: true });
 
     if (photoError) {
-      throw new Error(photoError.message);
+      throw createInternalActionError(photoError, "carregar fotos das avaliacoes aprovadas");
     }
 
     photos = data ?? [];
@@ -518,7 +519,7 @@ export async function listPendingOrderReviews({ limit = 40, supabase } = {}) {
     .limit(limit);
 
   if (error) {
-    throw new Error(error.message);
+    throw createInternalActionError(error, "listar avaliacoes pendentes");
   }
 
   const reviewIds = (reviews ?? []).map((review) => review.id);
@@ -534,7 +535,7 @@ export async function listPendingOrderReviews({ limit = 40, supabase } = {}) {
       .order("sort_order", { ascending: true });
 
     if (photoError) {
-      throw new Error(photoError.message);
+      throw createInternalActionError(photoError, "carregar fotos das avaliacoes pendentes");
     }
 
     photos = data ?? [];
@@ -547,7 +548,7 @@ export async function listPendingOrderReviews({ limit = 40, supabase } = {}) {
       .in("id", orderIds);
 
     if (orderError) {
-      throw new Error(orderError.message);
+      throw createInternalActionError(orderError, "carregar pedidos das avaliacoes pendentes");
     }
 
     orderNumbersById = new Map((data ?? []).map((order) => [order.id, order.order_number]));
