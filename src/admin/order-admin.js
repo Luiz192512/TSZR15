@@ -17,6 +17,69 @@ import {
   isKnownStatus
 } from "@/src/orders/status.js";
 
+// Colunas lidas por OrderDetail em app/admin/_components/admin-orders-view.js.
+// Manter em sincronia com o que a tela renderiza: nada de select("*") aqui.
+const adminOrderDetailColumns = [
+  "id",
+  "order_number",
+  "customer_name",
+  "customer_email",
+  "customer_whatsapp",
+  "customer_phone",
+  "customer_tax_id",
+  "address_snapshot",
+  "total_cents",
+  "currency",
+  "payment_status",
+  "operational_status",
+  "internal_notes",
+  "assigned_operator",
+  "internal_order_status",
+  "created_at"
+].join(",");
+const adminOrderItemColumns = [
+  "id",
+  "product_name",
+  "variation",
+  "quantity",
+  "subtotal_cents",
+  "subtotal_cost_cents",
+  "currency",
+  "created_at"
+].join(",");
+const adminOrderPaymentColumns = ["id", "provider", "provider_reference", "created_at"].join(",");
+const adminSupplierPurchaseColumns = [
+  "id",
+  "internal_channel",
+  "source_status",
+  "source_store_name",
+  "source_order_number",
+  "source_product_url",
+  "operational_account",
+  "purchased_at",
+  "product_cost_cents",
+  "shipping_cost_cents",
+  "currency",
+  "exchange_rate",
+  "source_eta",
+  "carrier",
+  "tracking_code",
+  "proof_url",
+  "internal_notes",
+  "created_at"
+].join(",");
+const adminTrackingEventColumns = [
+  "id",
+  "event_status",
+  "event_at",
+  "description",
+  "created_at"
+].join(",");
+// support_threads e audit_logs sao carregados mas nenhuma tela os renderiza
+// hoje; ficam com o minimo identificavel ate a decisao de remover as consultas.
+const adminSupportThreadColumns = ["id", "order_id", "status", "created_at"].join(",");
+const adminAuditLogColumns = ["id", "order_id", "action", "created_at"].join(",");
+
 function cleanString(value, maxLength = 500) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
@@ -214,7 +277,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
 
   let orderQuery = supabase
     .from("orders")
-    .select("*")
+    .select(adminOrderDetailColumns)
     .limit(1);
 
   orderQuery = orderId
@@ -239,19 +302,35 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
     { data: supportThreads, error: supportError },
     { data: auditLogs, error: auditError }
   ] = await Promise.all([
-    supabase.from("order_items").select("*").eq("order_id", order.id).order("created_at"),
-    supabase.from("payments").select("*").eq("order_id", order.id).order("created_at"),
-    supabase.from("supplier_purchases").select("*").eq("order_id", order.id).order("created_at"),
+    supabase
+      .from("order_items")
+      .select(adminOrderItemColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
+    supabase
+      .from("payments")
+      .select(adminOrderPaymentColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
+    supabase
+      .from("supplier_purchases")
+      .select(adminSupplierPurchaseColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
     supabase
       .from("supplier_tracking_events")
-      .select("*")
+      .select(adminTrackingEventColumns)
       .eq("order_id", order.id)
       .order("event_at", { ascending: false })
       .order("created_at", { ascending: false }),
-    supabase.from("support_threads").select("*").eq("order_id", order.id).order("created_at"),
+    supabase
+      .from("support_threads")
+      .select(adminSupportThreadColumns)
+      .eq("order_id", order.id)
+      .order("created_at"),
     supabase
       .from("audit_logs")
-      .select("*")
+      .select(adminAuditLogColumns)
       .eq("order_id", order.id)
       .order("created_at", { ascending: false })
       .limit(12)

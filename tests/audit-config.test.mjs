@@ -159,6 +159,22 @@ test("estado do catalogo admin usa colunas explicitas e paginas limitadas", asyn
   assert.match(couponsLoader, /couponPagination\.page !== couponPage/);
 });
 
+test("loaders de pedido do admin usam colunas explicitas", async () => {
+  const orderAdmin = await source("src/admin/order-admin.js");
+  const orderLoader =
+    orderAdmin.match(/export async function getAdminOrder\(\{[\s\S]*?\n\}/)?.[0] ?? "";
+
+  assert.notEqual(orderLoader, "", "getAdminOrder nao encontrado");
+  assert.doesNotMatch(orderLoader, /\.select\("\*"\)/);
+  assert.match(orderLoader, /adminOrderDetailColumns/);
+  assert.match(orderLoader, /adminOrderItemColumns/);
+  assert.match(orderLoader, /adminSupplierPurchaseColumns/);
+  assert.match(orderLoader, /adminTrackingEventColumns/);
+
+  // O arquivo inteiro, nao so o loader: nenhum ponto pode reintroduzir o padrao.
+  assert.doesNotMatch(orderAdmin, /\.select\("\*"\)/);
+});
+
 test("cada rota do admin carrega apenas o estado que renderiza", async () => {
   const [ordersPage, analyticsPage, productsPage, couponsPage] = await Promise.all([
     source("app/admin/pedidos/page.js"),
