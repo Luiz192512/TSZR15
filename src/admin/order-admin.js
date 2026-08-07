@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createAdminDatabaseError } from "@/src/admin/admin-action-error.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { buildCheckoutOrderDraft, persistCheckoutOrder } from "@/src/checkout/order-backend.js";
 import { buildAdminOrderAnalytics } from "@/src/admin/order-analytics.js";
@@ -85,7 +86,7 @@ export async function listAdminOrders({ limit = 30, supabase } = {}) {
     .limit(limit);
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "listar pedidos");
   }
 
   return data ?? [];
@@ -111,7 +112,7 @@ export async function listAdminOrderProducts({ supabase, limit = 160 } = {}) {
   const firstError = error ?? costError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminDatabaseError(firstError, "listar produtos para pedido");
   }
 
   const costsByProductId = new Map((costRows ?? []).map((row) => [row.product_id, row.cost_cents]));
@@ -139,7 +140,7 @@ export async function markStaleInternalOrdersPending({ supabase, now = new Date(
     .lte("created_at", cutoff);
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "marcar pedidos internos pendentes");
   }
 }
 
@@ -157,7 +158,7 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
     .limit(1000);
 
   if (orderError) {
-    throw new Error(orderError.message);
+    throw createAdminDatabaseError(orderError, "carregar analytics de pedidos");
   }
 
   const orderIds = (orders ?? []).map((order) => order.id);
@@ -195,7 +196,7 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
   const firstError = supplierError ?? itemError ?? reviewError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminDatabaseError(firstError, "carregar analytics de pedidos");
   }
 
   return buildAdminOrderAnalytics({
@@ -223,7 +224,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
   const { data: order, error } = await orderQuery.maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "carregar pedido selecionado");
   }
 
   if (!order) {
@@ -260,7 +261,7 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
     itemsError ?? paymentsError ?? supplierError ?? trackingError ?? supportError ?? auditError;
 
   if (firstError) {
-    throw new Error(firstError.message);
+    throw createAdminDatabaseError(firstError, "carregar dados relacionados do pedido");
   }
 
   return {
@@ -397,7 +398,7 @@ export async function createAdminManualOrder(formData) {
       .eq("id", result.id);
 
     if (error) {
-      throw new Error(error.message);
+      throw createAdminDatabaseError(error, "criar pedido manual");
     }
   }
 
@@ -451,7 +452,7 @@ export async function setAdminInternalOrderStatus(formData) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "alterar status interno do pedido");
   }
 
   return {

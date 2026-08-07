@@ -1,3 +1,4 @@
+import { createAdminDatabaseError } from "./admin-action-error.js";
 import { logServerEvent } from "../lib/logger.js";
 
 export const maxAdminProductImages = 12;
@@ -221,7 +222,7 @@ export async function loadAdminProductImageUrls({ persistenceMode, productId, su
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw createAdminDatabaseError(error, "carregar imagens do produto");
   }
 
   return collectProductImageUrls(data);
