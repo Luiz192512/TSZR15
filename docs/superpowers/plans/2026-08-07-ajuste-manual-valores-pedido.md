@@ -365,11 +365,20 @@ test("analise le todos os pedidos em paginas, sem teto silencioso", async () => 
   const loader =
     orderAdmin.match(/export async function getAdminOrderAnalytics[\s\S]*?\n\}/)?.[0] ?? "";
 
+  // Dois recortes: o corpo da funcao (paginacao) e a constante de colunas, que
+  // fica no escopo de modulo. Assertar os nomes de coluna contra o corpo da
+  // funcao seria insatisfazivel — ela so referencia a constante.
+  const analyticsColumns =
+    orderAdmin.match(/const adminAnalyticsOrderColumns = \[[\s\S]*?\]\.join\(","\)/)?.[0] ?? "";
+
   assert.notEqual(loader, "", "getAdminOrderAnalytics nao encontrado");
   assert.doesNotMatch(loader, /\.limit\(1000\)/, "teto fixo de 1000 reintroduzido");
   assert.match(loader, /\.range\(/, "a leitura precisa paginar por range");
-  assert.match(loader, /settled_total_cents/);
-  assert.match(loader, /settled_cost_cents/);
+  assert.match(loader, /\.select\(adminAnalyticsOrderColumns\)/);
+
+  assert.notEqual(analyticsColumns, "", "adminAnalyticsOrderColumns nao encontrada");
+  assert.match(analyticsColumns, /"settled_total_cents"/);
+  assert.match(analyticsColumns, /"settled_cost_cents"/);
 });
 ```
 
