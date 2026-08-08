@@ -75,6 +75,23 @@ const adminTrackingEventColumns = [
   "description",
   "created_at"
 ].join(",");
+const adminAnalyticsOrderColumns = [
+  "id",
+  "customer_name",
+  "customer_email",
+  "customer_whatsapp",
+  "total_cents",
+  "settled_total_cents",
+  "settled_cost_cents",
+  "payment_status",
+  "operational_status",
+  "internal_order_status",
+  "created_at"
+].join(",");
+// Paginacao da analise: o teto anterior de 1000 truncava em silencio e os
+// agregados de vida inteira passavam a mentir a partir do pedido 1001.
+const adminAnalyticsPageSize = 1000;
+
 function cleanString(value, maxLength = 500) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
@@ -207,16 +224,26 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
     return buildAdminOrderAnalytics();
   }
 
-  const { data: orders, error: orderError } = await supabase
-    .from("orders")
-    .select(
-      "id, customer_name, customer_email, customer_whatsapp, total_cents, payment_status, operational_status, internal_order_status, created_at"
-    )
-    .order("created_at", { ascending: false })
-    .limit(1000);
+  const orders = [];
 
-  if (orderError) {
-    throw createAdminDatabaseError(orderError, "carregar analytics de pedidos");
+  for (let page = 0; ; page += 1) {
+    const from = page * adminAnalyticsPageSize;
+    const { data, error: orderError } = await supabase
+      .from("orders")
+      .select(adminAnalyticsOrderColumns)
+      .order("created_at", { ascending: false })
+      .range(from, from + adminAnalyticsPageSize - 1);
+
+    if (orderError) {
+      throw createAdminDatabaseError(orderError, "carregar analytics de pedidos");
+    }
+
+    const rows = data ?? [];
+    orders.push(...rows);
+
+    if (rows.length < adminAnalyticsPageSize) {
+      break;
+    }
   }
 
   const orderIds = (orders ?? []).map((order) => order.id);
