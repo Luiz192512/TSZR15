@@ -27,6 +27,22 @@ function isSalesOrder(order) {
   return isActiveOrder(order) && order.payment_status === "pagamento_confirmado";
 }
 
+// Ajuste manual do painel tem precedencia sobre o valor derivado. Number.isInteger
+// em vez de ?? porque 0 e um ajuste valido (pedido cortesia, custo absorvido).
+function getEffectiveTotalCents(order) {
+  return Number.isInteger(order.settled_total_cents)
+    ? order.settled_total_cents
+    : order.total_cents ?? 0;
+}
+
+function getEffectiveCostCents(order, costsByOrderId, itemCostsByOrderId) {
+  if (Number.isInteger(order.settled_cost_cents)) {
+    return order.settled_cost_cents;
+  }
+
+  return costsByOrderId.get(order.id) ?? itemCostsByOrderId.get(order.id) ?? 0;
+}
+
 export function buildAdminOrderAnalytics({
   now = new Date(),
   orderItems = [],
@@ -59,9 +75,9 @@ export function buildAdminOrderAnalytics({
   const activeOrders = orders.filter(isActiveOrder);
   const salesOrders = orders.filter(isSalesOrder);
   const salesOrderIds = new Set(salesOrders.map((order) => order.id));
-  const totalRevenueCents = sumCents(salesOrders.map((order) => order.total_cents));
+  const totalRevenueCents = sumCents(salesOrders.map(getEffectiveTotalCents));
   const knownCostCents = sumCents(
-    salesOrders.map((order) => costsByOrderId.get(order.id) ?? itemCostsByOrderId.get(order.id) ?? 0)
+    salesOrders.map((order) => getEffectiveCostCents(order, costsByOrderId, itemCostsByOrderId))
   );
   const grossProfitCents = totalRevenueCents - knownCostCents;
   const averageTicketCents =
@@ -91,7 +107,7 @@ export function buildAdminOrderAnalytics({
     };
 
     previous.count += 1;
-    previous.totalCents += order.total_cents ?? 0;
+    previous.totalCents += getEffectiveTotalCents(order);
     customers.set(key, previous);
   }
 
@@ -177,7 +193,7 @@ export function buildAdminOrderAnalytics({
     }
 
     bucket.count += 1;
-    bucket.totalCents += order.total_cents ?? 0;
+    bucket.totalCents += getEffectiveTotalCents(order);
   }
 
   const maxDailyRevenueCents = Math.max(1, ...dayBuckets.map((bucket) => bucket.totalCents));
