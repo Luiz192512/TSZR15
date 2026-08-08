@@ -77,6 +77,23 @@ function hasSupplierPayload(payload) {
   });
 }
 
+// A RPC recebe centavos como texto: "" limpa o ajuste, numero grava o override.
+function toSettledCentsInput(value) {
+  const raw = cleanString(value, 40);
+
+  if (!raw) {
+    return "";
+  }
+
+  const cents = parseAdminMoneyToCents(raw, { allowZero: true });
+
+  if (!Number.isInteger(cents)) {
+    throw new Error("Informe um valor ajustado valido, como 189,90.");
+  }
+
+  return String(cents);
+}
+
 export function buildAdminOrderOperationRpcArgs(formData) {
   const orderId = cleanString(formData.get("orderId"), 80);
   const orderNumber = cleanString(formData.get("orderNumber"), 80);
@@ -171,6 +188,9 @@ export function buildAdminOrderOperationRpcArgs(formData) {
       internalNotes: cleanNullable(formData.get("orderInternalNotes"), 1800),
       operationalStatus,
       paymentStatus,
+      // String vazia limpa o override no banco (nullif no update da RPC).
+      settledCostCents: toSettledCentsInput(formData.get("settledCost")),
+      settledTotalCents: toSettledCentsInput(formData.get("settledTotal")),
     },
     p_order_id: orderId,
     p_order_number: orderNumber,

@@ -341,6 +341,30 @@ function OrderDetail({ selected }) {
               <span>Referencia do pagamento</span>
               <input defaultValue={payments[0]?.provider_reference ?? ""} name="paymentReference" />
             </label>
+            <label>
+              <span>Valor efetivamente recebido</span>
+              <input
+                defaultValue={centsToInput(order.settled_total_cents)}
+                inputMode="decimal"
+                name="settledTotal"
+                pattern="[0-9.,]+"
+                placeholder={centsToInput(order.total_cents)}
+                title="Use um valor como 189,90. Deixe vazio para usar o total do pedido."
+              />
+              <small>Deixe vazio para usar o total cobrado. So aparece no admin.</small>
+            </label>
+            <label>
+              <span>Custo total real</span>
+              <input
+                defaultValue={centsToInput(order.settled_cost_cents)}
+                inputMode="decimal"
+                name="settledCost"
+                pattern="[0-9.,]+"
+                placeholder="0,00"
+                title="Use um valor como 40,00. Deixe vazio para somar produto e frete."
+              />
+              <small>Deixe vazio para somar Custo produto + Custo frete abaixo.</small>
+            </label>
             <label className={cx(globalStyles, "span-all")}>
               <span>Observacoes internas do pedido</span>
               <textarea

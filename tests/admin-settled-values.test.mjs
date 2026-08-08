@@ -62,3 +62,67 @@ test("analise le todos os pedidos em paginas, sem teto silencioso", async () => 
   assert.match(analyticsColumns, /"settled_total_cents"/);
   assert.match(analyticsColumns, /"settled_cost_cents"/);
 });
+
+test("args da RPC carregam os dois ajustes em centavos", async () => {
+  const { buildAdminOrderOperationRpcArgs } = await import(
+    "../src/admin/order-operation.js"
+  );
+  const formData = new FormData();
+
+  // operationId passa por regex de UUID com nibbles de versao [1-8] e variante
+  // [89ab]; "enviado" nao existe em operationalStatuses (o valor real e
+  // "em_transito"). Os dois fixtures foram validados contra o modulo real.
+  formData.set("orderId", "11111111-1111-4111-8111-111111111111");
+  formData.set("orderNumber", "TSZ-1");
+  formData.set("operationId", "22222222-2222-4222-8222-222222222222");
+  formData.set("paymentStatus", "pagamento_confirmado");
+  formData.set("operationalStatus", "em_transito");
+  formData.set("settledTotal", "189,90");
+  formData.set("settledCost", "40,00");
+
+  const args = buildAdminOrderOperationRpcArgs(formData);
+
+  assert.equal(args.p_order.settledTotalCents, "18990");
+  assert.equal(args.p_order.settledCostCents, "4000");
+});
+
+test("campo de ajuste vazio limpa o override em vez de virar zero", async () => {
+  const { buildAdminOrderOperationRpcArgs } = await import(
+    "../src/admin/order-operation.js"
+  );
+  const formData = new FormData();
+
+  // operationId passa por regex de UUID com nibbles de versao [1-8] e variante
+  // [89ab]; "enviado" nao existe em operationalStatuses (o valor real e
+  // "em_transito"). Os dois fixtures foram validados contra o modulo real.
+  formData.set("orderId", "11111111-1111-4111-8111-111111111111");
+  formData.set("orderNumber", "TSZ-1");
+  formData.set("operationId", "22222222-2222-4222-8222-222222222222");
+  formData.set("paymentStatus", "pagamento_confirmado");
+  formData.set("operationalStatus", "em_transito");
+  formData.set("settledTotal", "");
+  formData.set("settledCost", "");
+
+  const args = buildAdminOrderOperationRpcArgs(formData);
+
+  assert.equal(args.p_order.settledTotalCents, "");
+  assert.equal(args.p_order.settledCostCents, "");
+});
+
+test("formulario do pedido expoe os dois campos de ajuste", async () => {
+  const view = await source("app/admin/_components/admin-orders-view.js");
+
+  assert.match(view, /name="settledTotal"/);
+  assert.match(view, /name="settledCost"/);
+  assert.match(view, /Valor efetivamente recebido/);
+  assert.match(view, /Custo total real/);
+});
+
+test("colunas do pedido selecionado incluem os ajustes", async () => {
+  const orderAdmin = await source("src/admin/order-admin.js");
+  const columns =
+    orderAdmin.match(/const adminOrderDetailColumns = \[[\s\S]*?\]\.join\(","\)/)?.[0] ?? "";
+
+  assert.match(columns, /"settled_total_cents"/);
+  assert.match(columns, /"settled_cost_cents"/);
+});

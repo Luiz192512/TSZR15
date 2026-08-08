@@ -29,6 +29,8 @@ const adminOrderDetailColumns = [
   "customer_tax_id",
   "address_snapshot",
   "total_cents",
+  "settled_total_cents",
+  "settled_cost_cents",
   "currency",
   "payment_status",
   "operational_status",
