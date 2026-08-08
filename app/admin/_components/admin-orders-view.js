@@ -231,8 +231,18 @@ function OrderDetail({ selected }) {
           </p>
         </div>
         <div className={cx(globalStyles, "admin-total-box")}>
-          <span>Total cobrado</span>
-          <strong>{formatCurrency(order.total_cents, order.currency)}</strong>
+          <span>{Number.isInteger(order.settled_total_cents) ? "Valor recebido" : "Total cobrado"}</span>
+          <strong>
+            {formatCurrency(
+              Number.isInteger(order.settled_total_cents)
+                ? order.settled_total_cents
+                : order.total_cents,
+              order.currency
+            )}
+          </strong>
+          {Number.isInteger(order.settled_total_cents) ? (
+            <small>Total cobrado: {formatCurrency(order.total_cents, order.currency)}</small>
+          ) : null}
         </div>
       </div>
 

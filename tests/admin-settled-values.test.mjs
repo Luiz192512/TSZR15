@@ -126,3 +126,10 @@ test("colunas do pedido selecionado incluem os ajustes", async () => {
   assert.match(columns, /"settled_total_cents"/);
   assert.match(columns, /"settled_cost_cents"/);
 });
+
+test("cabecalho do pedido mostra o valor recebido quando ha ajuste", async () => {
+  const view = await source("app/admin/_components/admin-orders-view.js");
+
+  assert.match(view, /Number\.isInteger\(order\.settled_total_cents\)/);
+  assert.match(view, /Valor recebido/);
+});
