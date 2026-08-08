@@ -45,3 +45,11 @@ test("migration nao mexe em service_role nem remove as policies", async () => {
     "as policies ficam como defesa em profundidade"
   );
 });
+
+test("a consulta de auditoria de grants esta documentada", async () => {
+  const doc = await source("docs/ENVIRONMENT.md");
+
+  assert.match(doc, /information_schema\.column_privileges/);
+  assert.match(doc, /grantee IN \('anon', 'authenticated'\)/);
+  assert.match(doc, /Colunas internas expostas/);
+});
