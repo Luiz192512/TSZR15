@@ -56,6 +56,14 @@ test("analise le todos os pedidos em paginas, sem teto silencioso", async () => 
   assert.notEqual(loader, "", "getAdminOrderAnalytics nao encontrado");
   assert.doesNotMatch(loader, /\.limit\(1000\)/, "teto fixo de 1000 reintroduzido");
   assert.match(loader, /\.range\(/, "a leitura precisa paginar por range");
+  // created_at sozinho nao desempata: linhas com o mesmo instante podem sair em
+  // ordem diferente entre consultas independentes, duplicando uma e omitindo
+  // outra na fronteira da pagina. O desempate por id torna a ordem total.
+  assert.match(
+    loader,
+    /\.order\("id", \{ ascending: false \}\)/,
+    "paginacao precisa de desempate estavel por id"
+  );
   assert.match(loader, /\.select\(adminAnalyticsOrderColumns\)/);
 
   assert.notEqual(analyticsColumns, "", "adminAnalyticsOrderColumns nao encontrada");

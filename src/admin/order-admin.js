@@ -234,6 +234,10 @@ export async function getAdminOrderAnalytics({ supabase } = {}) {
       .from("orders")
       .select(adminAnalyticsOrderColumns)
       .order("created_at", { ascending: false })
+      // created_at nao e unico. Sem desempate, linhas empatadas na fronteira da
+      // pagina podem sair em ordem diferente entre as consultas independentes,
+      // duplicando uma e omitindo outra — e corrompendo receita e custo.
+      .order("id", { ascending: false })
       .range(from, from + adminAnalyticsPageSize - 1);
 
     if (orderError) {
