@@ -659,7 +659,7 @@ Em `app/admin/_components/admin-orders-view.js`, dentro do bloco `<h2>Status do 
 - [ ] **Step 6: Rodar os testes e confirmar que passam**
 
 Run: `node --test tests/admin-settled-values.test.mjs`
-Expected: PASS — 8 testes no arquivo.
+Expected: PASS — 7 testes no arquivo (2 da Task 1 + 1 da Task 3 + 4 desta).
 
 - [ ] **Step 7: Rodar a suíte, o lint e o build**
 
@@ -738,7 +738,7 @@ por:
 - [ ] **Step 4: Rodar os testes e confirmar que passam**
 
 Run: `node --test tests/admin-settled-values.test.mjs`
-Expected: PASS — 9 testes.
+Expected: PASS — 8 testes.
 
 - [ ] **Step 5: Rodar a suíte, o lint e o build**
 
