@@ -60,6 +60,9 @@ test("builds the complete atomic admin order RPC payload", () => {
     internalNotes: "Separar embalagem reforcada.",
     operationalStatus: "pagamento_confirmado",
     paymentStatus: "pagamento_confirmado",
+    // Campos de ajuste ausentes no formulario viram "" e a RPC limpa o override.
+    settledCostCents: "",
+    settledTotalCents: "",
   });
   assert.deepEqual(args.p_payment, {
     provider: "manual",
