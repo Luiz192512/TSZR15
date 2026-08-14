@@ -46,6 +46,7 @@ function buildProduct({
   bikeModelScope = ["yamaha-r15"],
   priceCents,
   variations,
+  sizeOptions = [],
   availability = "sob-consulta",
   leadTimeDays = 2,
   shippingClass = "medium",
@@ -62,6 +63,7 @@ function buildProduct({
     priceCents: priceCents ?? defaultPricesByFamily[productFamily] ?? 9990,
     currency: "BRL",
     variations: variations ?? defaultVariationsByFamily[productFamily] ?? ["Padrão"],
+    sizeOptions,
     availability,
     leadTimeDays,
     shippingClass,
@@ -621,11 +623,6 @@ export const rawCatalogProducts = [
       storefrontCategoryIds: ["estetica"],
       productFamily: "aero_front",
       bikeModelScope: ["sbm-250s"]
-    },
-    {
-      name: "Camiseta Premium",
-      storefrontCategoryIds: ["vestuario"],
-      productFamily: "manutencao"
     }
   ])
 ];

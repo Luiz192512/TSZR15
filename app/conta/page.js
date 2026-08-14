@@ -209,7 +209,7 @@ function AccountOrderCard({ order, profile }) {
                 <div>
                   <strong>{item.productName}</strong>
                   <span>
-                    {item.quantity}x - {item.variation}
+                    {item.quantity}x - {item.size ? `${item.variation} - ${item.size}` : item.variation}
                   </span>
                 </div>
                 <Link href={`/produto/${item.productSlug}`}>Ver produto</Link>

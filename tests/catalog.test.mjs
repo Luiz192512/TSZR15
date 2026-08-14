@@ -10,8 +10,11 @@ import {
   toPublicCatalogProduct,
   storefrontCategories,
   rejectedCatalogProducts,
+  technicalFamilies,
   validateCatalog
 } from "../src/catalog/index.js";
+import { blockedStorefrontCategoryIds } from "../src/catalog/categories.js";
+import { getImportDecision } from "../src/catalog/importRules.js";
 import {
   buildCatalogCategoryRows,
   buildCatalogProductCategoryRows,
@@ -153,7 +156,10 @@ function createSupabaseCatalogStub({ data = [], error = null } = {}) {
           assert.match(columns, /\bimage_urls\b/);
           assert.match(columns, /\bvariation_images\b/);
           assert.match(columns, /\binternal_purchase_source\b/);
-          assert.match(columns, /catalog_variation_stock\s*\(\s*variation\s*,\s*quantity\s*\)/);
+          assert.match(
+            columns,
+            /catalog_variation_stock\s*\(\s*variation\s*,\s*size\s*,\s*quantity\s*\)/
+          );
           return this;
         },
         eq(column, value) {
@@ -202,7 +208,7 @@ function buildCatalogRow(overrides = {}) {
   };
 }
 
-test("storefront menu keeps the five approved labels", () => {
+test("storefront menu keeps the six approved labels", () => {
   const labels = getStorefrontMenu().map((category) => category.label);
 
   assert.deepEqual(labels, [
@@ -210,7 +216,8 @@ test("storefront menu keeps the five approved labels", () => {
     "Estética",
     "Escapamentos",
     "Adesivagem",
-    "Manutenção"
+    "Manutenção",
+    "Vestuário"
   ]);
 });
 
@@ -450,10 +457,35 @@ test("Supabase storefront product maps rows and keeps internal sourcing private"
   assert.deepEqual(product.storefrontCategoryIds, ["suporte-sliders"]);
   assert.deepEqual(product.imageUrls, ["https://cdn.example.com/produto.jpg"]);
   assert.deepEqual(product.variationStock, [
-    { quantity: 3, variation: "Preto" },
-    { quantity: 0, variation: "Vermelho" }
+    { quantity: 3, size: "", variation: "Preto" },
+    { quantity: 0, size: "", variation: "Vermelho" }
   ]);
+  assert.deepEqual(product.sizeOptions, []);
   assert.equal("internalPurchaseSource" in product, false);
+});
+
+test("produto de vestuario publica a grade e o estoque por tamanho", async () => {
+  const catalog = await readCatalogProductsFromSupabase(
+    createSupabaseCatalogStub({
+      data: [
+        buildCatalogRow({
+          catalog_variation_stock: [
+            { quantity: 2, size: "P", variation: "Padrão" },
+            { quantity: 0, size: "M", variation: "Padrão" }
+          ],
+          size_options: ["P", "M"],
+          variations: ["Padrão"]
+        })
+      ]
+    })
+  );
+  const product = toPublicCatalogProduct(catalog.products[0]);
+
+  assert.deepEqual(product.sizeOptions, ["P", "M"]);
+  assert.deepEqual(product.variationStock, [
+    { quantity: 2, size: "P", variation: "Padrão" },
+    { quantity: 0, size: "M", variation: "Padrão" }
+  ]);
 });
 
 test("catalog grouping creates carousel-ready category sections", () => {
@@ -467,8 +499,8 @@ test("catalog grouping creates carousel-ready category sections", () => {
   );
 });
 
-test("published catalog excludes vestuario and unsupported motorcycles", () => {
-  const blockedNames = ["r3", "sbm 250s", "zx10", "vestuario"];
+test("published catalog excludes unsupported motorcycles", () => {
+  const blockedNames = ["r3", "sbm 250s", "zx10"];
 
   for (const product of catalogProducts) {
     const searchable = product.name
@@ -514,7 +546,50 @@ test("rejection reports keep only blocked items", () => {
   assert.ok(rejectedNames.includes("Retrovisor ZX10"));
   assert.ok(rejectedNames.includes("Kit Slider Yamaha R3"));
   assert.ok(rejectedNames.includes("Carenagem Frontal SBM 250s"));
-  assert.ok(rejectedNames.includes("Camiseta Premium"));
+});
+
+test("vestuario e uma categoria valida da vitrine e nao e mais bloqueada", () => {
+  assert.equal(blockedStorefrontCategoryIds.includes("vestuario"), false);
+  assert.ok(storefrontCategories.some((category) => category.id === "vestuario"));
+  assert.ok(technicalFamilies.includes("vestuario"));
+
+  const decision = getImportDecision({
+    name: "Camiseta Oficial",
+    storefrontCategoryIds: ["vestuario"],
+    productFamily: "vestuario",
+    bikeModelScope: ["yamaha-r15"]
+  });
+
+  assert.equal(decision.accepted, true);
+});
+
+test("mensagem do WhatsApp mostra o tamanho so quando o item tem grade", () => {
+  const message = buildWhatsAppOrderMessage({
+    cartItems: [
+      {
+        id: "camiseta",
+        name: "Camiseta Oficial",
+        priceCents: 8900,
+        quantity: 1,
+        size: "M",
+        variation: "Padrão"
+      },
+      {
+        id: "slider",
+        name: "Slider",
+        priceCents: 14990,
+        quantity: 1,
+        variation: "Preto"
+      }
+    ],
+    customer: { address: "Rua Teste, 123", cep: "01001-000", name: "Cliente Teste" },
+    paymentMethodId: "pix",
+    shippingOptionId: "combinar",
+    storeName: "TSZR15"
+  });
+
+  assert.match(message, /Camiseta Oficial \| Variacao: Padrão \| Tamanho: M \| Qtd: 1/);
+  assert.match(message, /Slider \| Variacao: Preto \| Qtd: 1/);
 });
 
 test("WhatsApp checkout message carries items, payment method and total", () => {
@@ -675,6 +750,75 @@ test("backend checkout draft trusts catalog prices and creates order snapshots",
   assert.equal(draft.totals.discountSnapshot.code, "R15OFF");
   assert.match(draft.message, /Cupom: R15OFF/);
   assert.match(draft.message, /Compra assistida/);
+});
+
+test("checkout so aceita tamanho publicado na grade do produto", () => {
+  const camiseta = {
+    ...catalogProducts.find((item) => item.id === "slider-esportivo-em-aluminio-somente-slider"),
+    id: "camiseta-oficial",
+    name: "Camiseta Oficial",
+    sizeOptions: ["P", "M"],
+    slug: "camiseta-oficial",
+    variations: ["Padrão"]
+  };
+  const customer = {
+    address: "Rua Teste, 123 - Sao Paulo/SP",
+    cep: "01001-000",
+    email: "cliente@teste.com",
+    name: "Cliente Teste",
+    whatsapp: "(11) 98888-7777"
+  };
+  const buildDraft = (cartItem) =>
+    buildCheckoutOrderDraft(
+      {
+        cartItems: [cartItem],
+        customer,
+        hasDataConsent: true,
+        paymentMethodId: "pix",
+        shippingOptionId: "combinar"
+      },
+      { products: [camiseta], storeName: "TSZR15" }
+    );
+
+  const draft = buildDraft({
+    id: "camiseta-oficial",
+    quantity: 1,
+    size: "M",
+    variation: "Padrão"
+  });
+
+  assert.equal(draft.databaseItems[0].size, "M");
+
+  assert.throws(
+    () => buildDraft({ id: "camiseta-oficial", quantity: 1, size: "XG", variation: "Padrão" }),
+    (error) =>
+      error instanceof CheckoutValidationError &&
+      error.details.some((detail) => /tamanho invalido/i.test(detail))
+  );
+
+  assert.throws(
+    () =>
+      buildCheckoutOrderDraft(
+        {
+          cartItems: [
+            {
+              id: "slider-esportivo-em-aluminio-somente-slider",
+              quantity: 1,
+              size: "M",
+              variation: "Preto"
+            }
+          ],
+          customer,
+          hasDataConsent: true,
+          paymentMethodId: "pix",
+          shippingOptionId: "combinar"
+        },
+        { storeName: "TSZR15" }
+      ),
+    (error) =>
+      error instanceof CheckoutValidationError &&
+      error.details.some((detail) => /sem grade de tamanhos/i.test(detail))
+  );
 });
 
 test("backend checkout draft rejects missing assisted-purchase consent", () => {

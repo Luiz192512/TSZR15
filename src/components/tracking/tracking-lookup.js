@@ -115,11 +115,11 @@ function TrackingResult({ result }) {
             {order.items.map((item) => (
               <div
                 className={cx(globalStyles, "admin-item-row")}
-                key={`${item.product_name}-${item.variation}`}
+                key={`${item.product_name}-${item.variation}-${item.size ?? ""}`}
               >
                 <span>
                   <strong>{item.product_name}</strong>
-                  <em>{item.variation}</em>
+                  <em>{item.size ? `${item.variation} - ${item.size}` : item.variation}</em>
                 </span>
                 <span>{item.quantity}x</span>
               </div>

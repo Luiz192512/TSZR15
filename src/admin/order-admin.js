@@ -40,6 +40,7 @@ function toOrderFormProduct(row) {
     priceCents: row.price_cents,
     productFamily: row.product_family,
     slug: row.slug,
+    sizeOptions: row.size_options ?? [],
     storefrontCategoryIds: row.storefront_category_ids ?? [],
     variations: row.variations ?? []
   };
@@ -57,6 +58,7 @@ function getFallbackOrderProducts() {
     priceCents: product.priceCents,
     productFamily: product.productFamily,
     slug: product.slug,
+    sizeOptions: product.sizeOptions ?? [],
     storefrontCategoryIds: product.storefrontCategoryIds,
     variations: product.variations
   }));
@@ -100,7 +102,7 @@ export async function listAdminOrderProducts({ supabase, limit = 160 } = {}) {
     supabase
       .from("catalog_products")
       .select(
-        "id, slug, name, storefront_category_ids, product_family, bike_model_scope, price_cents, currency, variations, checkout_channel, internal_purchase_source, is_published"
+        "id, slug, name, storefront_category_ids, product_family, bike_model_scope, price_cents, currency, variations, size_options, checkout_channel, internal_purchase_source, is_published"
       )
       .eq("is_published", true)
       .order("name", { ascending: true })
@@ -350,6 +352,10 @@ export async function createAdminManualOrder(formData) {
         {
           id: selectedProduct.id,
           quantity: Number.parseInt(cleanString(formData.get("quantity"), 20), 10) || 1,
+          // Produto sem grade fica com size "": o draft recusa tamanho em
+          // produto sem grade e exige um da grade quando ela existe.
+          size:
+            cleanString(formData.get("size"), 40) || (selectedProduct.sizeOptions?.[0] ?? ""),
           variation: cleanString(formData.get("variation"), 120) || selectedProduct.variations[0]
         }
       ],

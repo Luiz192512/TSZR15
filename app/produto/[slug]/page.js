@@ -99,8 +99,13 @@ export default async function ProductPage({ params }) {
     )
     .slice(0, 4);
   const productUrl = `${siteUrl}/produto/${product.slug}`;
-  const allVariationsOut = product.variations.every(
-    (variation) => !getVariationStockStatus(product, variation).canAddToCart
+  const sizeOptions = Array.isArray(product.sizeOptions) ? product.sizeOptions : [];
+  const allVariationsOut = product.variations.every((variation) =>
+    sizeOptions.length > 0
+      ? sizeOptions.every(
+          (size) => !getVariationStockStatus(product, variation, size).canAddToCart
+        )
+      : !getVariationStockStatus(product, variation).canAddToCart
   );
   const productSchema = {
     "@context": "https://schema.org",

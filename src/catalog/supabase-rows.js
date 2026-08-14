@@ -21,6 +21,7 @@ export function buildCatalogProductRows(products = catalogProducts) {
     price_cents: product.priceCents,
     currency: product.currency,
     variations: product.variations,
+    size_options: product.sizeOptions ?? [],
     availability: product.availability,
     lead_time_days: product.leadTimeDays,
     shipping_class: product.shippingClass,

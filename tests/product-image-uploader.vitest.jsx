@@ -57,11 +57,13 @@ describe("ProductImageUploader variation cards", () => {
       {
         imageTokens: ["/img/preto.webp", "/img/detalhe.webp"],
         quantity: "3",
+        sizes: [],
         variation: "Preto"
       },
       {
         imageTokens: ["/img/fume.webp"],
         quantity: "",
+        sizes: [],
         variation: "Fumê"
       }
     ]);
@@ -76,11 +78,13 @@ describe("ProductImageUploader variation cards", () => {
       {
         imageTokens: ["/img/fume.webp"],
         quantity: "",
+        sizes: [],
         variation: "Fumê"
       },
       {
         imageTokens: ["/img/preto-1.webp", "/img/preto-2.webp"],
         quantity: "4",
+        sizes: [],
         variation: "Preto"
       }
     ]);
@@ -99,6 +103,7 @@ describe("ProductImageUploader variation cards", () => {
     expect(variationCards(container)[0]).toEqual({
       imageTokens: ["/img/preto-1.webp", "/img/preto-2.webp"],
       quantity: "7",
+      sizes: [],
       variation: "Preto fosco"
     });
   });
@@ -125,8 +130,47 @@ describe("ProductImageUploader variation cards", () => {
     expect(variationCards(container)[2]).toEqual({
       imageTokens: [],
       quantity: "",
+      sizes: [],
       variation: ""
     });
+  });
+
+  it("monta os tamanhos salvos e serializa a grade por variação", () => {
+    const { container } = render(
+      <ProductImageUploader
+        existingImageUrls={[]}
+        variationImages={[]}
+        variationStock={[
+          { quantity: 2, size: "P", variation: "Padrão" },
+          { quantity: 0, size: "M", variation: "Padrão" }
+        ]}
+        variations={["Padrão"]}
+      />
+    );
+
+    expect(variationCards(container)[0].sizes).toEqual([
+      { quantity: "2", size: "P" },
+      { quantity: "0", size: "M" }
+    ]);
+    expect(within(container).getByLabelText("Estoque da variação 1").disabled).toBe(true);
+  });
+
+  it("adiciona, edita e remove tamanhos dentro do card", () => {
+    const { container } = render(<ProductImageUploader initialCards={initialCards} />);
+
+    fireEvent.click(within(container).getAllByRole("button", { name: "Adicionar tamanho" })[0]);
+    fireEvent.change(within(container).getByLabelText("Tamanho 1 da variação 1"), {
+      target: { value: "GG" }
+    });
+    fireEvent.change(within(container).getByLabelText("Estoque do tamanho 1 da variação 1"), {
+      target: { value: "5" }
+    });
+
+    expect(variationCards(container)[0].sizes).toEqual([{ quantity: "5", size: "GG" }]);
+
+    fireEvent.click(within(container).getByLabelText("Remover tamanho 1 da variação 1"));
+
+    expect(variationCards(container)[0].sizes).toEqual([]);
   });
 
   it("adds a cropped image only once while crop processing is pending", async () => {

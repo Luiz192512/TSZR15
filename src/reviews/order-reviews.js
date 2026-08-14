@@ -63,6 +63,7 @@ function mapOrderItem(row, review = null) {
     productSlug: row.product_slug,
     quantity: row.quantity,
     review,
+    size: row.size ?? "",
     subtotalCents: row.subtotal_cents,
     variation: row.variation
   };
@@ -119,7 +120,7 @@ export async function getCustomerAccountOrders({ user }) {
     supabase
       .from("order_items")
       .select(
-        "id, order_id, product_id, product_slug, product_name, variation, quantity, subtotal_cents"
+        "id, order_id, product_id, product_slug, product_name, variation, size, quantity, subtotal_cents"
       )
       .in("order_id", orderIds)
       .order("created_at", { ascending: true }),

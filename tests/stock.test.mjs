@@ -28,6 +28,6 @@ test("vincula o estoque recebido aos respectivos produtos", () => {
     [{ product_id: "slider", quantity: 2, variation: "Preto" }]
   );
 
-  assert.deepEqual(first.variationStock, [{ quantity: 2, variation: "Preto" }]);
+  assert.deepEqual(first.variationStock, [{ quantity: 2, size: "", variation: "Preto" }]);
   assert.deepEqual(second.variationStock, []);
 });

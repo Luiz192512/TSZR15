@@ -26,7 +26,9 @@ export async function sendOrderConfirmation({ draft, order }) {
   const items = draft.cartItems
     .map(
       (item) =>
-        `<li>${item.quantity}x ${escapeHtml(item.name)} — ${escapeHtml(item.variation)}</li>`
+        `<li>${item.quantity}x ${escapeHtml(item.name)} — ${escapeHtml(item.variation)}${
+          item.size ? ` — Tamanho ${escapeHtml(item.size)}` : ""
+        }</li>`
     )
     .join("");
   const { error } = await resend.emails.send({

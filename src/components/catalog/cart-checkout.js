@@ -215,7 +215,7 @@ export function CartCheckout({
     const cartItem = cart.cartItems.find((item) => item.cartKey === cartKey);
     const product = productsById.get(cartItem?.id);
 
-    if (!getVariationStockStatus(product, variation).canAddToCart) {
+    if (!getVariationStockStatus(product, variation, cartItem?.size ?? "").canAddToCart) {
       return;
     }
 
