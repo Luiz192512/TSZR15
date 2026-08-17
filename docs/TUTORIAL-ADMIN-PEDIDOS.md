@@ -7,6 +7,8 @@ Referências de código: `app/admin/page.js` (tela), `app/admin/actions.js` (aç
 `src/admin/order-admin.js` e `src/admin/order-operation.js` (regras), `src/orders/status.js`
 (listas de status).
 
+Para a aba Produtos, veja [TUTORIAL-ADMIN-PRODUTOS.md](./TUTORIAL-ADMIN-PRODUTOS.md).
+
 ---
 
 ## 1. Entrar no painel
