@@ -821,6 +821,56 @@ test("checkout so aceita tamanho publicado na grade do produto", () => {
   );
 });
 
+test("checkout recusa combinacao de variacao e tamanho que nao existe no estoque", () => {
+  const base = catalogProducts.find(
+    (item) => item.id === "slider-esportivo-em-aluminio-somente-slider"
+  );
+  const camiseta = {
+    ...base,
+    id: "camiseta-oficial",
+    name: "Camiseta Oficial",
+    sizeOptions: ["P", "M", "G"],
+    slug: "camiseta-oficial",
+    variationStock: [
+      { quantity: 2, size: "P", variation: "Preto" },
+      { quantity: 5, size: "G", variation: "Branco" }
+    ],
+    variations: ["Preto", "Branco"]
+  };
+  const customer = {
+    address: "Rua Teste, 123 - Sao Paulo/SP",
+    cep: "01001-000",
+    name: "Cliente Teste",
+    whatsapp: "(11) 98888-7777"
+  };
+  const buildDraft = (cartItem) =>
+    buildCheckoutOrderDraft(
+      {
+        cartItems: [cartItem],
+        customer,
+        hasDataConsent: true,
+        paymentMethodId: "pix",
+        shippingOptionId: "combinar"
+      },
+      { products: [camiseta], storeName: "TSZR15" }
+    );
+
+  // Par cadastrado segue valido.
+  assert.equal(
+    buildDraft({ id: "camiseta-oficial", quantity: 1, size: "P", variation: "Preto" })
+      .databaseItems[0].size,
+    "P"
+  );
+
+  // "G" esta na grade publicada, mas nao existe para a variacao Preto.
+  assert.throws(
+    () => buildDraft({ id: "camiseta-oficial", quantity: 1, size: "G", variation: "Preto" }),
+    (error) =>
+      error instanceof CheckoutValidationError &&
+      error.details.some((detail) => /indisponivel/i.test(detail))
+  );
+});
+
 test("backend checkout draft rejects missing assisted-purchase consent", () => {
   assert.throws(
     () =>

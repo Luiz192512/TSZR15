@@ -16,7 +16,7 @@ describe("cart items", () => {
     expect(updateCartItemQuantity([item], item.cartKey, 0)).toEqual([]);
   });
 
-  it("separa itens por tamanho e cai no primeiro tamanho quando o salvo nao existe", () => {
+  it("separa itens por tamanho e descarta tamanho fora da grade", () => {
     const camiseta = {
       id: "camiseta",
       name: "Camiseta",
@@ -35,9 +35,31 @@ describe("cart items", () => {
         [camiseta]
       )
     ).toMatchObject([
-      { cartKey: "camiseta:Padrão:P", quantity: 2, size: "P" },
+      // "XG" nao esta na grade: o item e descartado em vez de virar "P".
+      { cartKey: "camiseta:Padrão:P", quantity: 1, size: "P" },
       { cartKey: "camiseta:Padrão:M", quantity: 2, size: "M" }
     ]);
+  });
+
+  it("descarta item salvo antes da grade em vez de escolher um tamanho", () => {
+    const camiseta = {
+      id: "camiseta",
+      name: "Camiseta",
+      priceCents: 8900,
+      sizeOptions: ["P", "M"],
+      variations: ["Padrão"]
+    };
+
+    // Item guardado quando o produto ainda nao tinha grade: nao da para
+    // adivinhar o tamanho que o cliente queria.
+    expect(sanitizeCartItems([{ id: "camiseta", quantity: 1, variation: "Padrão" }], [camiseta])).toEqual(
+      []
+    );
+
+    // Com tamanho valido, continua no carrinho.
+    expect(
+      sanitizeCartItems([{ id: "camiseta", quantity: 1, size: "M", variation: "Padrão" }], [camiseta])
+    ).toMatchObject([{ cartKey: "camiseta:Padrão:M", size: "M" }]);
   });
 
   it("mantem a chave sem tamanho para produtos sem grade", () => {

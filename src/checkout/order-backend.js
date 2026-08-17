@@ -135,6 +135,22 @@ function normalizeCartItems(cartItems, products = catalogProducts) {
       continue;
     }
 
+    // A grade publicada e a uniao dos tamanhos de todas as variacoes, entao
+    // estar em sizeOptions nao garante que o par exista. Quando o estoque veio
+    // junto do produto, o par precisa ter linha propria.
+    const stockEntries = Array.isArray(product.variationStock) ? product.variationStock : [];
+
+    if (
+      sizeOptions.length > 0 &&
+      stockEntries.length > 0 &&
+      !stockEntries.some(
+        (entry) => entry.variation === variation && String(entry.size ?? "") === size
+      )
+    ) {
+      errors.push(`${product.name}: combinacao de variacao e tamanho indisponivel.`);
+      continue;
+    }
+
     const cartKey = size ? `${product.id}:${variation}:${size}` : `${product.id}:${variation}`;
     const currentItem = itemsByKey.get(cartKey);
     const nextQuantity = (currentItem?.quantity ?? 0) + quantity;

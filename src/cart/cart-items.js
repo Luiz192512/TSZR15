@@ -25,7 +25,15 @@ export function sanitizeCartItems(items, products) {
       ? item.variation
       : product.variations[0];
     const sizeOptions = getProductSizeOptions(product);
-    const size = sizeOptions.includes(item?.size) ? item.size : (sizeOptions[0] ?? "");
+
+    // Produto com grade exige tamanho escolhido pelo cliente. Item salvo antes
+    // da grade existir sai do carrinho: completar com o primeiro tamanho faria
+    // o cliente fechar pedido de um tamanho que nunca selecionou.
+    if (sizeOptions.length > 0 && !sizeOptions.includes(item?.size)) {
+      continue;
+    }
+
+    const size = sizeOptions.length > 0 ? item.size : "";
     const cartKey = getCartItemKey(product.id, variation, size);
     const currentItem = itemsByKey.get(cartKey);
 

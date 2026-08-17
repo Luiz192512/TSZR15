@@ -5,6 +5,19 @@ export function getVariationStockStatus(product, variation, size = "") {
         (stock) => stock.variation === variation && String(stock.size ?? "") === normalizedSize
       )
     : null;
+
+  // Produto com grade: par (variacao, tamanho) sem linha cadastrada nao existe
+  // para venda. Estoque nulo continua significando "nao rastreado" somente no
+  // catalogo sem tamanho, onde size e vazio.
+  if (!entry && normalizedSize) {
+    return {
+      canAddToCart: false,
+      label: "Indisponível",
+      quantity: 0,
+      status: "out"
+    };
+  }
+
   const quantity = Number.isInteger(entry?.quantity) ? entry.quantity : null;
 
   if (quantity === 0) {
