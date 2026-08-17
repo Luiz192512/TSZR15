@@ -4315,9 +4315,33 @@
 
 .admin-variation-card-fields {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.34fr) auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.34fr) auto auto;
   align-items: end;
   gap: 10px;
+}
+
+.admin-variation-card-sizes {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-variation-card-size {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 0.6fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.admin-variation-card-size label {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-variation-card-size label > span {
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .admin-variation-card-fields label {
@@ -4677,6 +4701,10 @@
   }
 
   .admin-variation-card-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-variation-card-size {
     grid-template-columns: 1fr;
   }
 

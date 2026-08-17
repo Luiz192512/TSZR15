@@ -1,7 +1,23 @@
-export function getVariationStockStatus(product, variation) {
+export function getVariationStockStatus(product, variation, size = "") {
+  const normalizedSize = String(size ?? "");
   const entry = Array.isArray(product?.variationStock)
-    ? product.variationStock.find((stock) => stock.variation === variation)
+    ? product.variationStock.find(
+        (stock) => stock.variation === variation && String(stock.size ?? "") === normalizedSize
+      )
     : null;
+
+  // Produto com grade: par (variacao, tamanho) sem linha cadastrada nao existe
+  // para venda. Estoque nulo continua significando "nao rastreado" somente no
+  // catalogo sem tamanho, onde size e vazio.
+  if (!entry && normalizedSize) {
+    return {
+      canAddToCart: false,
+      label: "Indisponível",
+      quantity: 0,
+      status: "out"
+    };
+  }
+
   const quantity = Number.isInteger(entry?.quantity) ? entry.quantity : null;
 
   if (quantity === 0) {
@@ -37,7 +53,7 @@ export async function readCatalogVariationStock(client, productIds) {
 
   const { data, error } = await client
     .from("catalog_variation_stock")
-    .select("product_id, variation, quantity")
+    .select("product_id, variation, size, quantity")
     .in("product_id", productIds);
 
   if (error) {
@@ -52,7 +68,11 @@ export function attachVariationStock(products, stockRows) {
 
   for (const row of stockRows ?? []) {
     const productStock = stockByProduct.get(row.product_id) ?? [];
-    productStock.push({ quantity: row.quantity, variation: row.variation });
+    productStock.push({
+      quantity: row.quantity,
+      size: row.size ?? "",
+      variation: row.variation
+    });
     stockByProduct.set(row.product_id, productStock);
   }
 

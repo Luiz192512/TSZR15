@@ -3,10 +3,13 @@ export const storefrontCategories = [
   { id: "estetica", label: "Estética", slug: "estetica" },
   { id: "escapamentos", label: "Escapamentos", slug: "escapamentos" },
   { id: "adesivagem", label: "Adesivagem", slug: "adesivos" },
-  { id: "manutencao", label: "Manutenção", slug: "manutencao" }
+  { id: "manutencao", label: "Manutenção", slug: "manutencao" },
+  { id: "vestuario", label: "Vestuário", slug: "vestuario" }
 ];
 
-export const blockedStorefrontCategoryIds = ["vestuario"];
+// Vestuario saiu da lista de bloqueio: a loja passou a vender roupas.
+// A constante fica para curadoria futura de outras categorias.
+export const blockedStorefrontCategoryIds = [];
 
 export const technicalFamilies = [
   "aero_front",
@@ -20,7 +23,8 @@ export const technicalFamilies = [
   "adesivo_detalhe",
   "tanque",
   "cockpit",
-  "manutencao"
+  "manutencao",
+  "vestuario"
 ];
 
 export const storefrontCategoryMap = new Map(

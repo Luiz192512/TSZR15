@@ -133,7 +133,8 @@ export async function POST(request) {
     const unavailableItems = draft.cartItems.filter((item) => {
       const stock = getVariationStockStatus(
         products.find((product) => product.id === item.id),
-        item.variation
+        item.variation,
+        item.size ?? ""
       );
 
       return !stock.canAddToCart || (stock.quantity !== null && item.quantity > stock.quantity);
@@ -143,7 +144,9 @@ export async function POST(request) {
       return errorResponse(
         "Uma ou mais variações ficaram esgotadas antes de finalizar o pedido.",
         409,
-        unavailableItems.map((item) => `${item.name} (${item.variation})`)
+        unavailableItems.map(
+          (item) => `${item.name} (${item.size ? `${item.variation} - ${item.size}` : item.variation})`
+        )
       );
     }
   } catch (error) {

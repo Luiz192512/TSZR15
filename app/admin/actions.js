@@ -19,6 +19,7 @@ import {
 import { moderateOrderReview } from "@/src/reviews/order-reviews.js";
 import { revalidateCatalogPaths } from "@/src/catalog/revalidation.js";
 import { isSameOriginRequest } from "@/src/security/origin.js";
+import { toAdminErrorMessage } from "@/src/admin/admin-error-message.js";
 
 function formValue(formData, key) {
   return String(formData.get(key) ?? "").trim();
@@ -34,7 +35,7 @@ function revalidateAdminPanel() {
 }
 
 function getActionErrorMessage(error) {
-  return error instanceof Error ? error.message : "Nao foi possivel salvar o produto.";
+  return toAdminErrorMessage(error);
 }
 
 async function isSameOriginAdminRequest() {
@@ -72,7 +73,7 @@ export async function updateAdminOrderAction(formData) {
     const path = orderNumber
       ? `/admin/pedidos?pedido=${encodeURIComponent(orderNumber)}`
       : "/admin/pedidos";
-    redirectWithError(path, error.message);
+    redirectWithError(path, toAdminErrorMessage(error));
   }
 
   redirect(`/admin/pedidos?pedido=${encodeURIComponent(result.orderNumber)}&status=salvo`);
@@ -98,7 +99,7 @@ export async function setAdminInternalOrderStatusAction(formData) {
     const path = orderNumber
       ? `/admin/pedidos?pedido=${encodeURIComponent(orderNumber)}`
       : "/admin/pedidos";
-    redirectWithError(path, error.message);
+    redirectWithError(path, toAdminErrorMessage(error));
   }
 
   const status =
@@ -121,7 +122,7 @@ export async function createAdminOrderAction(formData) {
     result = await createAdminManualOrder(formData);
     revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin/pedidos?novoPedido=1", error.message);
+    redirectWithError("/admin/pedidos?novoPedido=1", toAdminErrorMessage(error));
   }
 
   redirect(`/admin/pedidos?pedido=${encodeURIComponent(result.orderNumber)}&status=pedido-criado`);
@@ -167,7 +168,7 @@ export async function archiveAdminProductAction(formData) {
     revalidateCatalogPaths([result.slug]);
     revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin/produtos", error.message);
+    redirectWithError("/admin/produtos", toAdminErrorMessage(error));
   }
 
   redirect("/admin/produtos?status=produto-arquivado");
@@ -189,7 +190,7 @@ export async function upsertAdminCouponAction(formData) {
     revalidateCatalogPaths();
     revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin/cupons", error.message);
+    redirectWithError("/admin/cupons", toAdminErrorMessage(error));
   }
 
   redirect(`/admin/cupons?cupom=${encodeURIComponent(result.code)}&status=cupom-salvo`);
@@ -209,7 +210,7 @@ export async function archiveAdminCouponAction(formData) {
     revalidateCatalogPaths();
     revalidateAdminPanel();
   } catch (error) {
-    redirectWithError("/admin/cupons", error.message);
+    redirectWithError("/admin/cupons", toAdminErrorMessage(error));
   }
 
   redirect("/admin/cupons?status=cupom-arquivado");
@@ -235,7 +236,7 @@ export async function moderateOrderReviewAction(formData) {
       revalidatePath(`/produto/${result.productSlug}`);
     }
   } catch (error) {
-    redirectWithError("/admin/analise", error.message);
+    redirectWithError("/admin/analise", toAdminErrorMessage(error));
   }
 
   redirect(`/admin/analise?status=avaliacao-${result.status}`);

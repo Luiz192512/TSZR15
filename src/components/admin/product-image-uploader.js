@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const outputAspectRatio = 4 / 3;
 const maxProductImages = 12;
 const maxVariations = 24;
+const maxSizesPerVariation = 12;
 const outputWidth = 1200;
 const outputHeight = Math.round(outputWidth / outputAspectRatio);
 
@@ -58,9 +59,25 @@ function createInitialCards({
       : variations.length > 0
         ? variations
         : ["Padrão"];
-  const stockByVariation = new Map(
-    variationStock.map((entry) => [normalizeVariation(entry?.variation), entry?.quantity])
-  );
+  const stockByVariation = new Map();
+  const sizesByVariation = new Map();
+
+  for (const entry of variationStock) {
+    const key = normalizeVariation(entry?.variation);
+    const size = String(entry?.size ?? "").trim();
+
+    if (!size) {
+      stockByVariation.set(key, entry?.quantity);
+      continue;
+    }
+
+    const savedSizes = sizesByVariation.get(key) ?? [];
+    savedSizes.push({
+      quantity: Number.isSafeInteger(entry?.quantity) ? String(entry.quantity) : "",
+      size
+    });
+    sizesByVariation.set(key, savedSizes);
+  }
   const imagesByVariation = new Map(
     variationImages.map((group) => [
       normalizeVariation(group?.variation),
@@ -86,6 +103,7 @@ function createInitialCards({
     const savedQuantity = initialCard
       ? initialCard.quantity
       : stockByVariation.get(normalizeVariation(variation));
+    const savedSizes = initialCard?.sizes ?? sizesByVariation.get(normalizeVariation(variation));
 
     return {
       id: `initial-card-${cardIndex}`,
@@ -94,6 +112,11 @@ function createInitialCards({
         Number.isSafeInteger(savedQuantity) && savedQuantity >= 0
           ? String(savedQuantity)
           : String(savedQuantity ?? ""),
+      sizes: (savedSizes ?? []).map((entry, sizeIndex) => ({
+        id: `initial-size-${cardIndex}-${sizeIndex}`,
+        quantity: String(entry?.quantity ?? ""),
+        size: String(entry?.size ?? "")
+      })),
       variation: String(variation ?? "")
     };
   });
@@ -219,6 +242,10 @@ export function ProductImageUploader({
           image.kind === "new" ? `new:${uploadIndex++}` : image.url
         ),
         quantity: card.quantity,
+        sizes: (card.sizes ?? []).map((entry) => ({
+          quantity: entry.quantity,
+          size: entry.size
+        })),
         variation: card.variation
       }))
     );
@@ -293,13 +320,58 @@ export function ProductImageUploader({
 
     setCards((current) => [
       ...current,
-      { id: createId("card"), images: [], quantity: "", variation: "" }
+      { id: createId("card"), images: [], quantity: "", sizes: [], variation: "" }
     ]);
   }
 
   function updateCard(cardId, field, value) {
     setCards((current) =>
       current.map((card) => (card.id === cardId ? { ...card, [field]: value } : card))
+    );
+  }
+
+  function addSize(cardId) {
+    setCards((current) =>
+      current.map((card) => {
+        if (card.id !== cardId) return card;
+
+        const sizes = card.sizes ?? [];
+
+        if (sizes.length >= maxSizesPerVariation) {
+          setFeedback(`Cada variação pode ter no máximo ${maxSizesPerVariation} tamanhos.`);
+          return card;
+        }
+
+        return {
+          ...card,
+          sizes: [...sizes, { id: createId("size"), quantity: "", size: "" }]
+        };
+      })
+    );
+  }
+
+  function updateSize(cardId, sizeId, field, value) {
+    setCards((current) =>
+      current.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              sizes: (card.sizes ?? []).map((entry) =>
+                entry.id === sizeId ? { ...entry, [field]: value } : entry
+              )
+            }
+          : card
+      )
+    );
+  }
+
+  function removeSize(cardId, sizeId) {
+    setCards((current) =>
+      current.map((card) =>
+        card.id === cardId
+          ? { ...card, sizes: (card.sizes ?? []).filter((entry) => entry.id !== sizeId) }
+          : card
+      )
     );
   }
 
@@ -670,13 +742,16 @@ export function ProductImageUploader({
                 <span>Estoque disponível</span>
                 <input
                   aria-label={`Estoque da variação ${cardIndex + 1}`}
+                  disabled={(card.sizes ?? []).length > 0}
                   inputMode="numeric"
                   min="0"
                   onChange={(event) => updateCard(card.id, "quantity", event.target.value)}
-                  placeholder="Sob consulta"
+                  placeholder={
+                    (card.sizes ?? []).length > 0 ? "Controlado por tamanho" : "Sob consulta"
+                  }
                   step="1"
                   type="number"
-                  value={card.quantity}
+                  value={(card.sizes ?? []).length > 0 ? "" : card.quantity}
                 />
               </label>
               <button
@@ -689,7 +764,68 @@ export function ProductImageUploader({
               >
                 Adicionar fotos
               </button>
+              <button
+                className={cx(
+                  globalStyles,
+                  "button button-secondary admin-variation-card-add-images"
+                )}
+                onClick={() => addSize(card.id)}
+                type="button"
+              >
+                Adicionar tamanho
+              </button>
             </div>
+
+            {(card.sizes ?? []).length > 0 ? (
+              <div
+                aria-label={`Tamanhos da variação ${cardIndex + 1}`}
+                className={cx(globalStyles, "admin-variation-card-sizes")}
+              >
+                {card.sizes.map((entry, sizeIndex) => (
+                  <div className={cx(globalStyles, "admin-variation-card-size")} key={entry.id}>
+                    <label>
+                      <span>Tamanho</span>
+                      <input
+                        aria-label={`Tamanho ${sizeIndex + 1} da variação ${cardIndex + 1}`}
+                        autoComplete="off"
+                        maxLength={40}
+                        onChange={(event) =>
+                          updateSize(card.id, entry.id, "size", event.target.value)
+                        }
+                        placeholder="Ex.: M"
+                        value={entry.size}
+                      />
+                    </label>
+                    <label>
+                      <span>Estoque</span>
+                      <input
+                        aria-label={`Estoque do tamanho ${sizeIndex + 1} da variação ${cardIndex + 1}`}
+                        inputMode="numeric"
+                        min="0"
+                        onChange={(event) =>
+                          updateSize(card.id, entry.id, "quantity", event.target.value)
+                        }
+                        placeholder="Sob consulta"
+                        step="1"
+                        type="number"
+                        value={entry.quantity}
+                      />
+                    </label>
+                    <button
+                      aria-label={`Remover tamanho ${sizeIndex + 1} da variação ${cardIndex + 1}`}
+                      className={cx(globalStyles, "button button-ghost")}
+                      onClick={() => removeSize(card.id, entry.id)}
+                      type="button"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
+                <p className={cx(globalStyles, "form-helper-text")}>
+                  Com tamanhos preenchidos, o estoque passa a ser contado por tamanho.
+                </p>
+              </div>
+            ) : null}
 
             {card.images.length > 0 ? (
               <div

@@ -114,7 +114,7 @@ export async function findPublicOrderTracking({ contact, orderNumber, supabase }
   ] = await Promise.all([
     client
       .from("order_items")
-      .select("product_name, variation, quantity")
+      .select("product_name, variation, size, quantity")
       .eq("order_id", order.id)
       .order("created_at"),
     client

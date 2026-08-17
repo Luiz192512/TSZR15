@@ -1,5 +1,11 @@
-export function getCartItemKey(productId, variation) {
-  return `${productId}:${variation}`;
+// Itens salvos antes da grade de tamanhos nao tem size: a chave sem tamanho
+// continua sendo `produto:variacao`, entao carrinhos antigos sobrevivem.
+export function getCartItemKey(productId, variation, size = "") {
+  return size ? `${productId}:${variation}:${size}` : `${productId}:${variation}`;
+}
+
+function getProductSizeOptions(product) {
+  return Array.isArray(product?.sizeOptions) ? product.sizeOptions : [];
 }
 
 export function sanitizeCartItems(items, products) {
@@ -18,7 +24,17 @@ export function sanitizeCartItems(items, products) {
     const variation = product.variations.includes(item?.variation)
       ? item.variation
       : product.variations[0];
-    const cartKey = getCartItemKey(product.id, variation);
+    const sizeOptions = getProductSizeOptions(product);
+
+    // Produto com grade exige tamanho escolhido pelo cliente. Item salvo antes
+    // da grade existir sai do carrinho: completar com o primeiro tamanho faria
+    // o cliente fechar pedido de um tamanho que nunca selecionou.
+    if (sizeOptions.length > 0 && !sizeOptions.includes(item?.size)) {
+      continue;
+    }
+
+    const size = sizeOptions.length > 0 ? item.size : "";
+    const cartKey = getCartItemKey(product.id, variation, size);
     const currentItem = itemsByKey.get(cartKey);
 
     itemsByKey.set(cartKey, {
@@ -28,6 +44,7 @@ export function sanitizeCartItems(items, products) {
       priceCents: product.priceCents,
       productFamily: product.productFamily,
       quantity: (currentItem?.quantity ?? 0) + quantity,
+      size,
       slug: product.slug,
       variation
     });
@@ -62,7 +79,7 @@ export function updateCartItemVariation(items, products, cartKey, nextVariation)
     return items;
   }
 
-  const nextCartKey = getCartItemKey(product.id, nextVariation);
+  const nextCartKey = getCartItemKey(product.id, nextVariation, currentItem.size ?? "");
   const updatedItem = {
     ...currentItem,
     cartKey: nextCartKey,

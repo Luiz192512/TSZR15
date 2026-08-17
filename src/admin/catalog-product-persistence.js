@@ -11,9 +11,9 @@ function throwCatalogProductError(error) {
 }
 
 // RESTRICAO: a RPC save_admin_catalog_product apaga e reinsere TODAS as linhas
-// de catalog_variation_stock do produto usando apenas variation/quantity do
-// payload. Qualquer coluna futura nessa tabela (ex.: reserved do BUG-04) sera
-// zerada por save de produto ate a RPC ser atualizada junto.
+// de catalog_variation_stock do produto usando apenas variation/size/quantity
+// do payload. Qualquer coluna futura nessa tabela sera zerada por save de
+// produto ate a RPC ser atualizada junto.
 export async function saveAdminCatalogProductAggregate({
   costCents,
   persistenceMode,

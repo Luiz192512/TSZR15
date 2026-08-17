@@ -76,8 +76,8 @@ export function validateCatalog(products = catalogProducts) {
   const issues = [];
   const slugs = new Set();
 
-  if (storefrontCategories.length !== 5) {
-    issues.push("O menu deve conter exatamente cinco categorias visiveis.");
+  if (storefrontCategories.length !== 6) {
+    issues.push("O menu deve conter exatamente seis categorias visiveis.");
   }
 
   for (const product of products) {

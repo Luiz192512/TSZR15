@@ -179,6 +179,14 @@ function NewOrderForm({ products }) {
                 <input name="variation" placeholder="deixe vazio para usar a primeira variacao" />
               </label>
               <label>
+                <span>Tamanho</span>
+                <input
+                  maxLength={40}
+                  name="size"
+                  placeholder="so para produtos com grade de tamanho"
+                />
+              </label>
+              <label>
                 <span>Quantidade</span>
                 <input defaultValue="1" min="1" name="quantity" type="number" />
               </label>
@@ -266,7 +274,7 @@ function OrderDetail({ selected }) {
               <div className={cx(globalStyles, "admin-item-row")} key={item.id}>
                 <span>
                   <strong>{item.product_name}</strong>
-                  <em>{item.variation}</em>
+                  <em>{item.size ? `${item.variation} - ${item.size}` : item.variation}</em>
                   {Number.isInteger(item.subtotal_cost_cents) ? (
                     <em>
                       Custo: {formatCurrency(item.subtotal_cost_cents, item.currency)} - Lucro:{" "}

@@ -30,11 +30,12 @@ export class CheckoutPersistenceError extends Error {
 }
 
 export class CheckoutStockError extends Error {
-  constructor(message, { productId, variation } = {}) {
+  constructor(message, { productId, variation, size } = {}) {
     super(message);
     this.name = "CheckoutStockError";
     this.productId = productId ?? "";
     this.variation = variation ?? "";
+    this.size = size ?? "";
   }
 }
 
@@ -47,16 +48,25 @@ function toCheckoutStockError(rpcErrorMessage, databaseItems) {
     return null;
   }
 
-  const [productId = "", variation = ""] = marker.slice(stockErrorMarker.length).split("|", 2);
+  // A RPC passou a emitir produto|variacao|tamanho; a forma antiga de dois
+  // campos continua valida para pedidos em voo durante o deploy.
+  const [productId = "", variation = "", size = ""] = marker
+    .slice(stockErrorMarker.length)
+    .split("|");
   const item = (databaseItems ?? []).find(
     (databaseItem) =>
-      databaseItem.productId === productId && databaseItem.variation === variation
+      databaseItem.productId === productId &&
+      databaseItem.variation === variation &&
+      (databaseItem.size ?? "") === size
   );
-  const itemLabel = item?.name ? `${item.name} (${variation})` : `${productId} (${variation})`;
+  const variationLabel = size ? `${variation} - ${size}` : variation;
+  const itemLabel = item?.name
+    ? `${item.name} (${variationLabel})`
+    : `${productId} (${variationLabel})`;
 
   return new CheckoutStockError(
     `Estoque esgotado para ${itemLabel}. Atualize o carrinho e tente novamente.`,
-    { productId, variation }
+    { productId, size, variation }
   );
 }
 
@@ -110,7 +120,38 @@ function normalizeCartItems(cartItems, products = catalogProducts) {
       continue;
     }
 
-    const cartKey = `${product.id}:${variation}`;
+    // O tamanho so vale se estiver na grade publicada do produto: o cliente
+    // controla o payload do carrinho.
+    const sizeOptions = Array.isArray(product.sizeOptions) ? product.sizeOptions : [];
+    const size = cleanString(item?.size, 40);
+
+    if (sizeOptions.length === 0 && size) {
+      errors.push(`${product.name}: produto sem grade de tamanhos.`);
+      continue;
+    }
+
+    if (sizeOptions.length > 0 && !sizeOptions.includes(size)) {
+      errors.push(`${product.name}: tamanho invalido.`);
+      continue;
+    }
+
+    // A grade publicada e a uniao dos tamanhos de todas as variacoes, entao
+    // estar em sizeOptions nao garante que o par exista. Quando o estoque veio
+    // junto do produto, o par precisa ter linha propria.
+    const stockEntries = Array.isArray(product.variationStock) ? product.variationStock : [];
+
+    if (
+      sizeOptions.length > 0 &&
+      stockEntries.length > 0 &&
+      !stockEntries.some(
+        (entry) => entry.variation === variation && String(entry.size ?? "") === size
+      )
+    ) {
+      errors.push(`${product.name}: combinacao de variacao e tamanho indisponivel.`);
+      continue;
+    }
+
+    const cartKey = size ? `${product.id}:${variation}:${size}` : `${product.id}:${variation}`;
     const currentItem = itemsByKey.get(cartKey);
     const nextQuantity = (currentItem?.quantity ?? 0) + quantity;
 
@@ -118,6 +159,7 @@ function normalizeCartItems(cartItems, products = catalogProducts) {
       errors.push(`${product.name}: quantidade maxima por variacao e ${MAX_ITEM_QUANTITY}.`);
       continue;
     }
+
 
     itemsByKey.set(cartKey, {
       bikeModelScope: product.bikeModelScope,
@@ -131,6 +173,7 @@ function normalizeCartItems(cartItems, products = catalogProducts) {
       priceCents: product.priceCents,
       productFamily: product.productFamily,
       quantity: nextQuantity,
+      size,
       slug: product.slug,
       storefrontCategoryIds: product.storefrontCategoryIds,
       variation
@@ -213,6 +256,7 @@ function buildDatabaseItems(cartItems) {
     subtotalCents: item.priceCents * item.quantity,
     unitCostCents: Number.isInteger(item.costCents) ? item.costCents : null,
     unitPriceCents: item.priceCents,
+    size: item.size ?? "",
     variation: item.variation,
     name: item.name
   }));

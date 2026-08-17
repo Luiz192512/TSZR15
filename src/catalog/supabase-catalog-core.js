@@ -20,6 +20,7 @@ export function toCatalogProduct(row) {
     priceCents: row.price_cents,
     currency: row.currency,
     variations: row.variations ?? [],
+    sizeOptions: row.size_options ?? [],
     availability: row.availability,
     leadTimeDays: row.lead_time_days,
     shippingClass: row.shipping_class,
@@ -30,6 +31,7 @@ export function toCatalogProduct(row) {
     notes: row.notes ?? "",
     variationStock: (row.catalog_variation_stock ?? []).map((stock) => ({
       quantity: stock.quantity,
+      size: stock.size ?? "",
       variation: stock.variation
     }))
   };
@@ -45,6 +47,7 @@ const publicCatalogProductColumns = `
   price_cents,
   currency,
   variations,
+  size_options,
   availability,
   lead_time_days,
   shipping_class,
@@ -55,6 +58,7 @@ const publicCatalogProductColumns = `
   notes,
   catalog_variation_stock(
     variation,
+    size,
     quantity
   )
 `;

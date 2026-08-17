@@ -41,6 +41,7 @@ const adminProductColumns = [
   "price_cents",
   "currency",
   "variations",
+  "size_options",
   "availability",
   "lead_time_days",
   "shipping_class",
@@ -51,7 +52,7 @@ const adminProductColumns = [
   "updated_at",
   "created_at",
   "catalog_product_costs(cost_cents)",
-  "catalog_variation_stock(variation,quantity)"
+  "catalog_variation_stock(variation,size,quantity)"
 ].join(",");
 const adminCouponColumns = [
   "id",
@@ -175,7 +176,12 @@ function toAdminProduct(row) {
         : null,
     currency: row.currency ?? "BRL",
     variations: row.variations ?? [],
-    variationStock: row.variation_stock ?? row.catalog_variation_stock ?? [],
+    sizeOptions: row.size_options ?? [],
+    variationStock: (row.variation_stock ?? row.catalog_variation_stock ?? []).map((entry) => ({
+      quantity: entry?.quantity ?? null,
+      size: entry?.size ?? "",
+      variation: entry?.variation ?? ""
+    })),
     availability: row.availability ?? "sob-consulta",
     leadTimeDays: row.lead_time_days ?? 2,
     shippingClass: row.shipping_class ?? "medium",
@@ -225,6 +231,7 @@ function collectProductPayload(formData) {
   const priceCents = parseAdminMoneyToCents(formData.get("price"));
   const costCents = parseAdminMoneyToCents(formData.get("cost"), { allowZero: true });
   const {
+    sizeOptions,
     stock: variationStock,
     variationImageTokens,
     variations
@@ -292,6 +299,7 @@ function collectProductPayload(formData) {
       price_cents: priceCents,
       currency: "BRL",
       variations,
+      size_options: sizeOptions,
       availability: cleanString(formData.get("availability"), 80) || "sob-consulta",
       lead_time_days: parseInteger(formData.get("leadTimeDays"), 2),
       shipping_class: cleanString(formData.get("shippingClass"), 80) || "medium",

@@ -55,10 +55,11 @@ test("variation cards keep names, stock and image tokens in the same order", () 
   );
 
   assert.deepEqual(inventory, {
+    sizeOptions: [],
     stock: [
-      { quantity: 3, variation: "Preto" },
-      { quantity: 0, variation: "Fumê" },
-      { quantity: null, variation: "Padrão" },
+      { quantity: 3, size: "", variation: "Preto" },
+      { quantity: 0, size: "", variation: "Fumê" },
+      { quantity: null, size: "", variation: "Padrão" },
     ],
     variationImageTokens: [
       {
@@ -70,6 +71,128 @@ test("variation cards keep names, stock and image tokens in the same order", () 
     ],
     variations: ["Preto", "Fumê", "Padrão"],
   });
+});
+
+test("cards com tamanhos geram uma linha de estoque por tamanho e publicam a grade", () => {
+  const inventory = collectAdminVariationInventory(
+    variationCardsFormData([
+      {
+        imageTokens: ["/img/camiseta.webp"],
+        quantity: "99",
+        sizes: [
+          { quantity: "2", size: " P " },
+          { quantity: "0", size: "M" },
+          { quantity: "", size: "G" },
+        ],
+        variation: "Padrao",
+      },
+    ]),
+  );
+
+  assert.deepEqual(inventory.stock, [
+    { quantity: 2, size: "P", variation: "Padrão" },
+    { quantity: 0, size: "M", variation: "Padrão" },
+    { quantity: null, size: "G", variation: "Padrão" },
+  ]);
+  assert.deepEqual(inventory.sizeOptions, ["P", "M", "G"]);
+  assert.deepEqual(inventory.variations, ["Padrão"]);
+});
+
+test("tamanhos e variacoes convivem com produtos sem grade no mesmo save", () => {
+  const inventory = collectAdminVariationInventory(
+    variationCardsFormData([
+      { imageTokens: [], quantity: "4", variation: "Preto" },
+      {
+        imageTokens: [],
+        quantity: "",
+        sizes: [{ quantity: "1", size: "GG" }],
+        variation: "Branco",
+      },
+    ]),
+  );
+
+  assert.deepEqual(inventory.stock, [
+    { quantity: 4, size: "", variation: "Preto" },
+    { quantity: 1, size: "GG", variation: "Branco" },
+  ]);
+  assert.deepEqual(inventory.sizeOptions, ["GG"]);
+});
+
+test("tamanhos rejeitam duplicata, rotulo vazio e estoque invalido", () => {
+  assert.throws(
+    () =>
+      collectAdminVariationInventory(
+        variationCardsFormData([
+          {
+            imageTokens: [],
+            quantity: "",
+            sizes: [
+              { quantity: "1", size: "M" },
+              { quantity: "2", size: "m" },
+            ],
+            variation: "Padrao",
+          },
+        ]),
+      ),
+    /tamanho M foi informado mais de uma vez/i,
+  );
+
+  assert.throws(
+    () =>
+      collectAdminVariationInventory(
+        variationCardsFormData([
+          {
+            imageTokens: [],
+            quantity: "",
+            sizes: [{ quantity: "3", size: "  " }],
+            variation: "Padrao",
+          },
+        ]),
+      ),
+    /informe o nome de cada tamanho/i,
+  );
+
+  assert.throws(
+    () =>
+      collectAdminVariationInventory(
+        variationCardsFormData([
+          {
+            imageTokens: [],
+            quantity: "",
+            sizes: [{ quantity: "-1", size: "P" }],
+            variation: "Padrao",
+          },
+        ]),
+      ),
+    /estoque inválido para a variação Padrão \(P\)/i,
+  );
+});
+
+test("rotulos com o separador do marcador de estoque sao recusados", () => {
+  assert.throws(
+    () =>
+      collectAdminVariationInventory(
+        variationCardsFormData([
+          { imageTokens: [], quantity: "1", variation: "Preto|Branco" },
+        ]),
+      ),
+    /caractere "\|" não é permitido em nome de variação/i,
+  );
+
+  assert.throws(
+    () =>
+      collectAdminVariationInventory(
+        variationCardsFormData([
+          {
+            imageTokens: [],
+            quantity: "",
+            sizes: [{ quantity: "1", size: "P|M" }],
+            variation: "Padrao",
+          },
+        ]),
+      ),
+    /caractere "\|" não é permitido em nome de tamanho/i,
+  );
 });
 
 test("variation cards reject duplicate normalized names", () => {

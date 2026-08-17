@@ -48,7 +48,7 @@ export function CartItemsPanel({
         <div className={cx(globalStyles, styles.list)}>
           {cartItems.map((item) => {
             const product = productsById.get(item.id);
-            const stock = getVariationStockStatus(product, item.variation);
+            const stock = getVariationStockStatus(product, item.variation, item.size ?? "");
             const canChangeVariation = product?.variations?.length > 1;
             const imageUrl = product ? getProductVariationImage(product, item.variation) : "";
 
@@ -82,7 +82,7 @@ export function CartItemsPanel({
                         value={item.variation}
                       >
                         {product.variations.map((variation) => {
-                          const stock = getVariationStockStatus(product, variation);
+                          const stock = getVariationStockStatus(product, variation, item.size ?? "");
 
                           return (
                             <option
@@ -99,6 +99,7 @@ export function CartItemsPanel({
                   ) : (
                     <span>{item.variation}</span>
                   )}
+                  {item.size ? <span>Tamanho: {item.size}</span> : null}
                 </div>
                 <div className={cx(globalStyles, styles.controls)}>
                   <div

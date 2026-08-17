@@ -125,7 +125,7 @@ export function useCart(products, resolvedUser) {
       setCartItems((currentItems) => {
         const item = currentItems.find((currentItem) => currentItem.cartKey === cartKey);
         const product = products.find((currentProduct) => currentProduct.id === item?.id);
-        const stock = getVariationStockStatus(product, item?.variation);
+        const stock = getVariationStockStatus(product, item?.variation, item?.size ?? "");
         const limitedQuantity =
           stock.quantity === null ? nextQuantity : Math.min(nextQuantity, stock.quantity);
 

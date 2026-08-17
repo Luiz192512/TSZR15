@@ -157,11 +157,20 @@ export function ProductDetails({
   reviews = [],
   reviewSummary = { averageRating: 0, reviewCount: 0 }
 }) {
+  // Grade de tamanhos: vazia no catalogo de acessorios, preenchida em vestuario.
+  const sizeOptions = Array.isArray(product.sizeOptions) ? product.sizeOptions : [];
+  const findAvailableSize = (variation) =>
+    sizeOptions.find((size) => getVariationStockStatus(product, variation, size).canAddToCart) ??
+    sizeOptions[0] ??
+    "";
   const initialVariation =
-    product.variations.find(
-      (variation) => getVariationStockStatus(product, variation).canAddToCart
+    product.variations.find((variation) =>
+      sizeOptions.length > 0
+        ? sizeOptions.some((size) => getVariationStockStatus(product, variation, size).canAddToCart)
+        : getVariationStockStatus(product, variation).canAddToCart
     ) ?? product.variations[0];
   const [selectedVariation, setSelectedVariation] = useState(initialVariation);
+  const [selectedSize, setSelectedSize] = useState(() => findAvailableSize(initialVariation));
   const [activeImageIndex, setActiveImageIndex] = useState(() =>
     getProductVariationImageIndex(product, initialVariation)
   );
@@ -169,7 +178,7 @@ export function ProductDetails({
   const [feedback, setFeedback] = useState("");
   const [wasAdded, setWasAdded] = useState(false);
   const categoryLabels = formatCategoryLabels(product.storefrontCategoryIds);
-  const stockStatus = getVariationStockStatus(product, selectedVariation);
+  const stockStatus = getVariationStockStatus(product, selectedVariation, selectedSize);
   const totalCents = product.priceCents * quantity;
 
   useEffect(() => {
@@ -181,20 +190,31 @@ export function ProductDetails({
   }, [wasAdded]);
 
   function addToCart() {
+    if (sizeOptions.length > 0 && !selectedSize) {
+      setFeedback("Selecione um tamanho para continuar.");
+      return;
+    }
+
     if (!stockStatus.canAddToCart) {
-      setFeedback("Esta variação está esgotada no momento.");
+      setFeedback(
+        selectedSize
+          ? "Este tamanho está esgotado no momento."
+          : "Esta variação está esgotada no momento."
+      );
       return;
     }
 
     const currentCart = readStoredCart(currentUser?.id);
-    const cartKey = getCartItemKey(product.id, selectedVariation);
+    const cartKey = getCartItemKey(product.id, selectedVariation, selectedSize);
     const existingItem = currentCart.find((item) => item.cartKey === cartKey);
 
     if (
       stockStatus.quantity !== null &&
       (existingItem?.quantity ?? 0) + quantity > stockStatus.quantity
     ) {
-      setFeedback(`O limite disponível para esta variação é ${stockStatus.quantity} unidade(s).`);
+      setFeedback(
+        `O limite disponível para ${selectedSize ? `o tamanho ${selectedSize}` : "esta variação"} é ${stockStatus.quantity} unidade(s).`
+      );
       return;
     }
 
@@ -211,6 +231,7 @@ export function ProductDetails({
             priceCents: product.priceCents,
             productFamily: product.productFamily,
             quantity,
+            size: selectedSize,
             slug: product.slug,
             variation: selectedVariation
           }
@@ -222,12 +243,24 @@ export function ProductDetails({
   }
 
   function selectVariation(variation) {
-    if (!getVariationStockStatus(product, variation).canAddToCart) {
+    const nextSize = sizeOptions.length > 0 ? findAvailableSize(variation) : "";
+
+    if (!getVariationStockStatus(product, variation, nextSize).canAddToCart) {
       return;
     }
 
     setSelectedVariation(variation);
+    setSelectedSize(nextSize);
     setActiveImageIndex(getProductVariationImageIndex(product, variation));
+    setQuantity(1);
+  }
+
+  function selectSize(size) {
+    if (!getVariationStockStatus(product, selectedVariation, size).canAddToCart) {
+      return;
+    }
+
+    setSelectedSize(size);
     setQuantity(1);
   }
 
@@ -285,7 +318,11 @@ export function ProductDetails({
             <div className={cx(globalStyles, "variation-grid")} role="list">
               {product.variations.map((variation) =>
                 (() => {
-                  const variationStock = getVariationStockStatus(product, variation);
+                  const variationStock = getVariationStockStatus(
+                    product,
+                    variation,
+                    sizeOptions.length > 0 ? findAvailableSize(variation) : ""
+                  );
                   const swatchColor = getVariationSwatchColor(variation);
 
                   return (
@@ -317,6 +354,36 @@ export function ProductDetails({
               )}
             </div>
           </div>
+
+          {sizeOptions.length > 0 ? (
+            <div className={cx(globalStyles, "option-group")}>
+              <span>Tamanho</span>
+              <div className={cx(globalStyles, "variation-grid")} role="list">
+                {sizeOptions.map((size) => {
+                  const sizeStock = getVariationStockStatus(product, selectedVariation, size);
+
+                  return (
+                    <button
+                      aria-label={`Selecionar tamanho ${size}`}
+                      aria-pressed={selectedSize === size}
+                      className={cx(
+                        globalStyles,
+                        `${selectedSize === size ? "is-active" : ""} ${
+                          sizeStock.status === "out" ? "is-unavailable" : ""
+                        }`
+                      )}
+                      disabled={!sizeStock.canAddToCart}
+                      key={size}
+                      onClick={() => selectSize(size)}
+                      type="button"
+                    >
+                      {sizeStock.status === "out" ? `${size} — esgotado` : size}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
           <div className={cx(globalStyles, "quantity-row")}>
             <span>Quantidade</span>

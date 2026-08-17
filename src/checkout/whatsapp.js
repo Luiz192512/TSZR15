@@ -96,7 +96,8 @@ export function buildWhatsAppOrderMessage({
   });
   const itemLines = cartItems.map((item) => {
     const subtotal = item.priceCents * item.quantity;
-    return `- ${item.name} | Variacao: ${item.variation} | Qtd: ${item.quantity} | Unit.: ${formatCurrency(item.priceCents)} | Subtotal: ${formatCurrency(subtotal)}`;
+    const sizeLine = item.size ? ` | Tamanho: ${item.size}` : "";
+    return `- ${item.name} | Variacao: ${item.variation}${sizeLine} | Qtd: ${item.quantity} | Unit.: ${formatCurrency(item.priceCents)} | Subtotal: ${formatCurrency(subtotal)}`;
   });
 
   return [
