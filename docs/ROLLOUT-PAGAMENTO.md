@@ -14,11 +14,20 @@ tabela que falta derruba o checkout inteiro.
 | | Produção | Staging |
 | --- | --- | --- |
 | Worker | `tsz-store` | `tsz-store-preview` |
-| URL | https://tsz-store.enz-luizgustavo.workers.dev | https://tsz-store-preview.enz-luizgustavo.workers.dev |
+| URL | https://www.tszr15-store.com.br | https://tsz-store-preview.enz-luizgustavo.workers.dev |
 | Supabase | `mckthvbwddxipghumrpw` | `ywrpvhciugoomzejwdik` |
-| Credencial Mercado Pago | conta real | usuário de teste (sandbox) |
+| Código no ar | **anterior**, sem pagamento | com pagamento |
+| Migrações de pagamento | **aplicadas** | aplicadas |
+| Credencial Mercado Pago no Worker | **nenhuma** | usuário de teste (sandbox) |
 | Chave de habilitação | `PAYMENTS_ONLINE_ENABLED` | `PAYMENTS_PREVIEW_ONLINE_ENABLED` |
-| Migrações de pagamento | **não aplicadas** | aplicadas |
+
+O banco de produção está **à frente** do código, de propósito: as migrações são
+aditivas e o código anterior ignora as colunas e tabelas novas. É o lado seguro
+da assimetria — o contrário derruba checkout.
+
+A `main` publica sozinha: a Cloudflare constrói a partir dela. Colocar o código
+novo em produção é um revert do commit que reverteu o #58, não um deploy manual.
+O código está inteiro na branch `feat/pagamento-online-tema-claro-arquivo`.
 
 A chave de habilitação tem **nome diferente por ambiente e não tem fallback**:
 ligar o staging não liga a loja no ar, e a variável exportada por engano no
@@ -78,7 +87,9 @@ assinatura (`MERCADOPAGO_WEBHOOK_SECRET`) é o mesmo nos dois ambientes.
 - **Para testar em staging**, aponte para
   `https://tsz-store-preview.enz-luizgustavo.workers.dev/api/pagamento/webhook`
 - **Para produção**, aponte para
-  `https://tsz-store.enz-luizgustavo.workers.dev/api/pagamento/webhook`
+  `https://www.tszr15-store.com.br/api/pagamento/webhook` — o domínio próprio, e
+  não o `.workers.dev`: os dois servem o mesmo Worker, mas o webhook não deve
+  depender de um subdomínio que pode ser desligado.
 
 Evento: `payment` (no painel, "Pagamentos"). A rota ignora e responde 200 a
 qualquer outro tipo — sem isso o provedor reenviaria para sempre um evento que
@@ -271,6 +282,19 @@ consulta a mais numa rota que é chamada em laço, e o que ela devolve é o mesm
 status que a página já mostrava. A guarda que importa está em
 `loadChargeableOrder` — é lá que o dinheiro se move, e ela recusa com 410 mesmo
 que alguém chame a rota de cobrança direto, sem passar pela tela.
+
+### O CI do GitHub está desativado
+
+`Quality checks` e `Secret scan` estão em `disabled_manually` — a API do GitHub
+confirma. Nenhum dos dois rodou no PR #58, incluindo a varredura de segredo com
+gitleaks. As execuções anteriores (agosto) falhavam em 3 a 13 segundos com
+**zero passos executados**, o que aponta para falha antes do primeiro passo, e
+não para teste vermelho.
+
+Reativar é `gh workflow enable "Quality checks"` e o mesmo para o outro, mas só
+depois de entender por que falhavam — reativar um CI que volta vermelho ensina
+todo mundo a ignorá-lo. O portão local (`lint`, `test`, `test:unit`,
+`typecheck`, `format:check`, `build`) cobre o mesmo conjunto enquanto isso.
 
 ### Soft 404 em `/produto/<slug>`
 
