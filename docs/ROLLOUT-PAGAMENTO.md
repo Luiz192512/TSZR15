@@ -18,7 +18,7 @@ tabela que falta derruba o checkout inteiro.
 | Supabase | `mckthvbwddxipghumrpw` | `ywrpvhciugoomzejwdik` |
 | Código no ar | **anterior**, sem pagamento | com pagamento |
 | Migrações de pagamento | **aplicadas** | aplicadas |
-| Credencial Mercado Pago no Worker | **nenhuma** | usuário de teste (sandbox) |
+| Credencial Mercado Pago no Worker | **nenhuma** | credencial `TEST-` da aplicação |
 | Chave de habilitação | `PAYMENTS_ONLINE_ENABLED` | `PAYMENTS_PREVIEW_ONLINE_ENABLED` |
 
 O banco de produção está **à frente** do código, de propósito: as migrações são
@@ -34,8 +34,18 @@ ligar o staging não liga a loja no ar, e a variável exportada por engano no
 terminal errado não atravessa. Ausente ou diferente de `true` mantém a loja
 exatamente como está hoje — só o fluxo de WhatsApp Business.
 
-`npm run pagamento:verificar` confere a credencial do ambiente atual e diz se a
-conta é de teste ou real. Rode antes e depois de cada passo desta página.
+`npm run pagamento:verificar` confere a credencial do ambiente atual. Rode antes
+e depois de cada passo desta página.
+
+**O que separa produção de sandbox é o PREFIXO do token, não a conta.** A mesma
+aplicação emite `APP_USR-` (move dinheiro real) e `TEST-` (não move) para a
+mesma conta, e os dois terminam com o mesmo id — isso é o normal. Existe um
+segundo modelo válido, o *usuário de teste*, em que a credencial de sandbox
+pertence a outra conta; nele os ids diferem. Nos dois casos o que decide é o
+prefixo.
+
+O perigo é o inverso do que parece: `APP_USR-` na variável de **sandbox** faz o
+staging cobrar de verdade. É isso que o diagnóstico acusa.
 
 ---
 

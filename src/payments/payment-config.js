@@ -190,16 +190,21 @@ export function findPaymentConfigProblems() {
     );
   }
 
-  // Comparar o TEXTO dos tokens não bastava: dois tokens diferentes podem abrir
-  // a mesma conta — foi exatamente o que aconteceu aqui, com a variável de
-  // produção guardando a credencial do usuário de TESTE. A loja subiria
-  // "funcionando" e o dinheiro do cliente não chegaria em conta nenhuma.
+  // O que separa as duas credenciais é o PREFIXO, não a conta: uma aplicação
+  // emite `APP_USR-` (dinheiro real) e `TEST-` (sandbox) para a MESMA conta, e
+  // isso é a configuração normal. Comparar a conta acusaria erro num setup
+  // correto — foi o que aconteceu aqui antes desta correção.
+  //
+  // O perigo real é o inverso: credencial de dinheiro real na variável de
+  // sandbox. Aí o staging cobra de verdade, e a conta ser a mesma é justamente
+  // o que confirma que não é o outro modelo válido (usuário de teste, que tem
+  // conta própria).
   const contaSandbox = readTokenAccountId(tokenSandbox);
   const contaProducao = readTokenAccountId(tokenProducao);
 
-  if (contaSandbox && contaProducao && contaSandbox === contaProducao) {
+  if (tokenSandbox && !isSandboxPaymentToken(tokenSandbox) && contaSandbox === contaProducao) {
     problems.push(
-      `As credenciais de sandbox e de produção abrem a MESMA conta (${contaProducao}). A variável de produção tem que ser a da conta real da loja — confira em npm run pagamento:verificar.`
+      `MERCADOPAGO_SANDBOX_ACCESS_TOKEN é credencial de produção da mesma conta (${contaSandbox}): staging cobraria dinheiro real.`
     );
   }
 

@@ -284,32 +284,49 @@ test("staging liga com access token de sandbox e o segredo compartilhado", () =>
   );
 });
 
-// Comparar o TEXTO nao basta: dois tokens diferentes podem abrir a MESMA conta.
-// Foi o que aconteceu de verdade — a variavel de producao guardava a credencial
-// do usuario de teste, e a loja subiria "funcionando" sem o dinheiro chegar em
-// conta nenhuma.
-test("credenciais diferentes para a mesma conta sao reportadas", () => {
+// O SETUP NORMAL: uma aplicacao emite APP_USR- e TEST- para a MESMA conta. Um
+// diagnostico que acusa isso bloqueia configuracao correta — foi o que este
+// projeto fez por engano antes desta correcao.
+test("APP_USR e TEST da mesma conta e configuracao normal", () => {
   comEnv(
     {
       MERCADOPAGO_ACCESS_TOKEN: "APP_USR-1111111111111111-090101-abc-2222222222",
       MERCADOPAGO_SANDBOX_ACCESS_TOKEN: "TEST-1111111111111111-090101-xyz-2222222222",
       MERCADOPAGO_WEBHOOK_SECRET: "s",
+      NEXT_PUBLIC_MERCADOPAGO_SANDBOX_PUBLIC_KEY: "TEST-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      PAYMENTS_PREVIEW_ONLINE_ENABLED: "true",
       SUPABASE_RUNTIME_TARGET: "preview"
     },
-    () => assert.match(findPaymentConfigProblems().join(" "), /MESMA conta \(2222222222\)/)
+    () => assert.deepEqual(findPaymentConfigProblems(), [])
   );
 });
 
-test("contas diferentes nao sao reportadas", () => {
+// O perigo real e o inverso: credencial de dinheiro real na variavel de sandbox.
+test("credencial de producao na variavel de sandbox e reportada", () => {
   comEnv(
     {
-      MERCADOPAGO_ACCESS_TOKEN: "APP_USR-1111111111111111-090101-abc-111111111",
-      MERCADOPAGO_SANDBOX_ACCESS_TOKEN: "TEST-1111111111111111-090101-xyz-2222222222",
+      MERCADOPAGO_ACCESS_TOKEN: "APP_USR-1111111111111111-090101-abc-2222222222",
+      MERCADOPAGO_SANDBOX_ACCESS_TOKEN: "APP_USR-1111111111111111-090101-abc-2222222222",
       MERCADOPAGO_WEBHOOK_SECRET: "s",
-      NEXT_PUBLIC_MERCADOPAGO_SANDBOX_PUBLIC_KEY: "TEST-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
       SUPABASE_RUNTIME_TARGET: "preview"
     },
-    () => assert.equal(findPaymentConfigProblems().join(" ").includes("MESMA conta"), false)
+    () => assert.match(findPaymentConfigProblems().join(" "), /staging cobraria dinheiro real/)
+  );
+});
+
+// O outro modelo valido: usuario de teste, que tem CONTA propria. Contas
+// diferentes tambem nao sao problema.
+test("usuario de teste com conta propria nao e reportado", () => {
+  comEnv(
+    {
+      MERCADOPAGO_ACCESS_TOKEN: "APP_USR-1111111111111111-090101-abc-2222222222",
+      MERCADOPAGO_SANDBOX_ACCESS_TOKEN: "APP_USR-1111111111111111-090101-xyz-9999999999",
+      MERCADOPAGO_WEBHOOK_SECRET: "s",
+      NEXT_PUBLIC_MERCADOPAGO_SANDBOX_PUBLIC_KEY: "TEST-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      PAYMENTS_PREVIEW_ONLINE_ENABLED: "true",
+      SUPABASE_RUNTIME_TARGET: "preview"
+    },
+    () => assert.deepEqual(findPaymentConfigProblems(), [])
   );
 });
 

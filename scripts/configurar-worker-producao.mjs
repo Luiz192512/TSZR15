@@ -131,21 +131,28 @@ for (const proibida of PROIBIDAS) {
   }
 }
 
-// 2. A armadilha que quase passou: dois tokens de texto diferente abrindo a
-// MESMA conta. A variavel de producao guardava a credencial do usuario de
-// teste — a loja subiria "funcionando" e o dinheiro nao chegaria em conta
-// nenhuma.
-const contaProducao = contaDoToken(valores.get("MERCADOPAGO_ACCESS_TOKEN"));
-const contaSandbox = contaDoToken(valores.get("MERCADOPAGO_SANDBOX_ACCESS_TOKEN"));
+// 2. Credencial de dinheiro real na variavel de sandbox: staging cobraria de
+// verdade. A conta ser a mesma e o que confirma que nao e o outro modelo valido
+// (usuario de teste, que tem conta propria).
+//
+// O contrario — os dois tokens abrindo a mesma conta com prefixos diferentes —
+// e a configuracao NORMAL: uma aplicacao emite APP_USR- e TEST- para a mesma
+// conta. Este script chegou a bloquear isso por engano.
+const tokenProducao = valores.get("MERCADOPAGO_ACCESS_TOKEN") ?? "";
+const tokenSandbox = valores.get("MERCADOPAGO_SANDBOX_ACCESS_TOKEN") ?? "";
 
-if (contaProducao && contaProducao === contaSandbox) {
+if (
+  tokenSandbox &&
+  !tokenSandbox.startsWith("TEST-") &&
+  contaDoToken(tokenSandbox) === contaDoToken(tokenProducao)
+) {
   bloqueios.push(
-    `MERCADOPAGO_ACCESS_TOKEN abre a MESMA conta do sandbox (${contaProducao}): e credencial de teste na variavel de producao.`
+    "MERCADOPAGO_SANDBOX_ACCESS_TOKEN e credencial de producao da mesma conta: staging cobraria dinheiro real."
   );
 }
 
-// 3. Access token de produção com prefixo de teste.
-if (String(valores.get("MERCADOPAGO_ACCESS_TOKEN") ?? "").startsWith("TEST-")) {
+// 3. Access token de producao com prefixo de teste: nao cobraria nada.
+if (tokenProducao.startsWith("TEST-")) {
   bloqueios.push("MERCADOPAGO_ACCESS_TOKEN tem prefixo TEST-: e credencial de sandbox.");
 }
 
