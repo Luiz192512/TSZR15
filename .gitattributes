@@ -1,0 +1,21 @@
+# Quebra de linha LF na arvore de trabalho, em qualquer sistema.
+#
+# Sem isto, o Git no Windows converte para CRLF ao trocar de branch (o padrao
+# core.autocrlf=true). O repositorio guarda LF, entao o CI no Linux passa e a
+# maquina do desenvolvedor falha — `format:check` acusa dezenas de arquivos e um
+# teste que fatia codigo por "\n}\n" para de encontrar o que procura.
+#
+# Foi exatamente o que aconteceu depois de um `git reset --hard`: 20 arquivos
+# fora do padrao e um teste vermelho, sem uma linha de codigo ter mudado.
+* text=auto eol=lf
+
+# Binarios nao passam por conversao nenhuma.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
