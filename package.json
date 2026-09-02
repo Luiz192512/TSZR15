@@ -28,7 +28,8 @@
     "typecheck": "tsc --noEmit",
     "validate": "node scripts/validate-catalog.mjs",
     "validate:supabase": "node scripts/validate-supabase-catalog.mjs",
-    "preview:configurar": "node scripts/configurar-worker-preview.mjs"
+    "preview:configurar": "node scripts/configurar-worker-preview.mjs",
+    "producao:configurar": "node scripts/configurar-worker-producao.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
