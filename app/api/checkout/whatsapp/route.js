@@ -145,7 +145,8 @@ export async function POST(request) {
         "Uma ou mais variações ficaram esgotadas antes de finalizar o pedido.",
         409,
         unavailableItems.map(
-          (item) => `${item.name} (${item.size ? `${item.variation} - ${item.size}` : item.variation})`
+          (item) =>
+            `${item.name} (${item.size ? `${item.variation} - ${item.size}` : item.variation})`
         )
       );
     }

@@ -53,3 +53,13 @@ test("a consulta de auditoria de grants esta documentada", async () => {
   assert.match(doc, /grantee IN \('anon', 'authenticated'\)/);
   assert.match(doc, /Colunas internas expostas/);
 });
+
+// Tabela de dinheiro que nasce depois precisa entrar na auditoria, senao ela
+// passa a existir fora do radar da consulta que guarda custo e margem.
+test("as tabelas de dinheiro da fase 3 entram na auditoria", async () => {
+  const doc = await source("docs/ENVIRONMENT.md");
+
+  for (const tabela of ["order_ledger", "payment_webhook_events"]) {
+    assert.match(doc, new RegExp(`'${tabela}'`), `${tabela} fora da consulta de auditoria`);
+  }
+});

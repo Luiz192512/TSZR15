@@ -7,6 +7,12 @@
   // URLs de preview por versao (wrangler versions upload) para revisar
   // mudancas sem afetar o trafego de producao.
   "preview_urls": true,
+  // Alvo declarado no proprio config para que producao nunca dependa de um
+  // default implicito. O guard em src/lib/environment-guard.js derruba o boot
+  // se este alvo nao bater com as credenciais presentes no Worker.
+  "vars": {
+    "SUPABASE_RUNTIME_TARGET": "production"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

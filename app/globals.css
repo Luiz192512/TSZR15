@@ -1,30 +1,292 @@
-/* Tokens do tema escuro TSZR15 (movidos de storefront.module.css: CSS
-   Modules com webpack rejeitam seletor ":root" puro). */
+/* Tokens do TSZR15.
+ *
+ * Duas camadas, de propósito:
+ *
+ * 1. CANAIS (`--*-rgb`) — as cores base como triplas, sem alfa. Quase toda
+ *    borda, scrim e overlay do projeto é "tinta com alfa" sobre a superfície.
+ *    Escrito como `rgb(var(--ink-rgb) / 0.14)`, inverter o tema vira trocar
+ *    UMA tripla, em vez de caçar 300 `rgba(255, 255, 255, …)`.
+ *
+ * 2. PAPÉIS (`--surface-*`, `--text-*`, `--border*`, `--brand*`, `--status-*`)
+ *    — o que a cor SIGNIFICA na interface, não que cor ela é.
+ *
+ * TEMAS: claro é o padrão. O escuro entra por dois caminhos — preferência do
+ * sistema (quem nunca escolheu) e `[data-theme="dark"]` (quem escolheu). Os
+ * valores escuros ficam guardados UMA vez em `--dark-*` e os dois caminhos
+ * apenas apontam para eles: assim os dois não podem divergir em valor.
+ * `tests/theme-tokens.test.mjs` garante que a lista dos dois seja idêntica.
+ */
 :root {
-  --page: #050505;
-  --paper: #101010;
-  --panel: #151515;
-  --ink: #f8f8f8;
-  --muted: #a4a7ad;
-  --line: rgba(255, 255, 255, 0.14);
-  --line-strong: rgba(255, 255, 255, 0.32);
-  --carbon: #070707;
-  --carbon-soft: #1b1c1f;
-  --red: #ff3742;
-  --red-dark: #c20e1a;
-  --blue: #c6ccd6;
-  --green: #1fbf75;
-  --yellow: #f0b43c;
-  --purple: #6b7280;
-  --shadow: 0 26px 70px rgba(0, 0, 0, 0.58);
-  --shadow-tight: 0 14px 34px rgba(0, 0, 0, 0.36);
-  /* redesign 2026 — azul-racing Yamaha, superfícies carbono e raios */
-  --racing-blue: #3e6bff;
-  --red-glow: rgba(255, 55, 66, 0.5);
-  --surf-1: #15181f;
-  --surf-2: #1c2029;
+  /* ---- Tema escuro: valores guardados, aplicados só pelos blocos abaixo ---- */
+  --dark-ink-rgb: 255 255 255;
+  --dark-shadow-rgb: 0 0 0;
+  /* Veu: fundo semitransparente que cobre a pagina (header fixo, barra
+     grudada, overlay). Acompanha a SUPERFICIE, nao a tinta — por isso canal
+     proprio: com --ink-rgb ele inverteria ao contrario e o header ficaria
+     quase preto sobre a pagina clara. */
+  --dark-veil-rgb: 5 5 5;
+  --dark-surface-page: #050505;
+  --dark-surface-page-top: #020202;
+  --dark-surface-page-mid: #080808;
+  --dark-surface-page-bottom: #030303;
+  --dark-surface-raised: #101010;
+  --dark-surface-sunken: #070707;
+  --dark-surface-panel: #15181f;
+  --dark-surface-panel-alt: #1c2029;
+  --dark-surface-elevated: #2a2f35;
+  --dark-surface-input: #111111;
+  /* Profundidade de gradiente: segunda parada, sempre mais funda que a
+     superficie de origem. Precisa de papel proprio porque no tema claro
+     "mais fundo" e mais escuro que branco, nao mais claro. */
+  --dark-surface-deep: #16191d;
+  --dark-surface-deepest: #0b0c10;
+  /* Realce do esqueleto de carregamento: mais claro que o card no tema
+     escuro, mais escuro que o card no tema claro. */
+  --dark-surface-shimmer: #2a2a2a;
+  --dark-surface-danger: #2a1113;
+  --dark-surface-success: #12251b;
+  --dark-surface-info: #111c2e;
+  --dark-surface-warning: #2a2113;
+  --dark-text-primary: #f8f8f8;
+  --dark-text-secondary: #a4a7ad;
+  --dark-text-strong: #b9bcc2;
+  --dark-text-quiet: #c6ccd6;
+  --dark-text-bright: #f4f4f5;
+  --dark-text-on-filled: #f8f8f8;
+  --dark-text-danger: #ff8a90;
+  --dark-text-warning: #ffc744;
+  --dark-text-success: #7dffad;
+  /* Escurecidos em relacao ao vermelho de vitrine (#ff3742 / #f20710): com
+     texto branco por cima eles ficavam em 3,57:1 e 4,36:1, reprovando AA para
+     texto normal. O brilho (--brand-glow) segue no vermelho original, porque
+     glow nao carrega texto. */
+  --dark-brand: #e0303a;
+  --dark-brand-strong: #ed0710;
+  --dark-brand-text: #ff5158;
+  /* Segunda parada do gradiente de titulo (background-clip: text). Sobre
+     branco o laranja original fica em 2,57:1 — metade do titulo reprovaria. */
+  --dark-brand-accent: #ff7a54;
+  /* Preenchimento verde que carrega texto branco (botao do WhatsApp). O
+     #1f8a4c original ficava em 4,47:1 com branco — reprova AA por pouco.
+     A base e mais escura que o hover para o hover CLAREAR, como antes, sem
+     que o texto branco caia abaixo de 4,5:1 no estado hover. */
+  --dark-fill-success: #19703d;
+  --dark-fill-success-hover: #1e874a;
+  --dark-status-success: #1fbf75;
+  --dark-status-warning: #f0b43c;
+  --dark-status-success-bright: #64ff9c;
+  --dark-border: rgb(var(--ink-rgb) / 0.14);
+  --dark-border-strong: rgb(var(--ink-rgb) / 0.32);
+  --dark-brand-glow: rgb(var(--brand-alt-rgb) / 0.5);
+  --dark-shadow: 0 26px 70px rgb(var(--shadow-rgb) / 0.58);
+  --dark-shadow-tight: 0 14px 34px rgb(var(--shadow-rgb) / 0.36);
+  /* A cor da seta do <select> vive dentro de um data URI e não aceita var().
+     Por isso o data URI inteiro é o token. */
+  --dark-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa0ad' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+
+  /* ---- Tema claro (padrão) ---- */
+  color-scheme: light;
+
+  /* Canais. A tinta deixa de ser branca e passa a ser quase preta: toda borda
+     e todo scrim escritos como rgb(var(--ink-rgb) / a) invertem junto. */
+  --ink-rgb: 18 21 26;
+  --veil-rgb: 255 255 255;
+  --shadow-rgb: 15 23 42;
+  --brand-rgb: 242 7 16;
+  --brand-alt-rgb: 255 55 66;
+
+  /* Superfícies */
+  --surface-page: #ffffff;
+  --surface-page-top: #ffffff;
+  --surface-page-mid: #f6f7f9;
+  --surface-page-bottom: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f2f4f7;
+  --surface-panel: #f7f8fa;
+  --surface-panel-alt: #eef1f6;
+  --surface-elevated: #e7eaf0;
+  --surface-input: #ffffff;
+  --surface-deep: #dfe3ea;
+  --surface-deepest: #d5dae3;
+  --surface-shimmer: #e9edf3;
+  --surface-danger: #fdecec;
+  --surface-success: #e9f7ef;
+  --surface-info: #eaf1fd;
+  --surface-warning: #fdf3e2;
+
+  /* Texto */
+  --text-primary: #12151a;
+  --text-secondary: #5b6068;
+  --text-strong: #3b4048;
+  --text-quiet: #5f646d;
+  --text-bright: #12151a;
+  /* Texto sobre a cor de marca — branco nos dois temas. */
+  --text-on-brand: #ffffff;
+  /* Texto sobre superfície do tema (chip, overlay, card). Acompanha o tema. */
+  --text-on-filled: #12151a;
+  --text-danger: #b42323;
+  --text-warning: #8a4f09;
+  --text-success: #15803d;
+
+  /* Bordas */
+  --border: rgb(var(--ink-rgb) / 0.12);
+  --border-strong: rgb(var(--ink-rgb) / 0.24);
+
+  /* Marca. O vermelho de vitrine (#ff3742) sobre branco fica em 3,0:1 com
+     texto branco por cima — reprova AA. No tema claro o preenchimento escurece
+     o suficiente para passar, sem sair da identidade Yamaha. */
+  --brand: #d81420;
+  --brand-strong: #c50c14;
+  --brand-soft: #ff5158;
+  --brand-dark: #c20e1a;
+  --brand-text: #ba0d19;
+  --brand-accent: #ba593d;
+  --brand-glow: rgb(var(--brand-alt-rgb) / 0.32);
+
+  /* Estado */
+  --fill-success: #0f5c33;
+  --fill-success-hover: #15703f;
+  --status-success: #157f4e;
+  --status-success-bright: #15803d;
+  --status-warning: #94681b;
+  --status-neutral: #6b7280;
+
+  /* Elevação. Sombra pesada de tema escuro vira sujeira sobre branco. */
+  --shadow: 0 18px 44px rgb(var(--shadow-rgb) / 0.12);
+  --shadow-tight: 0 8px 20px rgb(var(--shadow-rgb) / 0.08);
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f646d' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+
+  /* Raios */
   --r: 16px;
   --r-sm: 12px;
+
+  /* Aliases legados. Mantidos porque os módulos CSS ainda os usam
+     (--line: 69 usos, --muted: 60, --red: 53). Migração de call site é
+     trabalho separado, não desta fase. */
+  --page: var(--surface-page);
+  --paper: var(--surface-raised);
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --line: var(--border);
+  --line-strong: var(--border-strong);
+  --carbon: var(--surface-sunken);
+  --red: var(--brand);
+  --red-dark: var(--brand-dark);
+  --red-glow: var(--brand-glow);
+  --blue: var(--text-quiet);
+  --green: var(--status-success);
+  --yellow: var(--status-warning);
+  --purple: var(--status-neutral);
+  --surf-1: var(--surface-panel);
+  --surf-2: var(--surface-panel-alt);
+
+  /* Sem uso em nenhum CSS do projeto; preservados com o valor literal para não
+     quebrar estilo inline em JS que a varredura de CSS não alcança. */
+  --panel: #151515;
+  --carbon-soft: #1b1c1f;
+  --racing-blue: #3e6bff;
+}
+
+/* Tema escuro pela preferência do sistema — vale para quem ainda NÃO escolheu.
+   O `:not([data-theme="light"])` faz a escolha explícita por claro ganhar do
+   sistema; sem isso o alternador não conseguiria voltar para claro. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink-rgb: var(--dark-ink-rgb);
+    --shadow-rgb: var(--dark-shadow-rgb);
+    --veil-rgb: var(--dark-veil-rgb);
+    --surface-page: var(--dark-surface-page);
+    --surface-page-top: var(--dark-surface-page-top);
+    --surface-page-mid: var(--dark-surface-page-mid);
+    --surface-page-bottom: var(--dark-surface-page-bottom);
+    --surface-raised: var(--dark-surface-raised);
+    --surface-sunken: var(--dark-surface-sunken);
+    --surface-panel: var(--dark-surface-panel);
+    --surface-panel-alt: var(--dark-surface-panel-alt);
+    --surface-elevated: var(--dark-surface-elevated);
+    --surface-input: var(--dark-surface-input);
+    --surface-deep: var(--dark-surface-deep);
+    --surface-deepest: var(--dark-surface-deepest);
+    --surface-shimmer: var(--dark-surface-shimmer);
+    --surface-danger: var(--dark-surface-danger);
+    --surface-success: var(--dark-surface-success);
+    --surface-info: var(--dark-surface-info);
+    --surface-warning: var(--dark-surface-warning);
+    --text-primary: var(--dark-text-primary);
+    --text-secondary: var(--dark-text-secondary);
+    --text-strong: var(--dark-text-strong);
+    --text-quiet: var(--dark-text-quiet);
+    --text-bright: var(--dark-text-bright);
+    --text-on-filled: var(--dark-text-on-filled);
+    --text-danger: var(--dark-text-danger);
+    --text-warning: var(--dark-text-warning);
+    --text-success: var(--dark-text-success);
+    --brand: var(--dark-brand);
+    --brand-strong: var(--dark-brand-strong);
+    --brand-text: var(--dark-brand-text);
+    --brand-accent: var(--dark-brand-accent);
+    --fill-success: var(--dark-fill-success);
+    --fill-success-hover: var(--dark-fill-success-hover);
+    --status-success: var(--dark-status-success);
+    --status-warning: var(--dark-status-warning);
+    --status-success-bright: var(--dark-status-success-bright);
+    --border: var(--dark-border);
+    --border-strong: var(--dark-border-strong);
+    --brand-glow: var(--dark-brand-glow);
+    --shadow: var(--dark-shadow);
+    --shadow-tight: var(--dark-shadow-tight);
+    --select-arrow: var(--dark-select-arrow);
+  }
+}
+
+/* Tema escuro por escolha explícita — ganha do sistema nos dois sentidos. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink-rgb: var(--dark-ink-rgb);
+  --shadow-rgb: var(--dark-shadow-rgb);
+  --veil-rgb: var(--dark-veil-rgb);
+  --surface-page: var(--dark-surface-page);
+  --surface-page-top: var(--dark-surface-page-top);
+  --surface-page-mid: var(--dark-surface-page-mid);
+  --surface-page-bottom: var(--dark-surface-page-bottom);
+  --surface-raised: var(--dark-surface-raised);
+  --surface-sunken: var(--dark-surface-sunken);
+  --surface-panel: var(--dark-surface-panel);
+  --surface-panel-alt: var(--dark-surface-panel-alt);
+  --surface-elevated: var(--dark-surface-elevated);
+  --surface-input: var(--dark-surface-input);
+  --surface-deep: var(--dark-surface-deep);
+  --surface-deepest: var(--dark-surface-deepest);
+  --surface-shimmer: var(--dark-surface-shimmer);
+  --surface-danger: var(--dark-surface-danger);
+  --surface-success: var(--dark-surface-success);
+  --surface-info: var(--dark-surface-info);
+  --surface-warning: var(--dark-surface-warning);
+  --text-primary: var(--dark-text-primary);
+  --text-secondary: var(--dark-text-secondary);
+  --text-strong: var(--dark-text-strong);
+  --text-quiet: var(--dark-text-quiet);
+  --text-bright: var(--dark-text-bright);
+  --text-on-filled: var(--dark-text-on-filled);
+  --text-danger: var(--dark-text-danger);
+  --text-warning: var(--dark-text-warning);
+  --text-success: var(--dark-text-success);
+  --brand: var(--dark-brand);
+  --brand-strong: var(--dark-brand-strong);
+  --brand-text: var(--dark-brand-text);
+  --brand-accent: var(--dark-brand-accent);
+  --fill-success: var(--dark-fill-success);
+  --fill-success-hover: var(--dark-fill-success-hover);
+  --status-success: var(--dark-status-success);
+  --status-warning: var(--dark-status-warning);
+  --status-success-bright: var(--dark-status-success-bright);
+  --border: var(--dark-border);
+  --border-strong: var(--dark-border-strong);
+  --brand-glow: var(--dark-brand-glow);
+  --shadow: var(--dark-shadow);
+  --shadow-tight: var(--dark-shadow-tight);
+  --select-arrow: var(--dark-select-arrow);
 }
 
 * {
@@ -32,15 +294,15 @@
 }
 
 html {
-  background: #050505;
+  background: var(--surface-page);
   scroll-behavior: smooth;
 }
 
 body {
   min-height: 100vh;
   margin: 0;
-  color: var(--ink);
-  background: var(--page);
+  color: var(--text-primary);
+  background: var(--surface-page);
   font-family: Bahnschrift, "Segoe UI Variable", "Segoe UI", sans-serif;
   letter-spacing: 0;
 }
@@ -61,83 +323,91 @@ button {
   cursor: pointer;
 }
 
-/* Dark-theme scrollbars (Firefox) — inherited by scroll containers */
+/* Scrollbars (Firefox) — herdadas pelos containers roláveis */
 html {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-color: rgb(var(--ink-rgb) / 0.22) transparent;
 }
 
-/* Dark-theme scrollbars (Chromium / WebKit) */
+/* Scrollbars (Chromium / WebKit) */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--ink-rgb) / 0.04);
 }
 
 ::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.22);
+  background-color: rgb(var(--ink-rgb) / 0.22);
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #f20710;
+  background-color: var(--brand-strong);
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* Native <select> dropdown lists, matched to the dark theme */
+/* Listas de <select> nativas */
 option,
 optgroup {
-  background-color: #111111;
-  color: #f4f4f5;
+  background-color: var(--surface-input);
+  color: var(--text-bright);
 }
 
 option:checked {
-  background-color: #f20710;
-  color: #ffffff;
+  background-color: var(--brand-strong);
+  color: var(--text-on-brand);
 }
 
 /* Dropdowns nativos com estilo unico em todo o site: seta custom (a nativa
    some com appearance:none), superficie carbono e cantos arredondados.
    O padding-right leva !important porque varios modulos definem o shorthand
-   "padding" com especificidade maior e cobririam a area da seta. */
+   "padding" com especificidade maior e cobririam a area da seta.
+   A seta é um data URI: a cor dela NÃO é tokenizável e precisa ser trocada à
+   mão quando o tema claro entrar (fase 2). */
 select {
   appearance: none;
   -webkit-appearance: none;
   min-height: 38px;
   padding: 0 34px 0 12px;
   padding-right: 34px !important;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid var(--border-strong);
   border-radius: 11px;
-  background-color: #15181f;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa0ad' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-color: var(--surface-panel);
+  background-image: var(--select-arrow);
   background-repeat: no-repeat;
   background-position: right 11px center;
   background-size: 15px;
-  color: #f4f4f5;
+  color: var(--text-bright);
   cursor: pointer;
 }
 
 select:focus-visible {
-  outline: 2px solid #ff3742;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
-/* Tema escuro da loja (movido de storefront.module.css: CSS Modules com
-   webpack rejeitam seletor "body" puro). */
+/* Fundo da loja (movido de storefront.module.css: CSS Modules com webpack
+   rejeitam seletor "body" puro). */
 body {
   background:
-    linear-gradient(110deg, rgba(242, 7, 16, 0.11) 0 1px, transparent 1px 170px) 0 0 / 340px 100%,
-    radial-gradient(circle at 75% 8%, rgba(242, 7, 16, 0.19), transparent 30%),
-    linear-gradient(180deg, #020202 0%, #080808 44%, #030303 100%);
-  color: #f8f8f8;
+    linear-gradient(110deg, rgb(var(--brand-rgb) / 0.11) 0 1px, transparent 1px 170px) 0 0 / 340px
+      100%,
+    radial-gradient(circle at 75% 8%, rgb(var(--brand-rgb) / 0.19), transparent 30%),
+    linear-gradient(
+      180deg,
+      var(--surface-page-top) 0%,
+      var(--surface-page-mid) 44%,
+      var(--surface-page-bottom) 100%
+    );
+  color: var(--text-primary);
 }
 
 body::before {
@@ -147,9 +417,9 @@ body::before {
   pointer-events: none;
   content: "";
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px) 0 0 / 84px 84px,
-    linear-gradient(0deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 84px 84px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 72%);
+    linear-gradient(90deg, rgb(var(--ink-rgb) / 0.04) 1px, transparent 1px) 0 0 / 84px 84px,
+    linear-gradient(0deg, rgb(var(--ink-rgb) / 0.025) 1px, transparent 1px) 0 0 / 84px 84px;
+  mask-image: linear-gradient(180deg, rgb(var(--shadow-rgb) / 0.7), transparent 72%);
 }
 
 /* Espaco para a barra de navegacao inferior mobile (mobile-tab-bar). */

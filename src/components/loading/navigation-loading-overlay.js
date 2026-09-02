@@ -73,9 +73,18 @@ export function NavigationLoadingOverlay() {
     function handleSubmit(event) {
       const form = event.target;
 
-      if (form?.tagName === "FORM" && form.method.toLowerCase() !== "dialog") {
-        startLoading();
+      if (form?.tagName !== "FORM" || form.method.toLowerCase() === "dialog") {
+        return;
       }
+
+      // Formulario que resolve na propria tela (pagamento por cartao, boleto)
+      // nao navega para lugar nenhum. Sem esta saida, o overlay cobre a tela
+      // por 5 segundos exatamente enquanto o cliente espera a confirmacao.
+      if (form.dataset.navigation === "none") {
+        return;
+      }
+
+      startLoading();
     }
 
     document.addEventListener("click", handleClick, true);
