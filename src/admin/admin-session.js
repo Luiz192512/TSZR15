@@ -1,5 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
 
+import { isPreviewTarget, readEnvValue } from "../lib/runtime-target.js";
+
 import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_MAX_AGE_SECONDS,
@@ -9,8 +11,18 @@ import {
 
 export { ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_SECONDS };
 
+/**
+ * Token do admin, por ambiente. Precisa resolver EXATAMENTE como a versao de
+ * edge (`admin-session-edge.js`): o cookie de sessao e assinado com o token, e
+ * os dois discordando significa entrar pelo middleware e ser recusado pelo
+ * servidor.
+ *
+ * Mesma regra do Supabase e do Mercado Pago: o NOME da variavel declara o
+ * ambiente, sem fallback. Staging sem o proprio token fica com o admin
+ * DESLIGADO, nunca cai no da loja no ar.
+ */
 export function getConfiguredAdminToken() {
-  return process.env.TSZR15_ADMIN_TOKEN ?? "";
+  return readEnvValue(isPreviewTarget() ? "TSZR15_PREVIEW_ADMIN_TOKEN" : "TSZR15_ADMIN_TOKEN");
 }
 
 export function isAdminTokenValueConfigured(token = getConfiguredAdminToken()) {
@@ -18,7 +30,9 @@ export function isAdminTokenValueConfigured(token = getConfiguredAdminToken()) {
 }
 
 function hashValue(value) {
-  return createHash("sha256").update(String(value ?? "")).digest("hex");
+  return createHash("sha256")
+    .update(String(value ?? ""))
+    .digest("hex");
 }
 
 function signAdminSessionPayload(payload, token) {
@@ -90,10 +104,7 @@ export function isAdminSessionValueValid(
     return false;
   }
 
-  const expectedSignature = signAdminSessionPayload(
-    `${parsed.version}.${parsed.expiresAt}`,
-    token
-  );
+  const expectedSignature = signAdminSessionPayload(`${parsed.version}.${parsed.expiresAt}`, token);
 
   return safeEqual(parsed.signature, expectedSignature);
 }

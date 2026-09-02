@@ -82,7 +82,11 @@ export function CartItemsPanel({
                         value={item.variation}
                       >
                         {product.variations.map((variation) => {
-                          const stock = getVariationStockStatus(product, variation, item.size ?? "");
+                          const stock = getVariationStockStatus(
+                            product,
+                            variation,
+                            item.size ?? ""
+                          );
 
                           return (
                             <option

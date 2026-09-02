@@ -85,10 +85,7 @@ export default async function ProductPage({ params }) {
     notFound();
   }
 
-  const [catalog, reviewState] = await Promise.all([
-    getCatalog(),
-    getSafeReviewState(product.id)
-  ]);
+  const [catalog, reviewState] = await Promise.all([getCatalog(), getSafeReviewState(product.id)]);
   const relatedProducts = catalog.products
     .filter(
       (item) =>
@@ -102,9 +99,7 @@ export default async function ProductPage({ params }) {
   const sizeOptions = Array.isArray(product.sizeOptions) ? product.sizeOptions : [];
   const allVariationsOut = product.variations.every((variation) =>
     sizeOptions.length > 0
-      ? sizeOptions.every(
-          (size) => !getVariationStockStatus(product, variation, size).canAddToCart
-        )
+      ? sizeOptions.every((size) => !getVariationStockStatus(product, variation, size).canAddToCart)
       : !getVariationStockStatus(product, variation).canAddToCart
   );
   const productSchema = {

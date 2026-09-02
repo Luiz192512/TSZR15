@@ -20,7 +20,13 @@
 .heading,
 .feature,
 .card {
-  background: linear-gradient(100deg, #181818 20%, #2a2a2a 40%, #181818 60%) 200% 0 / 200% 100%;
+  background: linear-gradient(
+      100deg,
+      var(--surface-raised) 20%,
+      var(--surface-shimmer) 40%,
+      var(--surface-raised) 60%
+    )
+    200% 0 / 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
 
@@ -31,7 +37,7 @@
 .band,
 .catalog {
   border: 1px solid var(--line);
-  background: #0d0d0d;
+  background: var(--surface-raised);
   padding: 20px;
 }
 
