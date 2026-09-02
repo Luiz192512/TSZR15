@@ -7,7 +7,11 @@ import {
   setAdminInternalOrderStatusAction,
   updateAdminOrderAction
 } from "@/app/admin/actions.js";
-import { centsToInput, formatCurrency, StatusSelect } from "@/app/admin/_components/admin-ui.js";
+import {
+  centsToInput,
+  formatCurrency,
+  StatusSelect
+} from "@/app/admin/_components/admin-ui.js";
 import {
   getEffectiveInternalOrderStatus,
   getStatusLabel,
@@ -357,22 +361,7 @@ function OrderDetail({ selected }) {
         </div>
 
         <div className={cx(globalStyles, "admin-form-block")}>
-          <h2>
-            Origem interna e rastreio
-            {/* Quem criou a linha muda o que o operador precisa fazer: a
-                automacao PREPARA a compra, ela nao compra. Sem esta marca, uma
-                linha criada pelo sistema parece uma compra ja feita. */}
-            {supplierPurchase?.created_by === "automacao" ? (
-              <span className={cx(globalStyles, "badge")}> criada pela automação</span>
-            ) : null}
-          </h2>
-          {supplierPurchase?.created_by === "automacao" &&
-          supplierPurchase?.source_status === "nao_comprado" ? (
-            <p className={cx(globalStyles, "form-hint")}>
-              O pagamento foi confirmado e o sistema abriu esta linha. A compra no fornecedor ainda
-              precisa ser feita por uma pessoa.
-            </p>
-          ) : null}
+          <h2>Origem interna e rastreio</h2>
           <div className={cx(globalStyles, "form-grid")}>
             <label>
               <span>Canal interno</span>

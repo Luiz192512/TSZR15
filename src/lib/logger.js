@@ -8,7 +8,7 @@ const logLevels = Object.freeze({
   info: 30,
   warn: 40,
   error: 50,
-  fatal: 60
+  fatal: 60,
 });
 
 const consoleMethods = Object.freeze({
@@ -17,7 +17,7 @@ const consoleMethods = Object.freeze({
   info: "info",
   warn: "warn",
   error: "error",
-  fatal: "error"
+  fatal: "error",
 });
 
 export function redactSensitive(value) {
@@ -32,8 +32,8 @@ export function redactSensitive(value) {
   return Object.fromEntries(
     Object.entries(value).map(([key, entryValue]) => [
       key,
-      sensitiveKeyPattern.test(key) ? censor : redactSensitive(entryValue)
-    ])
+      sensitiveKeyPattern.test(key) ? censor : redactSensitive(entryValue),
+    ]),
   );
 }
 
@@ -56,16 +56,16 @@ function normalizeLogArguments(input, message) {
         err: {
           message: input.message,
           name: input.name,
-          stack: input.stack
-        }
+          stack: input.stack,
+        },
       },
-      message
+      message,
     };
   }
 
   return {
     details: input && typeof input === "object" ? input : {},
-    message
+    message,
   };
 }
 
@@ -79,7 +79,7 @@ function writeLog(level, input, message) {
     ...redactSensitive(normalized.details),
     level,
     time: new Date().toISOString(),
-    ...(normalized.message ? { msg: normalized.message } : {})
+    ...(normalized.message ? { msg: normalized.message } : {}),
   };
   const method = consoleMethods[level] ?? "info";
 
@@ -90,14 +90,16 @@ export const logger = Object.freeze(
   Object.fromEntries(
     Object.keys(logLevels).map((level) => [
       level,
-      (input, message) => writeLog(level, input, message)
-    ])
-  )
+      (input, message) => writeLog(level, input, message),
+    ]),
+  ),
 );
 
 export function logServerEvent(level, event, details = {}) {
   const logMethod =
-    typeof logger[level] === "function" ? logger[level].bind(logger) : logger.info.bind(logger);
+    typeof logger[level] === "function"
+      ? logger[level].bind(logger)
+      : logger.info.bind(logger);
 
   logMethod(redactSensitive({ event, ...details }), event);
 }

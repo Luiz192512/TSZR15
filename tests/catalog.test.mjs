@@ -1104,10 +1104,6 @@ test("Supabase config accepts public and hosted integration env names", () => {
   );
 });
 
-// O alvo passou a ser declarado (SUPABASE_RUNTIME_TARGET). O fallback por
-// VERCEL_ENV foi removido: o deploy e Cloudflare Workers, onde essa variavel
-// nunca existe, entao ela so servia para o preview resolver producao calado.
-// Ver tests/environment-isolation.test.mjs e docs/AMBIENTES.md.
 test("Supabase config prefers preview env names in preview runtime", () => {
   const emptyEnv = Object.fromEntries(supabaseEnvKeys.map((key) => [key, undefined]));
 
@@ -1119,8 +1115,8 @@ test("Supabase config prefers preview env names in preview runtime", () => {
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_public",
       NEXT_PUBLIC_SUPABASE_URL: "https://public-ref.supabase.co",
       SUPABASE_PREVIEW_SERVICE_ROLE_KEY: "preview-service-role",
-      SUPABASE_RUNTIME_TARGET: "preview",
-      SUPABASE_SERVICE_ROLE_KEY: "production-service-role"
+      SUPABASE_SERVICE_ROLE_KEY: "production-service-role",
+      VERCEL_ENV: "preview"
     },
     () => {
       const config = getPublicSupabaseConfig();
@@ -1140,8 +1136,7 @@ test("Supabase config prefers preview env names in preview runtime", () => {
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_public",
       NEXT_PUBLIC_SUPABASE_URL: "https://public-ref.supabase.co",
       SUPABASE_PREVIEW_SERVICE_ROLE_KEY: "preview-service-role",
-      SUPABASE_SERVICE_ROLE_KEY: "production-service-role",
-      VERCEL_ENV: "preview"
+      SUPABASE_SERVICE_ROLE_KEY: "production-service-role"
     },
     () => {
       const config = getPublicSupabaseConfig();

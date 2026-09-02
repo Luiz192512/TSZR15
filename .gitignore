@@ -51,7 +51,3 @@ Thumbs.db
 
 # Claude Code local (por maquina; launch.json fica versionado)
 .claude/settings.local.json
-
-# Workspace gerado pelo /graphify: 12 MB de grafo, OCR e studio empacotado.
-# E artefato de ferramenta, reconstruivel, nao codigo do projeto.
-/.graphify

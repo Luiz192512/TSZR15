@@ -2,8 +2,7 @@
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 0;
-  background:
-    linear-gradient(135deg, rgb(var(--ink-rgb) / 0.06), transparent 32%), var(--surface-raised);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 32%), #0d0d0d;
   box-shadow: var(--shadow-tight);
 }
 
@@ -17,7 +16,7 @@
 }
 
 .heading h2 {
-  color: var(--text-on-filled);
+  color: #fff;
   font-size: 1.45rem;
   text-transform: uppercase;
 }
@@ -71,7 +70,7 @@
   align-items: center;
   border: 1px solid var(--line);
   border-radius: 0;
-  background: rgb(var(--ink-rgb) / 0.055);
+  background: rgba(255, 255, 255, 0.055);
   padding: 10px;
 }
 
@@ -83,8 +82,8 @@
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 0;
-  background: linear-gradient(135deg, var(--surface-elevated), var(--surface-deep));
-  color: var(--text-on-filled);
+  background: linear-gradient(135deg, #30343a, #151719);
+  color: #fff;
   font-size: 1.4rem;
   font-weight: 950;
 }
@@ -105,7 +104,7 @@
 }
 
 .detail strong {
-  color: var(--text-on-filled);
+  color: #fff;
 }
 
 .controls {
@@ -129,8 +128,8 @@
   min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 0;
-  background: rgb(var(--ink-rgb) / 0.055);
-  color: var(--text-on-filled);
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
   padding: 0 10px;
   font-weight: 850;
 }
@@ -214,12 +213,12 @@
 /* --- redesign 2026: cantos arredondados e superficies carbono --- */
 .panel {
   border-radius: 16px;
-  background: linear-gradient(160deg, var(--surface-panel-alt), var(--surface-panel) 58%);
+  background: linear-gradient(160deg, #1c2029, #15181f 58%);
 }
 
 .line {
   border-radius: 14px;
-  background: rgb(var(--ink-rgb) / 0.04);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .image {
@@ -232,11 +231,11 @@
 }
 
 .delete {
-  color: var(--text-danger);
+  color: #ff8a8a;
 }
 
 .heading strong,
 .line > strong:last-child {
-  color: var(--brand-text);
+  color: #ff5158;
   font-variant-numeric: tabular-nums;
 }

@@ -37,7 +37,6 @@ export function CartCheckout({
   currentUser,
   initialAddresses = [],
   initialCustomer,
-  isOnlinePaymentEnabled = false,
   isSupabaseConfigured,
   products
 }) {
@@ -97,8 +96,7 @@ export function CartCheckout({
         if (!isMounted) return;
 
         const addressList = addressRows ?? [];
-        const defaultAddress =
-          addressList.find((item) => item.is_default) ?? addressList[0] ?? null;
+        const defaultAddress = addressList.find((item) => item.is_default) ?? addressList[0] ?? null;
         const addressLine = buildAddressLine(defaultAddress);
         if (addressLine) initialCustomerHadAddress.current = true;
         if (addressList.length) {
@@ -139,7 +137,6 @@ export function CartCheckout({
   const cep = useCepLookup({ customer, initialCustomerHadAddress, setCustomer });
   const coupon = useCoupon({ cartItems: cart.cartItems, shippingOptionId });
   const checkout = useCheckout({
-    isOnlinePaymentEnabled,
     appliedCoupon: coupon.appliedCoupon,
     autoFilledAddressLine: cep.autoFilledAddressLine,
     cartItems: cart.cartItems,
@@ -255,7 +252,6 @@ export function CartCheckout({
           addressFeedback={addressFeedback}
           addresses={addresses}
           canCheckout={checkout.canCheckout}
-          isOnlinePaymentEnabled={isOnlinePaymentEnabled}
           cartItems={cart.cartItems}
           cepLookup={cep.cepLookup}
           checkoutFeedback={checkout.checkoutFeedback}

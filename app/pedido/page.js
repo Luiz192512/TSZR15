@@ -5,7 +5,6 @@ import nextDynamic from "next/dynamic";
 import { getPublicCatalogProductsForStorefront } from "@/src/catalog/supabase-catalog.js";
 import { getCurrentCustomerSnapshot } from "@/src/customer/customer-data.js";
 import { getSupabaseConfigStatus } from "@/src/lib/supabase/config.js";
-import { isOnlinePaymentEnabled } from "@/src/payments/payment-config.js";
 import { createServerSupabaseClient } from "@/src/lib/supabase/server.js";
 
 const CartCheckout = nextDynamic(() =>
@@ -30,7 +29,6 @@ export default async function CartPage() {
         currentUser={snapshot.user}
         initialAddresses={snapshot.addresses ?? []}
         initialCustomer={snapshot.customer}
-        isOnlinePaymentEnabled={isOnlinePaymentEnabled()}
         isSupabaseConfigured={isConfigured}
         products={catalog.products}
       />

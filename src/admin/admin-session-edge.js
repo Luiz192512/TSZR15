@@ -1,5 +1,3 @@
-import { isPreviewTarget, readEnvValue } from "../lib/runtime-target.js";
-
 import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SESSION_MAX_AGE_SECONDS,
@@ -11,16 +9,8 @@ export { ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_SECONDS };
 
 const encoder = new TextEncoder();
 
-/**
- * Token do admin, por ambiente.
- *
- * Mesma regra do Supabase e do Mercado Pago: o NOME da variavel declara o
- * ambiente, e nao ha fallback entre os dois conjuntos. Staging sem o proprio
- * token fica com o admin DESLIGADO — nunca cai no token da loja no ar, que
- * abriria o painel de producao para quem tivesse acesso ao staging.
- */
 function getConfiguredAdminToken() {
-  return readEnvValue(isPreviewTarget() ? "TSZR15_PREVIEW_ADMIN_TOKEN" : "TSZR15_ADMIN_TOKEN");
+  return process.env.TSZR15_ADMIN_TOKEN ?? "";
 }
 
 export function isAdminTokenValueConfiguredAtEdge(token = getConfiguredAdminToken()) {

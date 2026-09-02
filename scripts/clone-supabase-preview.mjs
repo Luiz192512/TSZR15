@@ -29,14 +29,6 @@ const cloneTables = [
     name: "catalog_product_costs",
     onConflict: "product_id"
   },
-  // Sem estoque o catalogo aparece esgotado e o checkout falha na reserva: o
-  // staging viraria uma vitrine que nao fecha pedido. A chave e a mesma da PK
-  // (produto + variacao + tamanho) desde o eixo de tamanho.
-  {
-    deleteColumn: "product_id",
-    name: "catalog_variation_stock",
-    onConflict: "product_id,variation,size"
-  },
   {
     deleteColumn: "code",
     name: "catalog_coupons",
@@ -57,7 +49,6 @@ const cloneTables = [
 const deleteOrder = [
   "catalog_product_categories",
   "catalog_product_costs",
-  "catalog_variation_stock",
   "catalog_coupons",
   "catalog_products",
   "catalog_categories"

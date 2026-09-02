@@ -3,7 +3,11 @@ import { cx } from "@/src/lib/classnames";
 import Image from "next/image";
 import Link from "next/link";
 
-import { brandLogoSrc, heroBoardSrc, StoreHeader } from "./catalog-shared.js";
+import {
+  brandLogoSrc,
+  heroBoardSrc,
+  StoreHeader
+} from "./catalog-shared.js";
 import { FeaturedProductCarousel } from "./featured-product-carousel.js";
 import { ProductCard } from "./product-card.js";
 

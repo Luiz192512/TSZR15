@@ -55,18 +55,6 @@ export function getMessage(params) {
     return "Pedido criado no painel admin.";
   }
 
-  if (params?.status === "repasse-registrado") {
-    return "Repasse registrado. O valor sai da conta por uma pessoa, nao pelo sistema.";
-  }
-
-  if (params?.status === "repasse-desfeito") {
-    return "Repasse desfeito. O lancamento voltou para pendente.";
-  }
-
-  if (params?.status === "ledger-recalculado") {
-    return "Lancamento recalculado a partir do pagamento e das compras.";
-  }
-
   if (params?.status === "produto-salvo") {
     return "Produto salvo no catalogo.";
   }
@@ -136,12 +124,6 @@ function AdminTabs({ activeTab }) {
         Analise
       </Link>
       <Link
-        className={cx(globalStyles, activeTab === "financeiro" ? "is-active" : "")}
-        href="/admin/financeiro"
-      >
-        Financeiro
-      </Link>
-      <Link
         className={cx(globalStyles, activeTab === "cupons" ? "is-active" : "")}
         href="/admin/cupons"
       >
@@ -168,7 +150,9 @@ export function AdminSetup({ message, mode = "env" }) {
     <main className={cx(globalStyles, "page-shell auth-page")}>
       <SiteHeader showAccountNav={false} />
       <section className={cx(globalStyles, "setup-panel")}>
-        <p className={cx(globalStyles, "section-label")}>{sectionLabel}</p>
+        <p className={cx(globalStyles, "section-label")}>
+          {sectionLabel}
+        </p>
         <h1>{heading}</h1>
         {isDatabaseIssue ? (
           <>

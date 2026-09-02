@@ -1,11 +1,12 @@
-import { parseAdminDateTimeInput, parseAdminMoneyToCents } from "./admin-form-values.js";
-import { logServerEvent } from "../lib/logger.js";
-import { recomputeLedger } from "../payments/ledger-reconciliation.js";
+import {
+  parseAdminDateTimeInput,
+  parseAdminMoneyToCents,
+} from "./admin-form-values.js";
 import {
   isKnownStatus,
   operationalStatuses,
   paymentStatuses,
-  supplierSourceStatuses
+  supplierSourceStatuses,
 } from "../orders/status.js";
 
 function cleanString(value, maxLength = 500) {
@@ -81,7 +82,8 @@ export function buildAdminOrderOperationRpcArgs(formData) {
   const operationId = cleanString(formData.get("operationId"), 80);
   const paymentStatus = cleanString(formData.get("paymentStatus"), 80);
   const operationalStatus = cleanString(formData.get("operationalStatus"), 80);
-  const sourceStatus = cleanString(formData.get("sourceStatus"), 80) || "nao_comprado";
+  const sourceStatus =
+    cleanString(formData.get("sourceStatus"), 80) || "nao_comprado";
   const trackingStatus = cleanNullable(formData.get("trackingStatus"), 120);
 
   if (!orderId) {
@@ -89,7 +91,9 @@ export function buildAdminOrderOperationRpcArgs(formData) {
   }
 
   if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      operationId,
+    )
   ) {
     throw new Error("Identificador da operacao invalido.");
   }
@@ -106,7 +110,10 @@ export function buildAdminOrderOperationRpcArgs(formData) {
     throw new Error("Status da origem invalido.");
   }
 
-  const supplierPurchaseId = cleanNullable(formData.get("supplierPurchaseId"), 80);
+  const supplierPurchaseId = cleanNullable(
+    formData.get("supplierPurchaseId"),
+    80,
+  );
   const supplier = {
     carrier: cleanNullable(formData.get("carrier"), 120),
     currency: cleanString(formData.get("supplierCurrency"), 12) || "BRL",
@@ -114,27 +121,46 @@ export function buildAdminOrderOperationRpcArgs(formData) {
     internalChannel: cleanNullable(formData.get("internalChannel"), 80),
     internalNotes: cleanNullable(formData.get("supplierNotes"), 1800),
     operationalAccount: cleanNullable(formData.get("operationalAccount"), 160),
-    productCostCents: parseOptionalMoney(formData, "productCost", "um custo de produto"),
+    productCostCents: parseOptionalMoney(
+      formData,
+      "productCost",
+      "um custo de produto",
+    ),
     proofUrl: cleanNullable(formData.get("proofUrl"), 600),
-    purchasedAt: parseOptionalDate(formData, "purchasedAt", "uma data da compra"),
-    shippingCostCents: parseOptionalMoney(formData, "shippingCost", "um custo de frete"),
+    purchasedAt: parseOptionalDate(
+      formData,
+      "purchasedAt",
+      "uma data da compra",
+    ),
+    shippingCostCents: parseOptionalMoney(
+      formData,
+      "shippingCost",
+      "um custo de frete",
+    ),
     sourceEta: cleanNullable(formData.get("sourceEta"), 160),
     sourceOrderNumber: cleanNullable(formData.get("sourceOrderNumber"), 180),
     sourceProductUrl: cleanNullable(formData.get("sourceProductUrl"), 900),
     sourceStatus,
     sourceStoreName: cleanNullable(formData.get("sourceStoreName"), 180),
-    trackingCode: cleanNullable(formData.get("trackingCode"), 180)
+    trackingCode: cleanNullable(formData.get("trackingCode"), 180),
   };
-  const trackingDescription = cleanNullable(formData.get("trackingDescription"), 900);
+  const trackingDescription = cleanNullable(
+    formData.get("trackingDescription"),
+    900,
+  );
   const trackingLocation = cleanNullable(formData.get("trackingLocation"), 160);
-  const trackingEventAt = parseOptionalDate(formData, "trackingEventAt", "uma data do rastreio");
+  const trackingEventAt = parseOptionalDate(
+    formData,
+    "trackingEventAt",
+    "uma data do rastreio",
+  );
   const tracking =
     trackingStatus || trackingDescription || trackingEventAt || trackingLocation
       ? {
           description: trackingDescription,
           eventAt: trackingEventAt,
           location: trackingLocation,
-          status: trackingStatus || operationalStatus
+          status: trackingStatus || operationalStatus,
         }
       : null;
 
@@ -143,39 +169,27 @@ export function buildAdminOrderOperationRpcArgs(formData) {
       assignedOperator: cleanNullable(formData.get("assignedOperator"), 120),
       internalNotes: cleanNullable(formData.get("orderInternalNotes"), 1800),
       operationalStatus,
-      paymentStatus
+      paymentStatus,
     },
     p_order_id: orderId,
     p_order_number: orderNumber,
     p_operation_id: operationId,
     p_payment: {
       provider: cleanString(formData.get("paymentProvider"), 80) || "manual",
-      providerReference: cleanNullable(formData.get("paymentReference"), 180)
+      providerReference: cleanNullable(formData.get("paymentReference"), 180),
     },
-    p_supplier: supplierPurchaseId || hasSupplierPayload(supplier) ? supplier : null,
+    p_supplier:
+      supplierPurchaseId || hasSupplierPayload(supplier) ? supplier : null,
     p_supplier_purchase_id: supplierPurchaseId,
-    p_tracking: tracking
+    p_tracking: tracking,
   };
 }
 
-// A operacao pode identificar o pedido pelo id OU pelo numero. O ledger e por
-// id, entao quando so o numero veio o id precisa ser buscado.
-async function resolveOrderId({ args, orderNumber, supabase }) {
-  if (args.p_order_id) {
-    return args.p_order_id;
-  }
-
-  const { data } = await supabase
-    .from("orders")
-    .select("id")
-    .eq("order_number", orderNumber)
-    .maybeSingle();
-
-  return data?.id ?? null;
-}
-
 export async function saveAdminOrderOperation({ args, supabase }) {
-  const { data, error } = await supabase.rpc("save_admin_order_operation", args);
+  const { data, error } = await supabase.rpc(
+    "save_admin_order_operation",
+    args,
+  );
 
   if (error) {
     throw new Error(error.message);
@@ -185,23 +199,8 @@ export async function saveAdminOrderOperation({ args, supabase }) {
     throw new Error("O banco nao retornou o pedido atualizado.");
   }
 
-  // O ledger e DERIVADO das fontes, entao vive fora da transacao de proposito:
-  // recomputar e sempre possivel depois, e travar a operacao do admin por causa
-  // de um numero recalculavel seria pior do que recomputar na proxima gravacao.
-  try {
-    await recomputeLedger({
-      orderId: await resolveOrderId({ args, orderNumber: data.orderNumber, supabase }),
-      supabase
-    });
-  } catch (error) {
-    logServerEvent("error", "ledger_reconciliacao_pos_operacao_falhou", {
-      motivo: error?.message,
-      orderId: args.p_order_id
-    });
-  }
-
   return {
     orderNumber: data.orderNumber,
-    supplierPurchaseId: data.supplierPurchaseId ?? null
+    supplierPurchaseId: data.supplierPurchaseId ?? null,
   };
 }

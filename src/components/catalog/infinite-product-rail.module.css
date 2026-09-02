@@ -4,20 +4,8 @@
   max-width: 100%;
   overflow: hidden;
   /* esmaece as bordas para o loop nao "cortar" visualmente */
-  mask-image: linear-gradient(
-    90deg,
-    transparent,
-    rgb(var(--shadow-rgb)) 6%,
-    rgb(var(--shadow-rgb)) 94%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    90deg,
-    transparent,
-    rgb(var(--shadow-rgb)) 6%,
-    rgb(var(--shadow-rgb)) 94%,
-    transparent
-  );
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
 
 .track {
@@ -72,7 +60,7 @@
 }
 
 .card:hover {
-  border-color: rgb(var(--brand-alt-rgb) / 0.55);
+  border-color: rgba(255, 55, 66, 0.55);
   transform: translateY(-2px);
 }
 
@@ -94,7 +82,7 @@
 
 .name {
   overflow: hidden;
-  color: var(--text-secondary);
+  color: #dfe2e7;
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.25;
@@ -104,7 +92,7 @@
 }
 
 .price {
-  color: var(--brand-text);
+  color: #ff5158;
   font-size: 0.86rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;

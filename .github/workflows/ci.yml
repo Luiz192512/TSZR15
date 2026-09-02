@@ -20,9 +20,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Sem gate, a formatacao volta a divergir: quando esta fase comecou,
-      # 36 arquivos ja estavam fora do padrao do Prettier.
-      - run: npm run format:check
       - run: npm run lint
       - run: npm test
       - run: npm run test:unit

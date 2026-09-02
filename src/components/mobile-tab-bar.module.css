@@ -12,10 +12,10 @@
     z-index: 60;
     display: flex;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgb(var(--veil-rgb) / 0.7), rgb(var(--veil-rgb) / 0.97) 42%);
+    background: linear-gradient(180deg, rgba(8, 9, 12, 0.7), rgba(8, 9, 12, 0.97) 42%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgb(var(--ink-rgb) / 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   /* o padding-bottom global do body (para nada ficar atras da barra)
@@ -30,7 +30,7 @@
   align-items: center;
   gap: 4px;
   padding: 6px 0;
-  color: var(--text-secondary);
+  color: #6e7480;
   font-size: 10.5px;
   font-weight: 700;
   text-decoration: none;
@@ -38,7 +38,7 @@
 }
 
 .tab.active {
-  color: var(--text-primary);
+  color: #eef1f6;
 }
 
 .ico {
@@ -53,7 +53,7 @@
 }
 
 .tab.active .ico svg {
-  color: var(--brand);
+  color: #ff3742;
 }
 
 .tab.active::before {
@@ -63,8 +63,7 @@
   width: 26px;
   height: 3px;
   border-radius: 3px;
-  background: linear-gradient(90deg, var(--brand), var(--brand-dark));
-  color: var(--text-on-brand);
+  background: linear-gradient(90deg, #ff3742, #c20e1a);
 }
 
 .badge {
@@ -77,16 +76,16 @@
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--brand);
-  color: var(--text-on-brand);
+  background: #ff3742;
+  color: #fff;
   font-size: 10px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 0 2px var(--surface-deepest);
+  box-shadow: 0 0 0 2px #0b0c10;
 }
 
 .tab:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid #ff3742;
   outline-offset: 2px;
   border-radius: 8px;
 }

@@ -19,7 +19,6 @@ import {
 } from "@/src/catalog/product-presentation.js";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
-import { ThemeToggle } from "@/src/components/theme/theme-toggle.js";
 import {
   cartChangedEventName,
   clearStoredCart,
@@ -191,7 +190,9 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
     <div
       className={cx(
         globalStyles,
-        `product-image product-image-${size} ${familyClass} ${showPhoto ? "has-product-photo" : ""}`
+        `product-image product-image-${size} ${familyClass} ${
+          showPhoto ? "has-product-photo" : ""
+        }`
       )}
     >
       {showPhoto ? (
@@ -283,7 +284,6 @@ export function StoreHeader({
         </Link>
 
         <div className={cx(globalStyles, "mobile-nav-actions")}>
-          <ThemeToggle />
           <Link
             aria-label={`Carrinho ${cartCount} ${cartCount === 1 ? "item" : "itens"} - abrir pedido`}
             className={cx(globalStyles, "cart-nav-link mobile-cart-link")}
@@ -353,7 +353,6 @@ export function StoreHeader({
           unauthenticatedClassName="button button-secondary"
           user={currentUser}
         />
-        <ThemeToggle />
       </nav>
     </header>
   );

@@ -19,18 +19,6 @@ function getCustomerKey(order) {
   );
 }
 
-/**
- * Custo de um pedido: o real do fornecedor quando existe, o estimado dos itens
- * enquanto a compra nao foi registrada.
- *
- * Regra unica no projeto — o ledger financeiro
- * (`src/payments/ledger-reconciliation.js`) chama esta mesma funcao, para que
- * painel e repasse nunca discordem sobre quanto o pedido custou.
- */
-export function resolveOrderCostCents({ actualCostCents, estimatedCostCents }) {
-  return actualCostCents ?? estimatedCostCents ?? 0;
-}
-
 function isActiveOrder(order) {
   return order.internal_order_status !== "recusado" && order.operational_status !== "cancelado";
 }
@@ -62,7 +50,8 @@ export function buildAdminOrderAnalytics({
 
   for (const purchase of supplierPurchases) {
     const orderId = purchase.order_id;
-    const knownCostCents = (purchase.product_cost_cents ?? 0) + (purchase.shipping_cost_cents ?? 0);
+    const knownCostCents =
+      (purchase.product_cost_cents ?? 0) + (purchase.shipping_cost_cents ?? 0);
 
     costsByOrderId.set(orderId, (costsByOrderId.get(orderId) ?? 0) + knownCostCents);
   }
@@ -72,12 +61,7 @@ export function buildAdminOrderAnalytics({
   const salesOrderIds = new Set(salesOrders.map((order) => order.id));
   const totalRevenueCents = sumCents(salesOrders.map((order) => order.total_cents));
   const knownCostCents = sumCents(
-    salesOrders.map((order) =>
-      resolveOrderCostCents({
-        actualCostCents: costsByOrderId.get(order.id) ?? null,
-        estimatedCostCents: itemCostsByOrderId.get(order.id) ?? null
-      })
-    )
+    salesOrders.map((order) => costsByOrderId.get(order.id) ?? itemCostsByOrderId.get(order.id) ?? 0)
   );
   const grossProfitCents = totalRevenueCents - knownCostCents;
   const averageTicketCents =

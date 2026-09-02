@@ -11,7 +11,6 @@ import {
   upsertAdminCoupon,
   upsertAdminCatalogProduct
 } from "@/src/admin/catalog-admin.js";
-import { markLedgerPayout, reconcileAdminLedger } from "@/src/admin/finance-admin.js";
 import {
   createAdminManualOrder,
   setAdminInternalOrderStatus,
@@ -241,47 +240,4 @@ export async function moderateOrderReviewAction(formData) {
   }
 
   redirect(`/admin/analise?status=avaliacao-${result.status}`);
-}
-
-// O sistema NAO transfere dinheiro. Esta action registra que uma pessoa
-// transferiu — por isso exige quem aprovou, quando e a referencia.
-export async function markLedgerPayoutAction(formData) {
-  if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin/financeiro", "Sessao administrativa expirada.");
-  }
-
-  if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin/financeiro", "Requisicao administrativa rejeitada.");
-  }
-
-  let result;
-
-  try {
-    result = await markLedgerPayout(formData);
-    revalidateAdminPanel();
-  } catch (error) {
-    redirectWithError("/admin/financeiro", getActionErrorMessage(error));
-  }
-
-  const status = result.payoutStatus === "repassado" ? "repasse-registrado" : "repasse-desfeito";
-  redirect(`/admin/financeiro?status=${status}`);
-}
-
-export async function reconcileLedgerAction(formData) {
-  if (!(await isAdminSessionValid())) {
-    redirectWithError("/admin/financeiro", "Sessao administrativa expirada.");
-  }
-
-  if (!(await isSameOriginAdminRequest())) {
-    redirectWithError("/admin/financeiro", "Requisicao administrativa rejeitada.");
-  }
-
-  try {
-    await reconcileAdminLedger(formData);
-    revalidateAdminPanel();
-  } catch (error) {
-    redirectWithError("/admin/financeiro", getActionErrorMessage(error));
-  }
-
-  redirect("/admin/financeiro?status=ledger-recalculado");
 }

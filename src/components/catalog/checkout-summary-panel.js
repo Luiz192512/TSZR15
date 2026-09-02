@@ -14,31 +14,15 @@ import {
   sanitizeTaxId,
   taxIdPattern
 } from "@/src/customer/field-validation.js";
-import {
-  formatCurrency,
-  isOnlinePaymentMethod,
-  listPaymentMethods,
-  shippingOptions
-} from "@/src/checkout/whatsapp.js";
+import { formatCurrency, paymentMethods, shippingOptions } from "@/src/checkout/whatsapp.js";
 
-function PaymentAndShipping({
-  isOnlinePaymentEnabled = false,
-  onPaymentMethodChange,
-  onShippingOptionChange,
-  paymentMethodId,
-  shippingOptionId
-}) {
-  const metodosDePagamento = listPaymentMethods({ isOnlinePaymentEnabled });
-
+function PaymentAndShipping({ onPaymentMethodChange, onShippingOptionChange, paymentMethodId, shippingOptionId }) {
   return (
     <div className={cx(globalStyles, "checkout-form checkout-delivery-grid")}>
       <label>
         <span>Pagamento</span>
-        <select
-          onChange={(event) => onPaymentMethodChange(event.target.value)}
-          value={paymentMethodId}
-        >
-          {metodosDePagamento.map((paymentMethod) => (
+        <select onChange={(event) => onPaymentMethodChange(event.target.value)} value={paymentMethodId}>
+          {paymentMethods.map((paymentMethod) => (
             <option key={paymentMethod.id} value={paymentMethod.id}>
               {paymentMethod.label}
             </option>
@@ -47,10 +31,7 @@ function PaymentAndShipping({
       </label>
       <label>
         <span>Frete</span>
-        <select
-          onChange={(event) => onShippingOptionChange(event.target.value)}
-          value={shippingOptionId}
-        >
+        <select onChange={(event) => onShippingOptionChange(event.target.value)} value={shippingOptionId}>
           {shippingOptions.map((shippingOption) => (
             <option key={shippingOption.id} value={shippingOption.id}>
               {shippingOption.label} - {formatCurrency(shippingOption.priceCents)}
@@ -62,13 +43,7 @@ function PaymentAndShipping({
   );
 }
 
-function NewAddressForm({
-  isSavingAddress,
-  newAddress,
-  onNewAddressCepLookup,
-  onNewAddressChange,
-  onSaveNewAddress
-}) {
+function NewAddressForm({ isSavingAddress, newAddress, onNewAddressCepLookup, onNewAddressChange, onSaveNewAddress }) {
   return (
     <div className={cx(globalStyles, "address-card address-new-form")}>
       <div className={cx(globalStyles, "address-new-grid")}>
@@ -156,7 +131,6 @@ function LoggedInDelivery({
   addressFeedback,
   addresses,
   customer,
-  isOnlinePaymentEnabled = false,
   isAddingAddress,
   isSavingAddress,
   newAddress,
@@ -180,9 +154,7 @@ function LoggedInDelivery({
         <div>
           <span>Comprando como</span>
           <strong>{customer.name || "Cliente"}</strong>
-          <small>
-            {[customer.whatsapp, customer.email].filter(Boolean).join(" · ") || "Conta TSZR15"}
-          </small>
+          <small>{[customer.whatsapp, customer.email].filter(Boolean).join(" · ") || "Conta TSZR15"}</small>
         </div>
         <Link className={cx(globalStyles, "checkout-edit-link")} href="/conta?tab=dados">
           Editar dados
@@ -272,7 +244,6 @@ function LoggedInDelivery({
       </div>
 
       <PaymentAndShipping
-        isOnlinePaymentEnabled={isOnlinePaymentEnabled}
         onPaymentMethodChange={onPaymentMethodChange}
         onShippingOptionChange={onShippingOptionChange}
         paymentMethodId={paymentMethodId}
@@ -285,7 +256,6 @@ function LoggedInDelivery({
 export function CheckoutSummaryPanel({
   addressFeedback,
   addresses,
-  isOnlinePaymentEnabled = false,
   canCheckout,
   cartItems,
   cepLookup,
@@ -325,13 +295,6 @@ export function CheckoutSummaryPanel({
   totals,
   whatsappMessage
 }) {
-  const metodosDePagamento = listPaymentMethods({ isOnlinePaymentEnabled });
-  // Pix, cartao e boleto terminam na tela de pagamento; o resto vai para o
-  // WhatsApp. O botao PRECISA dizer qual dos dois vai acontecer — prometer
-  // "enviar no WhatsApp" e abrir uma tela de cobranca e a pior surpresa
-  // possivel no momento em que o cliente decide pagar.
-  const paysOnline = isOnlinePaymentEnabled && isOnlinePaymentMethod(paymentMethodId);
-
   return (
     <aside className={cx(globalStyles, "cart-summary-panel")}>
       <div className={cx(globalStyles, "checkout-header")}>
@@ -362,7 +325,6 @@ export function CheckoutSummaryPanel({
               addressFeedback={addressFeedback}
               addresses={addresses}
               customer={customer}
-              isOnlinePaymentEnabled={isOnlinePaymentEnabled}
               isAddingAddress={isAddingAddress}
               isSavingAddress={isSavingAddress}
               newAddress={newAddress}
@@ -426,9 +388,7 @@ export function CheckoutSummaryPanel({
                 <input
                   aria-required="true"
                   inputMode="tel"
-                  onChange={(event) =>
-                    onCustomerChange("whatsapp", sanitizePhone(event.target.value))
-                  }
+                  onChange={(event) => onCustomerChange("whatsapp", sanitizePhone(event.target.value))}
                   pattern={phonePattern}
                   placeholder="(00) 00000-0000"
                   title="Use somente números e pontuação de telefone."
@@ -488,11 +448,8 @@ export function CheckoutSummaryPanel({
               </label>
               <label>
                 <span>Pagamento</span>
-                <select
-                  onChange={(event) => onPaymentMethodChange(event.target.value)}
-                  value={paymentMethodId}
-                >
-                  {metodosDePagamento.map((paymentMethod) => (
+                <select onChange={(event) => onPaymentMethodChange(event.target.value)} value={paymentMethodId}>
+                  {paymentMethods.map((paymentMethod) => (
                     <option key={paymentMethod.id} value={paymentMethod.id}>
                       {paymentMethod.label}
                     </option>
@@ -501,10 +458,7 @@ export function CheckoutSummaryPanel({
               </label>
               <label>
                 <span>Frete</span>
-                <select
-                  onChange={(event) => onShippingOptionChange(event.target.value)}
-                  value={shippingOptionId}
-                >
+                <select onChange={(event) => onShippingOptionChange(event.target.value)} value={shippingOptionId}>
                   {shippingOptions.map((shippingOption) => (
                     <option key={shippingOption.id} value={shippingOption.id}>
                       {shippingOption.label} - {formatCurrency(shippingOption.priceCents)}
@@ -580,13 +534,11 @@ export function CheckoutSummaryPanel({
             ) : null}
           </div>
 
-          {paysOnline ? null : (
-            <textarea
-              className={cx(globalStyles, "message-preview")}
-              readOnly
-              value={whatsappMessage}
-            />
-          )}
+          <textarea
+            className={cx(globalStyles, "message-preview")}
+            readOnly
+            value={whatsappMessage}
+          />
           <p className={cx(globalStyles, "checkout-note")} aria-live="polite">
             {hasAutoFilledAddressPendingEdit
               ? "Complete o endereço com número antes de enviar."
@@ -595,9 +547,7 @@ export function CheckoutSummaryPanel({
                 : customerFieldErrors.length > 0
                   ? customerFieldErrors[0]
                   : hasDataConsent
-                    ? paysOnline
-                      ? "Pedido pronto. O pagamento abre na proxima tela."
-                      : "Pedido pronto para enviar ao atendimento."
+                    ? "Pedido pronto para enviar ao atendimento."
                     : "Confirme o aceite de dados para liberar o envio."}
           </p>
           {checkoutFeedback ? (
@@ -606,7 +556,7 @@ export function CheckoutSummaryPanel({
             </p>
           ) : null}
           <button
-            aria-label={paysOnline ? "Ir para o pagamento" : "Enviar pedido no WhatsApp"}
+            aria-label="Enviar pedido no WhatsApp"
             className={cx(
               globalStyles,
               `button button-success checkout-button ${!canCheckout || isSubmittingCheckout ? "is-disabled" : ""}`
@@ -620,8 +570,6 @@ export function CheckoutSummaryPanel({
                 <span aria-hidden="true" className={cx(globalStyles, "button-loader")} />
                 Salvando pedido...
               </>
-            ) : paysOnline ? (
-              "Ir para o pagamento"
             ) : (
               "Enviar pedido no WhatsApp"
             )}

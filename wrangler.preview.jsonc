@@ -2,20 +2,14 @@
   // Worker de STAGING para revisar branches sem tocar na producao.
   // Deploy: npx wrangler deploy --config wrangler.preview.jsonc
   // URL: https://tsz-store-preview.enz-luizgustavo.workers.dev
-  // Namespaces KV, Durable Object e self-reference sao proprios: o staging nao
-  // compartilha nada de cache com a producao. Antes os dois usavam o mesmo KV,
-  // e uma revalidacao disparada aqui podia invalidar tags da loja no ar.
+  // Compartilha KV com a producao (chaves de cache incluem o buildId,
+  // entao nao colidem); o Durable Object e o self-reference sao proprios.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tsz-store-preview",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-07-07",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  // Sem esta variavel o Worker de preview resolvia para o Supabase de PRODUCAO:
-  // o codigo antigo caia em VERCEL_ENV, que nao existe na Cloudflare.
-  "vars": {
-    "SUPABASE_RUNTIME_TARGET": "preview"
-  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -23,11 +17,11 @@
   "kv_namespaces": [
     {
       "binding": "NEXT_INC_CACHE_KV",
-      "id": "f9f7d157244e43d68409007089560f3b"
+      "id": "a12d6d53e59948a888bc62e5a30de08e"
     },
     {
       "binding": "NEXT_TAG_CACHE_KV",
-      "id": "e12569429ae240a08c6f3caf48f63ec9"
+      "id": "a12d6d53e59948a888bc62e5a30de08e"
     }
   ],
   "durable_objects": {

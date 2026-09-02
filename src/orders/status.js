@@ -1,36 +1,9 @@
-// Os quatro primeiros existem desde o fluxo manual de WhatsApp e NAO podem
-// sair da lista: pedidos ja gravados usam esses valores. Os demais entraram
-// com cartao e boleto, que tem estados que o Pix nao tem — autorizado sem
-// captura, analise antifraude, chargeback e boleto que fica dias em aberto.
-// A migracao 20260825120000 ampliou o CHECK de payments.status para aceitar
-// todos eles.
 export const paymentStatuses = [
   { id: "aguardando_pagamento", label: "Aguardando pagamento" },
-  { id: "em_analise", label: "Em analise antifraude" },
-  { id: "autorizado", label: "Autorizado (sem captura)" },
   { id: "pagamento_confirmado", label: "Pagamento confirmado" },
-  { id: "recusado", label: "Recusado" },
-  { id: "expirado", label: "Expirado" },
   { id: "cancelado", label: "Cancelado" },
-  { id: "reembolsado_parcial", label: "Reembolsado parcialmente" },
-  { id: "reembolsado", label: "Reembolsado" },
-  { id: "estornado", label: "Estornado (chargeback)" }
+  { id: "reembolsado", label: "Reembolsado" }
 ];
-
-// Estados em que o dinheiro nao esta garantido: o pedido nao pode seguir para
-// compra no fornecedor. `autorizado` entra aqui de proposito — cartao
-// autorizado e dinheiro reservado, nao recebido.
-export const pendingPaymentStatuses = [
-  "aguardando_pagamento",
-  "em_analise",
-  "autorizado",
-  "recusado",
-  "expirado"
-];
-
-export function isSettledPaymentStatus(status) {
-  return status === "pagamento_confirmado";
-}
 
 export const operationalStatuses = [
   { id: "orcamento_iniciado", label: "Orcamento iniciado" },
@@ -126,5 +99,7 @@ export function getEffectiveInternalOrderStatus(order, now = new Date()) {
     return "";
   }
 
-  return now.getTime() - createdAt.getTime() >= internalOrderPendingAfterMs ? "pendente" : "";
+  return now.getTime() - createdAt.getTime() >= internalOrderPendingAfterMs
+    ? "pendente"
+    : "";
 }
