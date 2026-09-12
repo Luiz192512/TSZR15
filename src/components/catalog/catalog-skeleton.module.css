@@ -1,6 +1,16 @@
+/* O brilho corre por cima com `transform`, nao movendo o fundo.
+   `background-position-x` nao e propriedade de composicao: cada quadro obrigava
+   o navegador a repintar a area inteira do esqueleto — e o esqueleto do hero
+   tem ate 620px de altura. Pior: isso rodava justamente enquanto a pagina
+   carrega, disputando a thread com a hidratacao. Como translacao de uma camada
+   por cima, a animacao inteira sai da thread principal. */
 @keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+
   to {
-    background-position-x: -200%;
+    transform: translateX(100%);
   }
 }
 
@@ -20,14 +30,32 @@
 .heading,
 .feature,
 .card {
-  background: linear-gradient(
-      100deg,
-      var(--surface-raised) 20%,
-      var(--surface-shimmer) 40%,
-      var(--surface-raised) 60%
-    )
-    200% 0 / 200% 100%;
+  position: relative;
+  /* Segura a faixa que passa por dentro das bordas do proprio esqueleto. */
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+
+.hero::after,
+.heading::after,
+.feature::after,
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, var(--surface-shimmer) 40%, transparent 60%);
   animation: shimmer 1.4s linear infinite;
+}
+
+/* Sem movimento, o esqueleto continua sendo um bloco cinza legivel — ele nao
+   depende do brilho para comunicar que a loja esta carregando. */
+@media (prefers-reduced-motion: reduce) {
+  .hero::after,
+  .heading::after,
+  .feature::after,
+  .card::after {
+    animation: none;
+  }
 }
 
 .hero {

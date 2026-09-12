@@ -47,11 +47,21 @@ const nextConfig = {
   images: {
     // O otimizador /_next/image nao roda no worker do OpenNext/Cloudflare: ele
     // devolve o arquivo original (sem redimensionar, sem webp/avif e sem
-    // Cache-Control). Com unoptimized, as <Image> apontam direto para a fonte:
-    // as fotos de produto ja vem do Supabase como webp pre-otimizado com cache
-    // de 1 ano (scripts/optimize-product-images.mjs) e os assets de marca sao
-    // servidos como webp local por public/brand.
-    unoptimized: true,
+    // Cache-Control). A saida NAO e desligar o next/image: e trocar o otimizador
+    // por um carregador que escolhe, entre as tres variantes ja geradas por
+    // `scripts/optimize-product-images.mjs`, a que serve a largura pedida.
+    //
+    // Antes, com `unoptimized`, nao havia `srcset`: o celular recebia a mesma
+    // variante do desktop. O carregador nao redimensiona em tempo de
+    // requisicao, entao nada disso passa pelo worker.
+    //
+    // As listas abaixo sao as larguras que EXISTEM como arquivo. Deixar as
+    // padroes do Next (16 valores, ate 3840 px) encheria o `srcset` de larguras
+    // que cairiam todas na mesma variante.
+    deviceSizes: [640, 1200],
+    imageSizes: [200],
+    loader: "custom",
+    loaderFile: "./src/catalog/image-loader.js",
     remotePatterns: supabaseImagePatterns()
   },
   async headers() {

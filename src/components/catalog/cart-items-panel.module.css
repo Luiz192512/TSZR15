@@ -45,7 +45,10 @@
   border: 1px solid rgba(227, 147, 47, 0.45);
   border-radius: 8px;
   background: rgba(255, 191, 80, 0.12);
-  color: #8a4f09;
+  /* Era `#8a4f09` cravado — um marrom proximo do token do tema claro, mas
+     congelado. No escuro ele ficava escuro sobre superficie escura. O papel
+     "aviso" ja existe no vocabulario e inverte sozinho. */
+  color: var(--status-warning);
   padding: 10px 12px;
   font-size: 0.86rem;
   line-height: 1.4;

@@ -49,11 +49,39 @@ function withoutComments(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
+// Junta TODOS os blocos `:root {` sem condicao — os que valem sempre, para
+// qualquer visitante. A versao anterior fatiava do primeiro ":root" ate o
+// primeiro "\n}", entao um token declarado num segundo bloco `:root` passava
+// como "nao definido" e o teste prometia mais do que verificava.
+//
+// `:root[data-theme=...]` e `:root:not(...)` ficam DE FORA de proposito: um
+// token que so existe no tema escuro nao esta definido para quem usa o claro,
+// e e justamente isso que este teste tem que pegar. A igualdade entre os dois
+// caminhos do tema escuro e conferida em outro teste deste arquivo.
 function definedTokens(css) {
-  const rootBlock = css.slice(css.indexOf(":root"), css.indexOf("\n}"));
+  const tokens = new Set();
 
-  return new Set([...rootBlock.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((match) => match[1]));
+  for (const abertura of css.matchAll(/(?:^|\})\s*:root\s*\{/gm)) {
+    const inicio = abertura.index + abertura[0].length;
+    const fim = css.indexOf("}", inicio);
+
+    if (fim === -1) continue;
+
+    for (const match of css.slice(inicio, fim).matchAll(/(--[a-z0-9-]+)\s*:/g)) {
+      tokens.add(match[1]);
+    }
+  }
+
+  return tokens;
 }
+
+// Token que NAO nasce em globals.css, com o lugar onde nasce. A lista existe
+// para continuar sendo curta: cada entrada aqui e um token que este teste deixa
+// de vigiar, entao cada uma precisa de outro teste que garanta a origem — logo
+// abaixo, no caso deste.
+const TOKENS_DE_FORA = new Map([
+  ["--fonte-marca", "next/font em app/layout.js, injetado como classe no <html>"]
+]);
 
 test("todo token usado no CSS esta definido em globals.css", async () => {
   const tokens = definedTokens(await readCss(TOKEN_SOURCE));
@@ -63,13 +91,36 @@ test("todo token usado no CSS esta definido em globals.css", async () => {
     const css = await readCss(file);
 
     for (const match of css.matchAll(/var\(\s*(--[a-z0-9-]+)/g)) {
-      if (!tokens.has(match[1])) {
+      if (!tokens.has(match[1]) && !TOKENS_DE_FORA.has(match[1])) {
         missing.push(`${file}: ${match[1]}`);
       }
     }
   }
 
   assert.deepEqual(missing, []);
+});
+
+// A contrapartida da lista acima: se o `next/font` sair do layout, `--fonte-marca`
+// vira `var()` sem valor e o texto cai na pilha de fallback sem ninguem notar —
+// que e exatamente o problema que a fonte web veio resolver.
+test("a fonte da marca continua vindo do next/font e chegando no documento", async () => {
+  const layout = await readCss("app/layout.js");
+
+  assert.match(layout, /from "next\/font\/google"/, "next/font saiu do layout");
+  assert.match(layout, /variable:\s*"--fonte-marca"/, "o token mudou de nome no layout");
+  assert.match(
+    layout,
+    /className=\{fonteDaMarca\.variable\}/,
+    "a classe do next/font precisa estar no <html>, senao o token nao existe em lugar nenhum"
+  );
+
+  const globals = await readCss(TOKEN_SOURCE);
+
+  assert.match(
+    globals,
+    /font-family:\s*var\(--fonte-marca\)[^;]*sans-serif/,
+    "o body precisa manter uma pilha de fallback depois do token"
+  );
 });
 
 test("as familias com alfa passam pelos canais, nao por cor crua", async () => {
@@ -194,4 +245,67 @@ test("os aliases legados apontam para a camada semantica", async () => {
       `alias ${alias} deveria apontar para var(${target})`
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// Moldura da foto de produto
+// ---------------------------------------------------------------------------
+
+// As fotos do catalogo sao 1200x1200 com fundo preto solido e SEM canal alfa —
+// conferido nos arquivos com sharp. Clarear a area atras delas so cria uma
+// faixa cinza entre o card branco e o preto da foto, que foi a queixa. A
+// moldura acompanha a foto nos dois temas.
+test("a area de foto usa a moldura escura, nao a superficie da pagina", async () => {
+  const globais = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const loja = await readFile(new URL("../app/storefront.module.css", import.meta.url), "utf8");
+
+  assert.match(globais, /--surface-photo:/);
+  assert.match(globais, /--surface-photo-edge:/);
+
+  for (const seletor of [".product-image.has-product-photo {", ".product-photo-main {"]) {
+    const bloco = loja.slice(loja.indexOf(seletor), loja.indexOf(seletor) + 320);
+    assert.match(bloco, /background: var\(--surface-photo\)/, `${seletor} deveria usar a moldura`);
+  }
+});
+
+// Encaixotar foto quadrada num 4:3 sobrava faixa e deixava o card maior que a
+// imagem — era a queixa do "tamanho errado do card".
+test("a area de foto tem a proporcao da foto", async () => {
+  const loja = await readFile(new URL("../app/storefront.module.css", import.meta.url), "utf8");
+
+  // So o que exibe FOTO de produto. O 4:3 que sobra e o palco de recorte do
+  // admin, onde a proporcao e escolha de quem edita, nao da vitrine.
+  const exibemFoto = [
+    ".hub-product-card .product-image.has-product-photo,",
+    ".product-photo-main {",
+    ".admin-upload-preview-media img {"
+  ];
+
+  for (const seletor of exibemFoto) {
+    const bloco = loja.slice(loja.indexOf(seletor), loja.indexOf(seletor) + 320);
+    assert.equal(
+      bloco.includes("aspect-ratio: 4 / 3"),
+      false,
+      `${seletor} nao pode encaixotar foto quadrada num 4:3`
+    );
+  }
+
+  const card = loja.slice(loja.indexOf(".hub-product-card .product-image.has-product-photo,"));
+  assert.match(card.slice(0, 320), /aspect-ratio: 1 \/ 1/);
+
+  const principal = loja.slice(loja.indexOf(".product-photo-main {"));
+  assert.match(principal.slice(0, 260), /aspect-ratio: 1 \/ 1/);
+});
+
+// A estrela vazia usava rgba solto e dava 2.56:1 no tema claro — abaixo do
+// minimo de 3:1 para elemento grafico com significado.
+test("a estrela vazia usa token e nao valor solto", async () => {
+  const loja = await readFile(new URL("../app/storefront.module.css", import.meta.url), "utf8");
+  const bloco = loja.slice(
+    loja.indexOf(".review-stars {"),
+    loja.indexOf(".review-stars .is-filled")
+  );
+
+  assert.match(bloco, /color: var\(--status-neutral\)/);
+  assert.equal(/color: rgba\(148, 163, 184/.test(bloco), false);
 });
