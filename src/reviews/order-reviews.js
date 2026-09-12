@@ -127,7 +127,9 @@ export async function getCustomerAccountOrders({ user }) {
     supabase.from("order_item_reviews").select("*").in("order_id", orderIds).eq("user_id", user.id),
     supabase
       .from("supplier_purchases")
-      .select("order_id, carrier, source_eta, tracking_code, created_at")
+      // `tracking_code` FORA da projecao: ele e do fornecedor, e rastrea-lo
+      // mostra a origem ao cliente. Mesma regra de src/tracking/order-tracking.js.
+      .select("order_id, carrier, source_eta, created_at")
       .in("order_id", orderIds)
       .order("created_at", { ascending: true }),
     supabase
@@ -183,10 +185,13 @@ export async function getCustomerAccountOrders({ user }) {
     itemsByOrderId.set(item.order_id, orderItems);
   }
 
+  // TODAS as compras do pedido, nao so a primeira: um pedido pode ter uma por
+  // loja, e o sanitizador precisa das duas para decidir se transportadora e
+  // prazo podem aparecer.
   for (const supplierPurchase of supplierPurchases ?? []) {
-    if (!supplierByOrderId.has(supplierPurchase.order_id)) {
-      supplierByOrderId.set(supplierPurchase.order_id, supplierPurchase);
-    }
+    const doPedido = supplierByOrderId.get(supplierPurchase.order_id) ?? [];
+    doPedido.push(supplierPurchase);
+    supplierByOrderId.set(supplierPurchase.order_id, doPedido);
   }
 
   for (const event of trackingEvents ?? []) {
@@ -198,7 +203,7 @@ export async function getCustomerAccountOrders({ user }) {
   const mappedOrders = (orders ?? []).map((order) => {
     const trackingView = buildPublicOrderTrackingView({
       order,
-      supplierPurchase: supplierByOrderId.get(order.id) ?? null,
+      supplierPurchases: supplierByOrderId.get(order.id) ?? [],
       trackingEvents: trackingEventsByOrderId.get(order.id) ?? []
     });
 

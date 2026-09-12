@@ -47,25 +47,45 @@ function buildPublicTimeline(order, trackingEvents) {
   };
 }
 
-function sanitizeSupplierTracking(supplierPurchase) {
-  if (!supplierPurchase) {
-    return {
-      carrier: null,
-      sourceEta: null,
-      trackingCode: null
-    };
+/**
+ * O que o cliente pode ver dos envios.
+ *
+ * O CODIGO DE RASTREIO NAO SAI DAQUI. Ele e do fornecedor: rastrea-lo mostra
+ * "Shopee" ou "AliExpress" na transportadora, o remetente e o endereco de
+ * origem. O cliente acompanha pelo status da loja — que e o vocabulario de
+ * `customerTrackingSteps`, nao o do fornecedor.
+ *
+ * A coluna tambem nao entra na projecao da consulta, e nao e removida aqui: o
+ * valor nunca chega a existir na memoria do servidor, entao nenhum log, erro
+ * serializado ou prop de componente pode derruba-lo por acidente.
+ *
+ * Recebe uma LISTA porque um pedido pode ter uma compra por loja. Transportadora
+ * e prazo so aparecem quando todas concordam: valores diferentes revelariam que
+ * o pedido veio de dois fornecedores.
+ */
+function sanitizeSupplierTracking(supplierPurchases) {
+  const compras = supplierPurchases ?? [];
+
+  if (!compras.length) {
+    return { carrier: null, shipmentCount: 0, sourceEta: null };
   }
 
+  const consenso = (campo) => {
+    const valores = new Set(compras.map((compra) => compra?.[campo] ?? null));
+
+    return valores.size === 1 ? [...valores][0] : null;
+  };
+
   return {
-    carrier: supplierPurchase.carrier ?? null,
-    sourceEta: supplierPurchase.source_eta ?? null,
-    trackingCode: supplierPurchase.tracking_code ?? null
+    carrier: consenso("carrier"),
+    shipmentCount: compras.length,
+    sourceEta: consenso("source_eta")
   };
 }
 
-export function buildPublicOrderTrackingView({ order, supplierPurchase, trackingEvents }) {
+export function buildPublicOrderTrackingView({ order, supplierPurchases, trackingEvents }) {
   return {
-    tracking: sanitizeSupplierTracking(supplierPurchase),
+    tracking: sanitizeSupplierTracking(supplierPurchases),
     timeline: buildPublicTimeline(order, trackingEvents ?? [])
   };
 }
@@ -119,10 +139,12 @@ export async function findPublicOrderTracking({ contact, orderNumber, supabase }
       .order("created_at"),
     client
       .from("supplier_purchases")
-      .select("carrier, source_eta, tracking_code")
+      // `tracking_code` FORA da projecao, e sem `.limit(1)`: um pedido tem uma
+      // compra por loja, e mostrar so a primeira dava o rastreio de um envio
+      // como se fosse do pedido inteiro.
+      .select("carrier, source_eta")
       .eq("order_id", order.id)
-      .order("created_at")
-      .limit(1),
+      .order("created_at"),
     client
       .from("supplier_tracking_events")
       .select("id, event_status, event_at, location, description, created_at")
@@ -139,7 +161,7 @@ export async function findPublicOrderTracking({ contact, orderNumber, supabase }
 
   const trackingView = buildPublicOrderTrackingView({
     order,
-    supplierPurchase: supplierPurchases?.[0] ?? null,
+    supplierPurchases: supplierPurchases ?? [],
     trackingEvents: trackingEvents ?? []
   });
 
