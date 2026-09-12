@@ -235,7 +235,22 @@ test("o SDK do provedor entra por script-src, sem checkout embutido", async () =
 
   assert.match(tela, /https:\/\/sdk\.mercadopago\.com\/js\/v2/);
   assert.match(headers, /script-src[^"]*https:\/\/sdk\.mercadopago\.com/);
+
   assert.match(headers, /"frame-src 'none'"/);
+
+  // A impressao digital do dispositivo e um script SEPARADO do SDK, carregado
+  // so quando a aba de cartao abre — quem paga por Pix ou boleto nao e
+  // rastreado. Ele nao abre iframe, entao `frame-src` continua 'none'.
+  assert.match(tela, /https:\/\/www\.mercadopago\.com\/v2\/security\.js/);
+  assert.match(headers, /script-src[^"]*https:\/\/www\.mercadopago\.com/);
+
+  // O identificador chega de forma assincrona. Ler uma vez so devolveria vazio
+  // no caso comum, e a cobranca sairia sem o campo justamente quando ele mais
+  // ajuda na aprovacao.
+  assert.match(tela, /window\.MP_DEVICE_SESSION_ID/);
+
+  // Esperar pelo identificador nao pode travar o pagamento.
+  assert.match(tela, /Desiste depois de 8s/);
 });
 
 // ---------------------------------------------------------------------------
@@ -251,6 +266,69 @@ test("a tela respeita prefers-reduced-motion", async () => {
   assert.match(tela, /useReducedMotion/);
   assert.match(tela, /reduzido \? \{ duration: 0 \} : MOLA/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+// `mode="wait"` so monta o painel novo quando a animacao de saida TERMINA — e
+// ela nao termina com o requestAnimationFrame parado, o que acontece em aba de
+// segundo plano. Reproduzido no staging: aba marcada como Boleto, conteudo
+// travado no Pix, indefinidamente. Correcao nao pode depender de animacao.
+test("a troca de aba nao espera animacao de saida", async () => {
+  // Sem comentarios: o proprio comentario que explica a remocao cita
+  // "AnimatePresence", e a busca crua acusaria a explicacao como se fosse uso.
+  const tela = semComentarios(await source("src/components/payment/payment-experience.js"));
+
+  assert.equal(tela.includes("AnimatePresence"), false, "AnimatePresence trava a troca de painel");
+  assert.equal(tela.includes('mode="wait"'), false);
+
+  // O painel certo aparece por remontagem via `key`, nao por fim de animacao.
+  assert.match(tela, /key=\{aba\}/);
+});
+
+// A tela manda "selecione e copie" quando a copia automatica falha. Truncado, o
+// codigo nao esta na tela para ser selecionado.
+test("o codigo se abre inteiro quando a copia falha", async () => {
+  const tela = await source("src/components/payment/payment-experience.js");
+  const css = await source("src/components/payment/payment-experience.module.css");
+
+  assert.match(tela, /copiaFalhou \? styles\.copyBoxAberta : ""/);
+  assert.match(tela, /aoFalhar\?\.\(\)/);
+  assert.match(css, /\.copyBoxAberta code \{[\s\S]*?white-space: normal/);
+  // Um clique seleciona tudo, mesmo truncado.
+  assert.match(css, /user-select: all/);
+});
+
+// O valor com juros vem do provedor. Uma formula local mostraria um numero que
+// nao bate com a fatura do cliente.
+test("o parcelamento mostra o valor que o provedor vai cobrar", async () => {
+  const tela = await source("src/components/payment/payment-experience.js");
+
+  assert.match(tela, /sdk\.getInstallments\(/);
+  assert.match(tela, /payer_costs/);
+  assert.match(tela, /installment_amount/);
+  assert.match(tela, /total_amount/);
+
+  // Sem simulacao o cliente ainda paga: cai para a lista simples.
+  assert.match(tela, /parcelas\s*\?[\s\S]*?:\s*Array\.from\(\{ length: MAX_INSTALLMENTS \}/);
+
+  // E o aviso separa o total cobrado do valor do pedido.
+  assert.match(tela, /o total cobrado sobe para/);
+  assert.match(tela, /O pedido continua valendo/);
+});
+
+// O provedor devolveu 18 parcelas no cartao de teste; a rota aceita 12. Oferecer
+// na tela o que o servidor recusa com 400 e oferecer um erro — o cliente
+// escolhe, clica e leva "numero de parcelas invalido".
+test("tela e rota usam o mesmo teto de parcelas", async () => {
+  const { MAX_INSTALLMENTS } = await import("../src/payments/payment-config.js");
+  const tela = await source("src/components/payment/payment-experience.js");
+  const rota = await source("app/api/pagamento/cartao/route.js");
+
+  assert.equal(typeof MAX_INSTALLMENTS, "number");
+  assert.match(tela, /custo\.installments <= MAX_INSTALLMENTS/);
+  assert.match(rota, /installments > MAX_INSTALLMENTS/);
+
+  // Nenhum dos dois pode ter o numero solto no codigo.
+  assert.equal(/installments\s*>\s*12/.test(rota), false);
 });
 
 test("a animacao vem de motion, nunca de framer-motion", async () => {

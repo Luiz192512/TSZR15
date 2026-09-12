@@ -55,7 +55,7 @@ export async function applyConfirmedPaymentEffects({
   const automacao = await runSupplierAutomation({ orderId, paymentId, supabase });
 
   if (automacao.motivo === "criada") {
-    await notifyOperatorOfPendingPurchase({ order: automacao.order });
+    await notifyOperatorOfPendingPurchase({ compras: automacao.compras, order: automacao.order });
   }
 
   logServerEvent("info", "pagamento_confirmado_aplicado", {

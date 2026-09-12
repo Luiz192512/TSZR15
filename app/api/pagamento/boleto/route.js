@@ -8,6 +8,7 @@ import {
 } from "@/src/payments/charge-flow.js";
 import { createBoletoPayment, PaymentProviderError } from "@/src/payments/mercadopago.js";
 import { resolvePayerAddress } from "@/src/payments/payer-address.js";
+import { buildAdditionalInfo } from "@/src/payments/provider-payload.js";
 import { PaymentBackendError } from "@/src/payments/payment-backend.js";
 
 function apenasDigitos(value) {
@@ -38,9 +39,11 @@ export async function POST(request) {
   }
 
   try {
-    const { amountCents, order, payment } = await loadChargeableOrder(orderId, supabase);
+    const { amountCents, items, order, payment } = await loadChargeableOrder(orderId, supabase);
+    const address = await resolvePayerAddress(order);
 
     const charge = await createBoletoPayment({
+      additionalInfo: buildAdditionalInfo({ address, items, order }),
       amountCents,
       description: `Pedido ${orderId}`,
       externalReference: orderId,
@@ -48,7 +51,7 @@ export async function POST(request) {
       payer: {
         // Do PEDIDO, nunca da tela: a pagina de pagamento e aberta so com o id,
         // e mostrar o endereco ali entregaria o dado a quem tivesse o link.
-        address: await resolvePayerAddress(order),
+        address,
         email,
         firstName: nome,
         identification: {
@@ -111,6 +114,8 @@ export async function POST(request) {
 
     if (error instanceof PaymentProviderError) {
       logServerEvent("error", "payment_provider_failed", {
+        causasProvedor: error.causasProvedor,
+        motivoProvedor: error.motivoProvedor,
         orderId,
         retryable: error.retryable,
         status: error.status

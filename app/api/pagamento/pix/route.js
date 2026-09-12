@@ -7,6 +7,8 @@ import {
   paymentErrorResponse
 } from "@/src/payments/charge-flow.js";
 import { createPixCharge, PaymentProviderError } from "@/src/payments/mercadopago.js";
+import { resolvePayerAddress } from "@/src/payments/payer-address.js";
+import { buildAdditionalInfo, buildPayerFromOrder } from "@/src/payments/provider-payload.js";
 import { PaymentBackendError } from "@/src/payments/payment-backend.js";
 
 export async function POST(request) {
@@ -22,14 +24,21 @@ export async function POST(request) {
   const { orderId, supabase } = opened;
 
   try {
-    const { amountCents, order, payment } = await loadChargeableOrder(orderId, supabase);
+    const { amountCents, items, order, payment } = await loadChargeableOrder(orderId, supabase);
+
+    // Do PEDIDO, nunca do corpo da requisicao: a pagina de pagamento abre so
+    // com o id, entao aceitar identidade do cliente deixaria qualquer um
+    // associar a cobranca de um pedido alheio aos proprios dados.
+    const address = await resolvePayerAddress(order);
 
     const charge = await createPixCharge({
+      additionalInfo: buildAdditionalInfo({ address, items, order }),
       amountCents,
       description: `Pedido ${orderId}`,
       externalReference: orderId,
       // Chave derivada do pedido: retry de rede nao gera segunda cobranca.
       idempotencyKey: `tszr15-pix-${orderId}`,
+      payer: buildPayerFromOrder(order, address),
       payerEmail: order.customer_email
     });
 
@@ -67,6 +76,8 @@ export async function POST(request) {
 
     if (error instanceof PaymentProviderError) {
       logServerEvent("error", "payment_provider_failed", {
+        causasProvedor: error.causasProvedor,
+        motivoProvedor: error.motivoProvedor,
         orderId,
         retryable: error.retryable,
         status: error.status

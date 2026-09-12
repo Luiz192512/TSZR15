@@ -7,7 +7,14 @@ import {
   paymentErrorResponse
 } from "@/src/payments/charge-flow.js";
 import { createCardPayment, PaymentProviderError } from "@/src/payments/mercadopago.js";
+import { resolvePayerAddress } from "@/src/payments/payer-address.js";
+import {
+  buildAdditionalInfo,
+  buildPayerFromOrder,
+  buildStatementDescriptor
+} from "@/src/payments/provider-payload.js";
 import { PaymentBackendError } from "@/src/payments/payment-backend.js";
+import { MAX_INSTALLMENTS } from "@/src/payments/payment-config.js";
 
 // Mensagem para o cliente por status do provedor. O detalhe cru (`status_detail`)
 // fica no log e no provider_payload: dizer "cartao sem limite" na tela entrega
@@ -39,17 +46,24 @@ export async function POST(request) {
 
   const installments = Number.parseInt(body?.installments ?? 1, 10);
 
-  if (!Number.isInteger(installments) || installments < 1 || installments > 12) {
+  if (!Number.isInteger(installments) || installments < 1 || installments > MAX_INSTALLMENTS) {
     return paymentErrorResponse("Numero de parcelas invalido.", 400);
   }
 
   try {
-    const { amountCents, order, payment } = await loadChargeableOrder(orderId, supabase);
+    const { amountCents, items, order, payment } = await loadChargeableOrder(orderId, supabase);
+    const address = await resolvePayerAddress(order);
 
     const charge = await createCardPayment({
+      additionalInfo: buildAdditionalInfo({ address, items, order }),
       amountCents,
       cardToken,
       description: `Pedido ${orderId}`,
+      // Unico campo do corpo que descreve o AMBIENTE, nao a identidade: o SDK
+      // gera esta impressao digital no navegador do cliente, e ela nao existe
+      // no servidor. Forjar so prejudicaria quem forjasse — a analise ficaria
+      // com um dispositivo desconhecido.
+      deviceId: typeof body?.deviceId === "string" ? body.deviceId.slice(0, 200) : undefined,
       externalReference: orderId,
       // O token do cartao e de uso unico, entao a chave de idempotencia inclui
       // o token: retry de rede nao cobra duas vezes, e uma nova tentativa do
@@ -58,8 +72,10 @@ export async function POST(request) {
       installments,
       issuerId: body?.issuerId,
       // Do pedido, nao do corpo: o cliente nao escolhe o pagador.
+      payer: buildPayerFromOrder(order, address),
       payerEmail: order.customer_email,
-      paymentMethodId
+      paymentMethodId,
+      statementDescriptor: buildStatementDescriptor(process.env.NEXT_PUBLIC_STORE_NAME)
     });
 
     // A partir daqui o cartao JA foi cobrado. Escrituracao que falha nao pode
@@ -99,6 +115,8 @@ export async function POST(request) {
 
     if (error instanceof PaymentProviderError) {
       logServerEvent("error", "payment_provider_failed", {
+        causasProvedor: error.causasProvedor,
+        motivoProvedor: error.motivoProvedor,
         orderId,
         retryable: error.retryable,
         status: error.status

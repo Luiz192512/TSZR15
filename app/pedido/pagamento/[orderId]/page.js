@@ -3,6 +3,7 @@ import nextDynamic from "next/dynamic";
 
 import globalStyles from "@/app/storefront.module.css";
 import { cx } from "@/src/lib/classnames";
+import { SiteHeader } from "@/src/components/site-header.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { getPaymentPublicKey, isOnlinePaymentEnabled } from "@/src/payments/payment-config.js";
 import { isPaymentLinkExpired, PAYMENT_LINK_TTL_DAYS } from "@/src/payments/payment-link.js";
@@ -63,6 +64,11 @@ export default async function PaymentPage({ params }) {
   if (isPaymentLinkExpired(order)) {
     return (
       <main className={cx(globalStyles, "page-shell")}>
+        {/* Sem cabecalho o cliente cai numa pagina orfa — sem logo, sem
+            navegacao, sem alternador de tema — bem no momento em que precisa
+            confiar na loja. `showAccountNav={false}` porque entrar ou sair da
+            conta no meio de uma cobranca so atrapalha. */}
+        <SiteHeader showAccountNav={false} />
         <section className={cx(globalStyles, "auth-card")}>
           <p className={cx(globalStyles, "section-label")}>Pedido {order.order_number}</p>
           <h1>Este link de pagamento venceu.</h1>
@@ -87,6 +93,7 @@ export default async function PaymentPage({ params }) {
 
   return (
     <main className={cx(globalStyles, "page-shell")}>
+      <SiteHeader showAccountNav={false} />
       <PaymentExperience
         amountCents={order.total_cents ?? 0}
         initialStatus={order.payment_status}

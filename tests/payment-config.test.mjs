@@ -144,8 +144,29 @@ test("a CSP libera so a API e o SDK de tokenizacao do provedor", async () => {
   assert.match(source, /connect-src[^"]*https:\/\/api\.mercadopago\.com/);
   assert.match(source, /script-src[^"]*https:\/\/sdk\.mercadopago\.com/);
 
+  // A impressao digital do dispositivo entrou, e o UNICO acrescimo que ela
+  // exigiu foi `www.mercadopago.com` em script-src, para o
+  // `/v2/security.js`. Conferido lendo o script: ele nao abre iframe, nao usa
+  // imagem nem canvas, e so contata `api.mercadopago.com` — que ja era
+  // liberado.
+  assert.match(source, /script-src[^"]*https:\/\/www\.mercadopago\.com/);
+
   // Nada de iframe do provedor: sem checkout embutido, sem redirect em frame.
   assert.match(source, /"frame-src 'none'"/);
+
+  // Nenhuma diretiva precisa de `mercadolibre.com`. Uma versao anterior desta
+  // mudanca liberava o dominio em tres delas por suposicao; a leitura do script
+  // mostrou que era desnecessario. Se voltar, alguem afrouxou sem medir.
+  //
+  // Sem comentario: o proprio comentario que explica a AUSENCIA do dominio cita
+  // o nome dele, e derrubaria o teste que verifica a ausencia.
+  const semComentario = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/[^\n]*$/gm, "");
+
+  assert.equal(
+    semComentario.includes("mercadolibre.com"),
+    false,
+    "mercadolibre.com nao e necessario para a impressao digital"
+  );
 
   // O SDK entra so em script-src. Se aparecer em outra diretiva, e sinal de
   // que alguem trouxe checkout embutido junto.
