@@ -26,7 +26,8 @@ const VARIAVEIS = [
   { nome: "TSZR15_PREVIEW_ADMIN_TOKEN", obrigatoria: false, segredo: true },
   { nome: "NEXT_PUBLIC_MERCADOPAGO_SANDBOX_PUBLIC_KEY", obrigatoria: false, segredo: false },
   { nome: "MERCADOPAGO_SANDBOX_ACCESS_TOKEN", obrigatoria: false, segredo: true },
-  // O painel do provedor tem UM webhook so, entao o segredo de assinatura e o
+  // O painel tem uma URL de webhook para o modo teste e outra para o modo
+  // producao, mas a assinatura secreta e UMA por aplicacao: o segredo e o
   // mesmo nos dois ambientes e vai tambem para o Worker de staging.
   { nome: "MERCADOPAGO_WEBHOOK_SECRET", obrigatoria: false, segredo: true },
   // Chave de habilitacao do STAGING. A de producao tem outro nome

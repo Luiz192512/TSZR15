@@ -17,10 +17,7 @@ function createSupabase({ data = { id: "produto-1", slug: "produto-1" }, error =
 }
 
 test("product save sends product, stock, cost and categories in one atomic RPC", async () => {
-  const source = await readFile(
-    new URL("../src/admin/catalog-admin.js", import.meta.url),
-    "utf8"
-  );
+  const source = await readFile(new URL("../src/admin/catalog-admin.js", import.meta.url), "utf8");
   const saveSource = source.slice(
     source.indexOf("export async function upsertAdminCatalogProduct"),
     source.indexOf("export async function upsertAdminCoupon")
@@ -29,16 +26,15 @@ test("product save sends product, stock, cost and categories in one atomic RPC",
   assert.match(source, /const persistenceMode = previousId \? "update" : "create";/);
   assert.match(
     saveSource,
-    /runWithAdminProductImageCleanup\(\{[\s\S]*?saveAdminCatalogProductAggregate\(\{[\s\S]*?costCents[\s\S]*?variationStock/
+    /runWithAdminProductImageCleanup\(\{[\s\S]*?saveAdminCatalogProductAggregate\(\{[\s\S]*?costCents[\s\S]*?supplierSources[\s\S]*?variationStock/
   );
   assert.doesNotMatch(
     saveSource,
     /\.from\("catalog_(?:products|variation_stock|product_costs|product_categories)"\)/
   );
 
-  const { saveAdminCatalogProductAggregate } = await import(
-    "../src/admin/catalog-product-persistence.js"
-  );
+  const { saveAdminCatalogProductAggregate } =
+    await import("../src/admin/catalog-product-persistence.js");
   const client = createSupabase();
   const row = {
     id: "produto-1",
@@ -46,12 +42,27 @@ test("product save sends product, stock, cost and categories in one atomic RPC",
     storefront_category_ids: ["carenagem"]
   };
   const variationStock = [{ quantity: 2, variation: "Preto" }];
+  // A origem de compra entra na MESMA chamada: produto, estoque, custo,
+  // categorias e origem numa transacao so. Gravar a origem depois deixaria
+  // produto novo sem ela quando a segunda escrita falhasse, e item sem origem
+  // cai no grupo "sem loja" na hora de comprar.
+  const supplierSources = [
+    {
+      internal_channel: "shopee",
+      size: "",
+      source_product_url: "https://shopee.com.br/item",
+      source_store_name: "Loja Alfa",
+      source_variation_label: null,
+      variation: ""
+    }
+  ];
 
   const result = await saveAdminCatalogProductAggregate({
     costCents: 10990,
     persistenceMode: "update",
     row,
     supabase: client.supabase,
+    supplierSources,
     variationStock
   });
 
@@ -62,6 +73,7 @@ test("product save sends product, stock, cost and categories in one atomic RPC",
         p_cost_cents: 10990,
         p_persistence_mode: "update",
         p_product: row,
+        p_supplier_sources: supplierSources,
         p_variation_stock: variationStock
       }
     }
@@ -70,9 +82,8 @@ test("product save sends product, stock, cost and categories in one atomic RPC",
 });
 
 test("duplicate product identity returns a friendly error without retrying as update", async () => {
-  const { saveAdminCatalogProductAggregate } = await import(
-    "../src/admin/catalog-product-persistence.js"
-  );
+  const { saveAdminCatalogProductAggregate } =
+    await import("../src/admin/catalog-product-persistence.js");
   const client = createSupabase({
     error: {
       code: "23505",
@@ -97,9 +108,8 @@ test("duplicate product identity returns a friendly error without retrying as up
 });
 
 test("invalid product persistence mode is rejected before calling the RPC", async () => {
-  const { saveAdminCatalogProductAggregate } = await import(
-    "../src/admin/catalog-product-persistence.js"
-  );
+  const { saveAdminCatalogProductAggregate } =
+    await import("../src/admin/catalog-product-persistence.js");
   const client = createSupabase();
 
   await assert.rejects(

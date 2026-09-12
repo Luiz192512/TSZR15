@@ -86,12 +86,16 @@ export function CatalogHub({
       <section className={cx(globalStyles, "brand-hero")}>
         <div className={cx(globalStyles, "brand-hero-copy")}>
           <div className={cx(globalStyles, "hero-brand-row")}>
+            {/* Asset de marca tem um arquivo so: sem variante para escolher, um
+                `srcset` de tres larguras apontaria tres vezes para o mesmo
+                endereco. */}
             <Image
               alt="TSZ Store"
               className={cx(globalStyles, "hero-logo")}
               height={2000}
               sizes="188px"
               src={brandLogoSrc}
+              unoptimized
               width={2000}
             />
             <p className={cx(globalStyles, "hero-kicker")}>Performance parts for Yamaha R15</p>
@@ -122,6 +126,7 @@ export function CatalogHub({
               priority
               sizes="(min-width: 1280px) 60vw, 100vw"
               src={heroBoardSrc}
+              unoptimized
             />
           </div>
         </div>

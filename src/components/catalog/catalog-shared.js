@@ -213,6 +213,7 @@ export function ProductVisual({ priority = false, product, size = "card" }) {
             height={2000}
             sizes="120px"
             src={brandLogoSrc}
+            unoptimized
             width={2000}
           />
           <span>{categoryLabel}</span>
@@ -274,6 +275,7 @@ export function StoreHeader({
             height={2000}
             sizes="154px"
             src={brandLogoSrc}
+            unoptimized
             width={2000}
           />
           <span>

@@ -1,3 +1,5 @@
+import { logServerEvent } from "../lib/logger.js";
+
 import { PAYMENT_PROVIDER } from "./payment-config.js";
 
 const UNIQUE_VIOLATION = "23505";
@@ -49,7 +51,10 @@ export async function resolveOrderChargeCents(orderId, supabase) {
   const { data: order, error } = await supabase
     .from("orders")
     .select(
-      "id, total_cents, subtotal_cents, discount_cents, shipping_cents, payment_status, customer_email, customer_name, address_snapshot, created_at"
+      // Telefone, documento e snapshot entram porque o provedor usa esses
+      // campos na analise antifraude: pagador identificado tem aprovacao mais
+      // alta. Sao dados que o pedido JA tem — nada novo e pedido ao cliente.
+      "id, total_cents, subtotal_cents, discount_cents, shipping_cents, payment_status, customer_email, customer_name, customer_phone, customer_whatsapp, customer_tax_id, customer_snapshot, address_snapshot, created_at"
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -64,7 +69,11 @@ export async function resolveOrderChargeCents(orderId, supabase) {
 
   const { data: items, error: itemsError } = await supabase
     .from("order_items")
-    .select("subtotal_cents, subtotal_cost_cents")
+    // Nome, categoria e preco unitario alimentam `additional_info`: sem eles o
+    // antifraude decide no escuro, e decidir no escuro significa recusar mais.
+    .select(
+      "subtotal_cents, subtotal_cost_cents, product_id, product_name, product_slug, quantity, unit_price_cents, variation, size, storefront_category_ids"
+    )
     .eq("order_id", orderId);
 
   if (itemsError) {
@@ -93,6 +102,8 @@ export async function resolveOrderChargeCents(orderId, supabase) {
       (total, item) => total + Number(item.subtotal_cost_cents ?? 0),
       0
     ),
+    // Devolvidos para as rotas montarem `additional_info` sem reler o pedido.
+    items,
     order
   };
 }
@@ -181,12 +192,123 @@ export async function markWebhookEventProcessed({
     .eq("id", eventRowId);
 }
 
+// Id de pedido que as rotas de cobranca gravam em `external_reference`.
+const PEDIDO_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// `payment_type_id` do provedor -> `payment_method_id` da loja.
+const METODO_DO_TIPO = {
+  bank_transfer: "pix",
+  credit_card: "cartao",
+  debit_card: "cartao",
+  prepaid_card: "cartao",
+  ticket: "boleto"
+};
+
+/**
+ * Pagamento aprovado de uma cobranca que ja nao e a atual do pedido.
+ *
+ * Existe UMA linha em `payments` por pedido, e cada cobranca nova sobrescreve o
+ * `provider_payment_id` dela. Visto no staging: um pedido gerou duas cobrancas
+ * com 25 segundos de diferenca, e a linha guardou so a segunda. Se o cliente
+ * tivesse pago a primeira — um Pix copiado antes de trocar para o boleto, por
+ * exemplo — o webhook procuraria pelo id, nao acharia a linha e ignoraria um
+ * pagamento recebido: dinheiro na conta, pedido "aguardando".
+ *
+ * A reconciliacao usa `external_reference`, que as tres rotas de cobranca
+ * preenchem com o id do pedido, e so vale para pagamento APROVADO: uma cobranca
+ * antiga ainda pendente, ou cancelada, nao pode sobrescrever a atual.
+ *
+ * Dois casos nao se resolvem sozinhos e voltam com motivo para uma pessoa:
+ *   - o pedido ja esta pago por outra cobranca: o cliente pagou duas vezes, e
+ *     uma delas precisa ser estornada;
+ *   - o valor aprovado nao bate com o do pedido.
+ */
+async function reconciliarCobrancaSubstituida({ providerPayment, resolverValorDoPedido, supabase }) {
+  const desconhecido = { applied: false, reason: "pagamento_desconhecido" };
+  const orderId = String(providerPayment.externalReference ?? "");
+
+  if (providerPayment.status !== "pagamento_confirmado" || !PEDIDO_ID.test(orderId)) {
+    return desconhecido;
+  }
+
+  const { data: atual, error } = await supabase
+    .from("payments")
+    .select("id, order_id, status, amount_cents")
+    .eq("provider", PAYMENT_PROVIDER)
+    .eq("order_id", orderId)
+    .maybeSingle();
+
+  if (error) {
+    throw new PaymentBackendError("Nao foi possivel ler o pagamento do pedido.", { status: 500 });
+  }
+
+  // Pedido de outro ambiente apontando para o mesmo webhook.
+  if (!atual) {
+    return desconhecido;
+  }
+
+  const contexto = {
+    orderId,
+    paymentId: atual.id,
+    providerPaymentId: providerPayment.providerPaymentId
+  };
+
+  if (atual.status === "pagamento_confirmado") {
+    logServerEvent("error", "pagamento_em_duplicidade", contexto);
+
+    return { applied: false, orderId, paymentId: atual.id, reason: "pagamento_duplicado" };
+  }
+
+  const { amountCents } = await resolverValorDoPedido(orderId, supabase);
+
+  if (providerPayment.amountCents !== amountCents) {
+    logServerEvent("error", "pagamento_substituido_valor_divergente", {
+      ...contexto,
+      valorAprovadoCents: providerPayment.amountCents,
+      valorDoPedidoCents: amountCents
+    });
+
+    return { applied: false, orderId, paymentId: atual.id, reason: "valor_divergente" };
+  }
+
+  const metodo = METODO_DO_TIPO[providerPayment.raw?.payment_type_id];
+
+  // A linha passa a apontar para a cobranca que foi paga: estorno e chargeback
+  // dela chegam depois com esse id, e precisam encontrar o pedido.
+  const { error: updateError } = await supabase
+    .from("payments")
+    .update({
+      amount_cents: providerPayment.amountCents,
+      expires_at: providerPayment.expiresAt,
+      ...(metodo ? { payment_method_id: metodo } : {}),
+      provider_payment_id: providerPayment.providerPaymentId,
+      updated_by: "webhook"
+    })
+    .eq("id", atual.id)
+    .neq("status", "pagamento_confirmado");
+
+  if (updateError) {
+    throw new PaymentBackendError("Nao foi possivel reconciliar a cobranca.", { status: 500 });
+  }
+
+  logServerEvent("warn", "pagamento_de_cobranca_substituida", contexto);
+
+  return { payment: atual };
+}
+
 /**
  * Aplica ao pedido o que o provedor informou. Única fonte de verdade do
  * pagamento — nada aqui aceita dado vindo do navegador.
+ *
+ * `resolverValorDoPedido` existe para teste; em producao e sempre
+ * `resolveOrderChargeCents`.
  */
-export async function applyProviderPayment({ providerPayment, supabase }) {
-  const { data: payment, error } = await supabase
+export async function applyProviderPayment({
+  providerPayment,
+  resolverValorDoPedido = resolveOrderChargeCents,
+  supabase
+}) {
+  const { data: porId, error } = await supabase
     .from("payments")
     .select("id, order_id, status, amount_cents")
     .eq("provider", PAYMENT_PROVIDER)
@@ -197,10 +319,22 @@ export async function applyProviderPayment({ providerPayment, supabase }) {
     throw new PaymentBackendError("Nao foi possivel ler o pagamento.", { status: 500 });
   }
 
-  // Evento de cobranca que a loja nao conhece: registra e ignora. Pode ser
-  // outro ambiente apontando para o mesmo webhook.
+  let payment = porId;
+
+  // Nao achou pelo id: ou e cobranca de outro ambiente, ou e uma cobranca deste
+  // pedido que foi trocada por outra antes de ser paga.
   if (!payment) {
-    return { applied: false, reason: "pagamento_desconhecido" };
+    const substituida = await reconciliarCobrancaSubstituida({
+      providerPayment,
+      resolverValorDoPedido,
+      supabase
+    });
+
+    if (!substituida.payment) {
+      return substituida;
+    }
+
+    payment = substituida.payment;
   }
 
   if (isStatusRegression(payment.status, providerPayment.status)) {

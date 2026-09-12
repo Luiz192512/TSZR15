@@ -18,6 +18,11 @@ import { reverseLedger, undoSupplierAutomation } from "@/src/payments/supplier-a
 // ficam de fora: neles a automacao nunca rodou, entao nao ha o que desfazer.
 const REVERSOES = new Set(["reembolsado", "reembolsado_parcial", "estornado", "cancelado"]);
 
+// Dinheiro que chegou e nao foi aplicado sozinho. O motivo vai para
+// `processing_error` do evento, para aparecer numa consulta simples em vez de
+// sumir entre os eventos processados.
+const REQUER_PESSOA = new Set(["pagamento_duplicado", "valor_divergente"]);
+
 // O provedor reenvia o evento enquanto nao recebe 2xx. Responder 200 em caso
 // ja tratado (duplicado, fora de ordem, desconhecido) interrompe o reenvio;
 // responder 5xx pede retentativa de verdade.
@@ -153,6 +158,7 @@ export async function POST(request) {
 
     if (!result.applied) {
       await markWebhookEventProcessed({
+        error: REQUER_PESSOA.has(result.reason) ? result.reason : undefined,
         eventRowId: eventRow.id,
         orderId: result.orderId,
         paymentId: result.paymentId,
@@ -211,7 +217,19 @@ export async function POST(request) {
     return ok("aplicado");
   } catch (error) {
     await markWebhookEventProcessed({
-      error: String(error?.message ?? error).slice(0, 400),
+      // O codigo da causa entra junto da mensagem. Sem ele, uma recusa do
+      // provedor vira texto generico no evento, e quem investiga depois nao tem
+      // por onde comecar.
+      error: [
+        String(error?.message ?? error),
+        (error?.causasProvedor ?? [])
+          .map((causa) => causa.codigo)
+          .filter(Boolean)
+          .join(", ")
+      ]
+        .filter(Boolean)
+        .join(" | ")
+        .slice(0, 400),
       eventRowId: eventRow.id,
       supabase: serviceSupabase
     });

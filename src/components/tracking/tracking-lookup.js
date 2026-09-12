@@ -90,9 +90,13 @@ function TrackingResult({ result }) {
           <span>Transportadora</span>
           <strong>{order.tracking.carrier || "Aguardando"}</strong>
         </div>
+        {/* O codigo do fornecedor NAO aparece aqui: rastrea-lo mostraria
+            "Shopee" ou "AliExpress" na transportadora e o endereco de origem.
+            O cliente acompanha pelo status da loja, que e o que ele precisa
+            saber — onde o pedido esta. */}
         <div>
-          <span>Codigo</span>
-          <strong>{order.tracking.trackingCode || "Nao liberado"}</strong>
+          <span>Situacao</span>
+          <strong>{order.timeline.currentStep.label}</strong>
         </div>
         <div>
           <span>Prazo</span>

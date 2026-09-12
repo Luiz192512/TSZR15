@@ -207,7 +207,30 @@
   font-size: 0.8rem;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Um clique seleciona o codigo inteiro, mesmo com ele truncado: e o que
+     torna possivel seguir a instrucao de copiar a mao. */
+  user-select: all;
   white-space: nowrap;
+}
+
+/* Quando a copia automatica falha, truncar vira armadilha — o aviso manda
+   selecionar um texto que nao esta na tela. Aqui o codigo se abre inteiro. */
+.copyBoxAberta code {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* Aviso de valor MAIOR que o do pedido. Fundo de atencao, nao de erro: o juro
+   do parcelamento e escolha do cliente, nao falha. */
+.totalDestacado {
+  background: var(--surface-warning);
+  border-radius: var(--r-sm);
+  color: var(--text-warning);
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .countdown {

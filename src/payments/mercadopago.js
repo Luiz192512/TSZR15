@@ -4,10 +4,23 @@ const API_BASE = "https://api.mercadopago.com";
 const REQUEST_TIMEOUT_MS = 12_000;
 
 export class PaymentProviderError extends Error {
-  constructor(message, { cause, retryable = false, status = 0 } = {}) {
+  constructor(
+    message,
+    { causasProvedor = [], cause, motivoProvedor = "", retryable = false, status = 0 } = {}
+  ) {
     super(message);
     this.name = "PaymentProviderError";
     this.cause = cause;
+    // O que o provedor respondeu, guardado para o log da operacao. Sem isto,
+    // uma recusa por regra da conta (por exemplo `excludes_by_rule`) chegava a
+    // quem opera como "HTTP 400" e mais nada: descobrir o motivo exigia refazer
+    // a chamada na mao, fora da loja.
+    //
+    // Os nomes nao sao livres: `redactSensitive` (src/lib/logger.js) apaga toda
+    // chave que contenha "message", "payload" ou "url", entao um campo chamado
+    // `providerMessage` seria gravado como [redacted].
+    this.causasProvedor = causasProvedor;
+    this.motivoProvedor = motivoProvedor;
     this.retryable = retryable;
     this.status = status;
   }
@@ -34,6 +47,36 @@ const STATUS_MAP = {
 
 export function mapProviderStatus(providerStatus) {
   return STATUS_MAP[String(providerStatus ?? "").toLowerCase()] ?? "em_analise";
+}
+
+const MAX_MOTIVO = 200;
+const MAX_CAUSAS = 3;
+
+function limitarTexto(valor) {
+  return String(valor ?? "")
+    .trim()
+    .slice(0, MAX_MOTIVO);
+}
+
+/**
+ * Causas que o provedor devolve no corpo de um erro.
+ *
+ * Cada uma traz codigo, descricao e um `data` com data e identificador da
+ * requisicao. Esse identificador e o que o suporte do provedor pede, entao ele
+ * entra como `rastreio`.
+ *
+ * Nada aqui carrega valor digitado pelo cliente: a descricao fala de PARAMETRO,
+ * como em "The name of the following parameters is wrong:
+ * [payer.address.city_name]".
+ */
+function normalizarCausasDoProvedor(causa) {
+  const lista = Array.isArray(causa) ? causa : causa ? [causa] : [];
+
+  return lista.slice(0, MAX_CAUSAS).map((item) => ({
+    codigo: item?.code ?? "",
+    descricao: limitarTexto(item?.description),
+    rastreio: limitarTexto(item?.data)
+  }));
 }
 
 async function providerRequest(path, { body, idempotencyKey, method = "GET" } = {}) {
@@ -85,7 +128,12 @@ async function providerRequest(path, { body, idempotencyKey, method = "GET" } = 
   if (!response.ok) {
     throw new PaymentProviderError(
       payload?.message ? String(payload.message) : "Provedor de pagamento recusou a requisicao.",
-      { retryable: response.status >= 500, status: response.status }
+      {
+        causasProvedor: normalizarCausasDoProvedor(payload?.cause),
+        motivoProvedor: limitarTexto(payload?.message ?? payload?.error),
+        retryable: response.status >= 500,
+        status: response.status
+      }
     );
   }
 
@@ -96,10 +144,12 @@ async function providerRequest(path, { body, idempotencyKey, method = "GET" } = 
  * Cria a cobranca Pix. `amountCents` vem SEMPRE do recalculo do servidor.
  */
 export async function createPixCharge({
+  additionalInfo,
   amountCents,
   description,
   externalReference,
   idempotencyKey,
+  payer,
   payerEmail
 }) {
   if (!Number.isInteger(amountCents) || amountCents <= 0) {
@@ -114,9 +164,15 @@ export async function createPixCharge({
 
   const payload = await providerRequest("/v1/payments", {
     body: {
+      // Itens, telefone e endereco entram na analise antifraude do provedor.
+      // Sem eles, ele decide no escuro — e decidir no escuro significa recusar
+      // mais. Todo esse dado ja esta no pedido; nada e pedido ao cliente.
+      additional_info: additionalInfo,
       description,
       external_reference: externalReference,
-      payer: { email: payerEmail },
+      // `payer` completo quando o pedido tem os dados; o e-mail sozinho e o
+      // minimo que a API aceita, e o pior caso para a aprovacao.
+      payer: payer ?? { email: payerEmail },
       payment_method_id: "pix",
       // A API do provedor trabalha em unidades da moeda, o projeto em centavos.
       transaction_amount: Number((amountCents / 100).toFixed(2))
@@ -141,15 +197,19 @@ export async function createPixCharge({
  * projeto vira o status `autorizado`.
  */
 export async function createCardPayment({
+  additionalInfo,
   amountCents,
   capture = true,
   cardToken,
   description,
+  deviceId,
   externalReference,
   idempotencyKey,
   installments = 1,
   issuerId,
+  payer,
   payerEmail,
+  statementDescriptor,
   paymentMethodId
 }) {
   if (!Number.isInteger(amountCents) || amountCents <= 0) {
@@ -162,13 +222,22 @@ export async function createCardPayment({
 
   const payload = await providerRequest("/v1/payments", {
     body: {
+      additional_info: additionalInfo,
       capture,
       description,
+      // Impressao digital do navegador, gerada pelo SDK no cliente. E o campo de
+      // maior peso na analise de cartao: sem ele o provedor nao consegue
+      // distinguir o comprador de sempre de um cartao roubado.
+      device_id: deviceId || undefined,
       external_reference: externalReference,
       installments: Number(installments) || 1,
       issuer_id: issuerId || undefined,
-      payer: payerEmail ? { email: payerEmail } : undefined,
+      payer: payer ?? (payerEmail ? { email: payerEmail } : undefined),
       payment_method_id: paymentMethodId,
+      // O que o cliente le na fatura. Sem isto a cobranca sai com um nome que
+      // ele nao reconhece, e "nao reconheco" vira contestacao — que custa mais
+      // caro que o pedido.
+      statement_descriptor: statementDescriptor || undefined,
       token: cardToken,
       transaction_amount: Number((amountCents / 100).toFixed(2))
     },
@@ -184,6 +253,7 @@ export async function createCardPayment({
  * distinguir "ainda pode ser pago" de "venceu".
  */
 export async function createBoletoPayment({
+  additionalInfo,
   amountCents,
   description,
   externalReference,
@@ -196,6 +266,7 @@ export async function createBoletoPayment({
 
   const payload = await providerRequest("/v1/payments", {
     body: {
+      additional_info: additionalInfo,
       description,
       external_reference: externalReference,
       payer: {

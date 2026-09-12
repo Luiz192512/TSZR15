@@ -74,7 +74,7 @@ export async function openChargeRequest(request) {
  * está gravado — nada do corpo da requisição participa.
  */
 export async function loadChargeableOrder(orderId, supabase) {
-  const { amountCents, order } = await resolveOrderChargeCents(orderId, supabase);
+  const { amountCents, items, order } = await resolveOrderChargeCents(orderId, supabase);
 
   if (order.payment_status === "pagamento_confirmado") {
     throw new PaymentBackendError("Pedido ja esta pago.", { status: 409 });
@@ -114,7 +114,7 @@ export async function loadChargeableOrder(orderId, supabase) {
     throw new PaymentBackendError("Pagamento do pedido nao encontrado.", { status: 409 });
   }
 
-  return { amountCents, order, payment };
+  return { amountCents, items, order, payment };
 }
 
 export async function persistProviderCharge({ charge, methodId, paymentId, supabase }) {
@@ -175,6 +175,10 @@ export async function finalizeCharge({ charge, methodId, orderId, paymentId, sup
   }
 
   if (charge.status !== "pagamento_confirmado") {
+    if (STATUS_ABERTOS.has(charge.status)) {
+      await reabrirStatusDoPedido({ orderId, status: charge.status, supabase });
+    }
+
     return { escriturada: true };
   }
 
@@ -195,4 +199,38 @@ export async function finalizeCharge({ charge, methodId, orderId, paymentId, sup
   }
 
   return { efeitosAplicados: true, escriturada: true };
+}
+
+// Estados de uma cobrança que ainda pode virar pagamento. `recusado` fica de
+// fora: cartão recusado não reabre nada, e gravá-lo no pedido esconderia um Pix
+// gerado antes que continua valendo.
+const STATUS_ABERTOS = new Set(["aguardando_pagamento", "em_analise", "autorizado"]);
+
+/**
+ * Cobrança em aberto reabre o pedido.
+ *
+ * `persistProviderCharge` grava o estado em `payments`, mas o pedido guarda uma
+ * cópia em `orders.payment_status` — é ela que o admin, a conta do cliente e a
+ * página de pagamento leem. Sem esta sincronia, um Pix gerado de novo depois de
+ * um vencido deixava o pagamento "aguardando" e o pedido "expirado": o operador
+ * via uma venda morta enquanto o cliente pagava.
+ *
+ * Falha aqui só registra. A cobrança já existe no provedor e já está gravada;
+ * uma cópia desatualizada no pedido não pode virar erro na tela, ou o cliente
+ * tenta de novo e paga duas vezes.
+ */
+async function reabrirStatusDoPedido({ orderId, status, supabase }) {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update({ payment_status: status })
+      .eq("id", orderId)
+      .neq("payment_status", "pagamento_confirmado");
+
+    if (error) {
+      logServerEvent("warn", "payment_status_do_pedido_nao_sincronizado", { orderId, status });
+    }
+  } catch {
+    logServerEvent("warn", "payment_status_do_pedido_nao_sincronizado", { orderId, status });
+  }
 }

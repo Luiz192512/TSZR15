@@ -31,6 +31,7 @@ export function SiteFooter() {
             className={cx(styles, "brandLogo")}
             height={120}
             src="/brand/logo-tszr15-store.webp"
+            unoptimized
             width={300}
           />
           <p className={cx(styles, "brandText")}>

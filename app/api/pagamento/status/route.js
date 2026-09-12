@@ -2,6 +2,7 @@ import { consumeRateLimit, getRequestIp, rateLimitProfiles } from "@/src/lib/rat
 import { createRateLimitResponse } from "@/src/lib/rate-limit-response.js";
 import { createServiceRoleSupabaseClient } from "@/src/lib/supabase/admin.js";
 import { isOnlinePaymentEnabled } from "@/src/payments/payment-config.js";
+import { resolveEffectivePaymentStatus } from "@/src/payments/payment-expiry.js";
 
 const ORDER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -66,7 +67,9 @@ export async function GET(request) {
       expiresAt: payment.expires_at,
       methodId: payment.payment_method_id,
       paidAt: payment.paid_at,
-      status: payment.status
+      // Pix vencido sem aviso do provedor aparece como expirado aqui, sem gravar:
+      // esta rota so le. Quem grava e o pg_cron (src/payments/payment-expiry.js).
+      status: resolveEffectivePaymentStatus(payment)
     },
     // Status de pagamento muda por webhook: uma resposta em cache mostraria
     // "aguardando" para um pedido ja pago.

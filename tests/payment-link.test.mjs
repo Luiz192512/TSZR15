@@ -78,7 +78,12 @@ test("a rota de cobranca recusa link vencido antes de cobrar", async () => {
 });
 
 test("o pedido lido para cobranca inclui a data de criacao", async () => {
-  const backend = await source("src/payments/payment-backend.js");
+  // Sem comentario: uma explicacao entre `.select(` e a string quebra o regex,
+  // e a documentacao do porque de uma coluna existir derrubaria o teste que
+  // verifica que ela existe.
+  const backend = (await source("src/payments/payment-backend.js"))
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/[^\n]*$/gm, "");
   const select = backend.match(/from\("orders"\)\s*\.select\(\s*"([^"]*)"/)?.[1] ?? "";
 
   assert.ok(select.includes("created_at"), "sem created_at a expiracao nao tem como ser avaliada");

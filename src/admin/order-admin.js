@@ -265,12 +265,40 @@ export async function getAdminOrder({ orderId, orderNumber, supabase }) {
     throw new Error(firstError.message);
   }
 
+  // Quais itens do pedido foram para qual compra. É esta lista que vira o
+  // "carrinho pronto" de cada loja no painel — sem ela o operador teria que
+  // descobrir sozinho o que comprar em cada lugar.
+  const { data: purchaseItems } = (supplierPurchases ?? []).length
+    ? await supabase
+        .from("supplier_purchase_items")
+        .select("*")
+        .in(
+          "supplier_purchase_id",
+          supplierPurchases.map((purchase) => purchase.id)
+        )
+    : { data: [] };
+
+  const itemsById = new Map((items ?? []).map((item) => [item.id, item]));
+
   return {
     auditLogs: auditLogs ?? [],
     items: items ?? [],
     order,
     payments: payments ?? [],
-    supplierPurchase: supplierPurchases?.[0] ?? null,
+    // Array, não `[0]`: um pedido tem uma compra POR LOJA. Enquanto isto era
+    // `supplierPurchases?.[0] ?? null`, um pedido com itens de dois
+    // fornecedores mostrava um só no painel e o outro nunca era comprado.
+    supplierPurchases: (supplierPurchases ?? []).map((purchase) => ({
+      ...purchase,
+      items: (purchaseItems ?? [])
+        .filter((link) => link.supplier_purchase_id === purchase.id)
+        .map((link) => ({
+          orderItem: itemsById.get(link.order_item_id) ?? null,
+          quantity: link.quantity,
+          sourceProductUrl: link.source_product_url,
+          sourceVariationLabel: link.source_variation_label
+        }))
+    })),
     supportThreads: supportThreads ?? [],
     trackingEvents: trackingEvents ?? []
   };

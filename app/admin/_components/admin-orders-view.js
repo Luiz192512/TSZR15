@@ -220,7 +220,7 @@ function OrderDetail({ selected }) {
     );
   }
 
-  const { items, order, payments, supplierPurchase, trackingEvents } = selected;
+  const { items, order, payments, supplierPurchases, trackingEvents } = selected;
   const internalStatus = getEffectiveInternalOrderStatus(order);
 
   return (
@@ -312,7 +312,6 @@ function OrderDetail({ selected }) {
         <input name="orderId" type="hidden" value={order.id} />
         <input name="orderNumber" type="hidden" value={order.order_number} />
         <input name="operationId" type="hidden" value={crypto.randomUUID()} />
-        <input name="supplierPurchaseId" type="hidden" value={supplierPurchase?.id ?? ""} />
 
         <div className={cx(globalStyles, "admin-form-block")}>
           <h2>Status do pedido</h2>
@@ -356,129 +355,38 @@ function OrderDetail({ selected }) {
           </div>
         </div>
 
-        <div className={cx(globalStyles, "admin-form-block")}>
-          <h2>
-            Origem interna e rastreio
-            {/* Quem criou a linha muda o que o operador precisa fazer: a
-                automacao PREPARA a compra, ela nao compra. Sem esta marca, uma
-                linha criada pelo sistema parece uma compra ja feita. */}
-            {supplierPurchase?.created_by === "automacao" ? (
-              <span className={cx(globalStyles, "badge")}> criada pela automação</span>
-            ) : null}
-          </h2>
-          {supplierPurchase?.created_by === "automacao" &&
-          supplierPurchase?.source_status === "nao_comprado" ? (
-            <p className={cx(globalStyles, "form-hint")}>
-              O pagamento foi confirmado e o sistema abriu esta linha. A compra no fornecedor ainda
-              precisa ser feita por uma pessoa.
-            </p>
-          ) : null}
-          <div className={cx(globalStyles, "form-grid")}>
-            <label>
-              <span>Canal interno</span>
-              <StatusSelect
-                items={supplierChannels}
-                name="internalChannel"
-                value={supplierPurchase?.internal_channel ?? ""}
-              />
-            </label>
-            <label>
-              <span>Status da origem</span>
-              <StatusSelect
-                items={supplierSourceStatuses}
-                name="sourceStatus"
-                value={supplierPurchase?.source_status ?? "nao_comprado"}
-              />
-            </label>
-            <label>
-              <span>Loja/vendedor origem</span>
-              <input
-                defaultValue={supplierPurchase?.source_store_name ?? ""}
-                name="sourceStoreName"
-              />
-            </label>
-            <label>
-              <span>Pedido na origem</span>
-              <input
-                defaultValue={supplierPurchase?.source_order_number ?? ""}
-                name="sourceOrderNumber"
-              />
-            </label>
-            <label className={cx(globalStyles, "span-all")}>
-              <span>Link interno do produto</span>
-              <input
-                defaultValue={supplierPurchase?.source_product_url ?? ""}
-                name="sourceProductUrl"
-              />
-            </label>
-            <label>
-              <span>Conta operacional</span>
-              <input
-                defaultValue={supplierPurchase?.operational_account ?? ""}
-                name="operationalAccount"
-              />
-            </label>
-            <label>
-              <span>Comprado em</span>
-              <input
-                defaultValue={formatAdminDateTimeInput(supplierPurchase?.purchased_at)}
-                name="purchasedAt"
-                type="datetime-local"
-              />
-              <small>Horario de Brasilia.</small>
-            </label>
-            <label>
-              <span>Custo produto</span>
-              <input
-                defaultValue={centsToInput(supplierPurchase?.product_cost_cents)}
-                name="productCost"
-              />
-            </label>
-            <label>
-              <span>Custo frete</span>
-              <input
-                defaultValue={centsToInput(supplierPurchase?.shipping_cost_cents)}
-                name="shippingCost"
-              />
-            </label>
-            <label>
-              <span>Moeda</span>
-              <input defaultValue={supplierPurchase?.currency ?? "BRL"} name="supplierCurrency" />
-            </label>
-            <label>
-              <span>Cotacao</span>
-              <input defaultValue={supplierPurchase?.exchange_rate ?? ""} name="exchangeRate" />
-            </label>
-            <label>
-              <span>Prazo origem</span>
-              <input defaultValue={supplierPurchase?.source_eta ?? ""} name="sourceEta" />
-            </label>
-            <label>
-              <span>Transportadora</span>
-              <input defaultValue={supplierPurchase?.carrier ?? ""} name="carrier" />
-            </label>
-            <label>
-              <span>Codigo de rastreio</span>
-              <input defaultValue={supplierPurchase?.tracking_code ?? ""} name="trackingCode" />
-            </label>
-            <label>
-              <span>Comprovante</span>
-              <input defaultValue={supplierPurchase?.proof_url ?? ""} name="proofUrl" />
-            </label>
-            <label className={cx(globalStyles, "span-all")}>
-              <span>Notas da origem</span>
-              <textarea
-                defaultValue={supplierPurchase?.internal_notes ?? ""}
-                name="supplierNotes"
-                rows={3}
-              />
-            </label>
-          </div>
-        </div>
+        {/* UM BLOCO POR LOJA. Antes era um bloco so, com um
+            `supplierPurchaseId` escondido — o que fazia um pedido com itens de
+            dois fornecedores mostrar so o primeiro, e o segundo nunca ser
+            comprado. O bloco extra no fim serve para dividir um pedido a mao. */}
+        {[...supplierPurchases, null].map((compra, indice) => (
+          <SupplierPurchaseBlock
+            compra={compra}
+            indice={indice}
+            key={compra?.id ?? "nova"}
+            itensDoPedido={items}
+          />
+        ))}
+        <input name="supplierBlockCount" type="hidden" value={supplierPurchases.length + 1} />
 
         <div className={cx(globalStyles, "admin-form-block")}>
           <h2>Novo evento de rastreio</h2>
           <div className={cx(globalStyles, "form-grid")}>
+            {/* Com varias compras, o evento precisa dizer a QUAL envio pertence.
+                Sem isto ele grudava na compra que por acaso veio depois. */}
+            {supplierPurchases.length > 1 ? (
+              <label>
+                <span>De qual compra</span>
+                <select name="trackingSupplierPurchaseId">
+                  <option value="">Pedido inteiro</option>
+                  {supplierPurchases.map((compra) => (
+                    <option key={compra.id} value={compra.id}>
+                      {compra.source_store_name || "Sem loja definida"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label>
               <span>Status do evento</span>
               <input name="trackingStatus" placeholder="em_transito" />
@@ -495,6 +403,13 @@ function OrderDetail({ selected }) {
             <label className={cx(globalStyles, "span-all")}>
               <span>Descricao publica</span>
               <textarea name="trackingDescription" rows={3} />
+              {/* O nome do campo ja diz "publica", mas o operador digita rapido.
+                  O aviso e a primeira barreira; a segunda recusa a descricao que
+                  contenha o codigo do fornecedor. */}
+              <small>
+                <strong>Este texto aparece para o cliente.</strong> Nao escreva o nome da loja de
+                origem nem o codigo do fornecedor.
+              </small>
             </label>
           </div>
         </div>
@@ -552,6 +467,180 @@ function OrderDetail({ selected }) {
         </div>
       </div>
     </section>
+  );
+}
+
+// Um bloco de compra na origem. `indice` entra no NOME de cada campo
+// (`sourceStatus__0`), e nao na posicao dentro de um array: um campo
+// condicional ou um select desabilitado desloca `formData.getAll()` em
+// silencio, e o custo de uma loja acabaria gravado na outra.
+function SupplierPurchaseBlock({ compra, indice, itensDoPedido }) {
+  const daAutomacao = compra?.created_by === "automacao";
+  const aindaNaoComprada = compra?.source_status === "nao_comprado";
+  // Compra antiga, criada antes do agrupamento, nao tem itens ligados. A regra
+  // e: sem ligacao, ela cobre o pedido inteiro.
+  const itens = compra?.items?.length ? compra.items : null;
+
+  return (
+    <div className={cx(globalStyles, "admin-form-block")}>
+      <h2>
+        {compra
+          ? compra.source_store_name || "Itens sem origem cadastrada"
+          : "Nova compra na origem"}
+        {daAutomacao ? (
+          <span className={cx(globalStyles, "badge")}> criada pela automação</span>
+        ) : null}
+      </h2>
+
+      {daAutomacao && aindaNaoComprada ? (
+        <p className={cx(globalStyles, "form-hint")}>
+          O pagamento foi confirmado e o sistema separou esta compra. Ela ainda precisa ser feita
+          por uma pessoa — o sistema não compra no fornecedor.
+        </p>
+      ) : null}
+
+      {/* O CARRINHO PRONTO: o que comprar nesta loja, com o link de cada item. */}
+      {compra ? (
+        <ul className={cx(globalStyles, "admin-purchase-items")}>
+          {(
+            itens ?? itensDoPedido.map((item) => ({ orderItem: item, quantity: item.quantity }))
+          ).map((linha, posicao) => (
+            <li key={linha.orderItem?.id ?? posicao}>
+              <strong>{linha.quantity}x</strong> {linha.orderItem?.product_name ?? "Item"}
+              {linha.sourceVariationLabel ? ` — ${linha.sourceVariationLabel}` : ""}
+              {linha.sourceProductUrl ? (
+                <>
+                  {" "}
+                  <a href={linha.sourceProductUrl} rel="noreferrer noopener" target="_blank">
+                    Abrir no fornecedor
+                  </a>
+                </>
+              ) : null}
+            </li>
+          ))}
+          {itens ? null : (
+            <li>
+              <small>Compra criada antes da separação por loja: ela cobre o pedido inteiro.</small>
+            </li>
+          )}
+        </ul>
+      ) : (
+        <p className={cx(globalStyles, "form-hint")}>
+          Use este bloco para registrar uma compra que não veio da separação automática.
+        </p>
+      )}
+
+      <input name={`supplierPurchaseId__${indice}`} type="hidden" value={compra?.id ?? ""} />
+
+      <div className={cx(globalStyles, "form-grid")}>
+        <label>
+          <span>Canal interno</span>
+          <StatusSelect
+            items={supplierChannels}
+            name={`internalChannel__${indice}`}
+            value={compra?.internal_channel ?? ""}
+          />
+        </label>
+        <label>
+          <span>Status da origem</span>
+          <StatusSelect
+            items={supplierSourceStatuses}
+            name={`sourceStatus__${indice}`}
+            value={compra?.source_status ?? "nao_comprado"}
+          />
+        </label>
+        <label>
+          <span>Loja de origem</span>
+          <input
+            defaultValue={compra?.source_store_name ?? ""}
+            name={`sourceStoreName__${indice}`}
+          />
+        </label>
+        <label>
+          <span>Numero do pedido na origem</span>
+          <input
+            defaultValue={compra?.source_order_number ?? ""}
+            name={`sourceOrderNumber__${indice}`}
+          />
+        </label>
+        <label className={cx(globalStyles, "span-all")}>
+          <span>Link interno do produto</span>
+          <input
+            defaultValue={compra?.source_product_url ?? ""}
+            name={`sourceProductUrl__${indice}`}
+          />
+          <small>Nunca aparece para o cliente.</small>
+        </label>
+        <label>
+          <span>Conta operacional</span>
+          <input
+            defaultValue={compra?.operational_account ?? ""}
+            name={`operationalAccount__${indice}`}
+          />
+        </label>
+        <label>
+          <span>Data da compra</span>
+          <input
+            defaultValue={formatAdminDateTimeInput(compra?.purchased_at)}
+            name={`purchasedAt__${indice}`}
+            type="datetime-local"
+          />
+          <small>Horario de Brasilia.</small>
+        </label>
+        <label>
+          <span>Custo do produto</span>
+          <input
+            defaultValue={centsToInput(compra?.product_cost_cents)}
+            inputMode="decimal"
+            name={`productCost__${indice}`}
+          />
+        </label>
+        <label>
+          <span>Custo do frete</span>
+          <input
+            defaultValue={centsToInput(compra?.shipping_cost_cents)}
+            inputMode="decimal"
+            name={`shippingCost__${indice}`}
+          />
+        </label>
+        <label>
+          <span>Moeda</span>
+          <input defaultValue={compra?.currency ?? "BRL"} name={`supplierCurrency__${indice}`} />
+        </label>
+        <label>
+          <span>Cambio</span>
+          <input
+            defaultValue={compra?.exchange_rate ?? ""}
+            inputMode="decimal"
+            name={`exchangeRate__${indice}`}
+          />
+        </label>
+        <label>
+          <span>Prazo da origem</span>
+          <input defaultValue={compra?.source_eta ?? ""} name={`sourceEta__${indice}`} />
+        </label>
+        <label>
+          <span>Transportadora</span>
+          <input defaultValue={compra?.carrier ?? ""} name={`carrier__${indice}`} />
+        </label>
+        <label>
+          <span>Codigo de rastreio</span>
+          <input defaultValue={compra?.tracking_code ?? ""} name={`trackingCode__${indice}`} />
+        </label>
+        <label className={cx(globalStyles, "span-all")}>
+          <span>Comprovante</span>
+          <input defaultValue={compra?.proof_url ?? ""} name={`proofUrl__${indice}`} />
+        </label>
+        <label className={cx(globalStyles, "span-all")}>
+          <span>Notas internas da origem</span>
+          <textarea
+            defaultValue={compra?.internal_notes ?? ""}
+            name={`supplierNotes__${indice}`}
+            rows={3}
+          />
+        </label>
+      </div>
+    </div>
   );
 }
 

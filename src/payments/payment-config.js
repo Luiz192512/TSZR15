@@ -2,6 +2,16 @@ import { isPreviewTarget, readEnvValue } from "../lib/runtime-target.js";
 
 export const PAYMENT_PROVIDER = "mercadopago";
 
+/**
+ * Teto de parcelas aceito pela loja.
+ *
+ * Vive aqui porque a TELA e a ROTA precisam concordar: o provedor devolve mais
+ * opcoes do que isto (18, no cartao de teste), e oferecer na tela uma parcela
+ * que o servidor recusa com 400 e a pior combinacao — o cliente escolhe, clica
+ * e leva erro sem entender.
+ */
+export const MAX_INSTALLMENTS = 12;
+
 // Prefixo do access token de teste da própria aplicação. É prova de sandbox,
 // mas a ausência dele não prova nada: no modelo de "usuário de teste" a conta
 // fictícia usa `APP_USR-`, igual à conta real.
@@ -25,8 +35,9 @@ const SANDBOX_PUBLIC_KEY_KEYS = [
   "NEXT_PUBLIC_MERCADOPAGO_SANDBOX_PUBLIC_KEY",
   "MERCADOPAGO_SANDBOX_PUBLIC_KEY"
 ];
-// UMA chave, os dois ambientes. O painel do Mercado Pago tem um webhook so —
-// nao um por aplicacao — entao o segredo de assinatura e compartilhado.
+// UMA chave, os dois ambientes. O painel do Mercado Pago tem uma URL de webhook
+// para o modo teste e outra para o modo producao, mas gera UMA assinatura
+// secreta por aplicacao — entao o segredo e compartilhado.
 const WEBHOOK_SECRET_KEYS = ["MERCADOPAGO_WEBHOOK_SECRET", "MP_WEBHOOK_SECRET"];
 // A chave de habilitacao tambem e por ambiente, e sem fallback: producao nao
 // pode ligar porque alguem exportou a variavel pensando no staging.
@@ -56,7 +67,8 @@ export function getPaymentAccessToken() {
  * Segredo de assinatura do webhook — o mesmo nos dois ambientes.
  *
  * Não há par sandbox/produção aqui porque o provedor não oferece um: o painel
- * tem uma única configuração de webhook. Isso é seguro porque este segredo não
+ * tem uma URL para o modo teste e outra para o modo produção, mas gera UMA
+ * assinatura secreta por aplicação. Isso é seguro porque este segredo não
  * move dinheiro, ele só VERIFICA quem enviou o evento. O access token, que
  * autoriza cobrança, continua separado e sem fallback nenhum.
  *
@@ -190,16 +202,21 @@ export function findPaymentConfigProblems() {
     );
   }
 
-  // Comparar o TEXTO dos tokens não bastava: dois tokens diferentes podem abrir
-  // a mesma conta — foi exatamente o que aconteceu aqui, com a variável de
-  // produção guardando a credencial do usuário de TESTE. A loja subiria
-  // "funcionando" e o dinheiro do cliente não chegaria em conta nenhuma.
+  // O que separa as duas credenciais é o PREFIXO, não a conta: uma aplicação
+  // emite `APP_USR-` (dinheiro real) e `TEST-` (sandbox) para a MESMA conta, e
+  // isso é a configuração normal. Comparar a conta acusaria erro num setup
+  // correto — foi o que aconteceu aqui antes desta correção.
+  //
+  // O perigo real é o inverso: credencial de dinheiro real na variável de
+  // sandbox. Aí o staging cobra de verdade, e a conta ser a mesma é justamente
+  // o que confirma que não é o outro modelo válido (usuário de teste, que tem
+  // conta própria).
   const contaSandbox = readTokenAccountId(tokenSandbox);
   const contaProducao = readTokenAccountId(tokenProducao);
 
-  if (contaSandbox && contaProducao && contaSandbox === contaProducao) {
+  if (tokenSandbox && !isSandboxPaymentToken(tokenSandbox) && contaSandbox === contaProducao) {
     problems.push(
-      `As credenciais de sandbox e de produção abrem a MESMA conta (${contaProducao}). A variável de produção tem que ser a da conta real da loja — confira em npm run pagamento:verificar.`
+      `MERCADOPAGO_SANDBOX_ACCESS_TOKEN é credencial de produção da mesma conta (${contaSandbox}): staging cobraria dinheiro real.`
     );
   }
 

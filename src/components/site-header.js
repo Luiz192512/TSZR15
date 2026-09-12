@@ -19,6 +19,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
             height={2000}
             sizes="154px"
             src="/brand/logo-tszr15-store.webp"
+            unoptimized
             width={2000}
           />
           <span>

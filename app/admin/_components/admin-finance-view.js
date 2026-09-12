@@ -50,6 +50,17 @@ function LedgerCard({ ledger }) {
           <dt>Recebido liquido</dt>
           <dd>{recebido === null ? "aguardando o provedor" : formatCurrency(recebido)}</dd>
         </div>
+        {/* Recebido MAIOR que o cobrado nao e erro: no parcelamento com juros do
+            comprador, ele paga mais e a loja recebe a diferenca. Sem esta linha
+            os dois numeros ficam lado a lado parecendo inconsistencia. */}
+        {recebido !== null && recebido > (ledger.charged_amount_cents ?? 0) ? (
+          <div>
+            <dt>Juros do parcelamento</dt>
+            <dd>
+              +{formatCurrency(recebido - (ledger.charged_amount_cents ?? 0))} pagos pelo cliente
+            </dd>
+          </div>
+        ) : null}
         <div>
           <dt>Taxa do provedor</dt>
           <dd>{formatCurrency(ledger.provider_fee_cents ?? 0)}</dd>

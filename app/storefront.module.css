@@ -819,7 +819,10 @@
   min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  /* Era `#fff` cravado ao lado de `color: var(--ink)`. No tema escuro o texto
+     vira #f8f8f8 sobre branco: 1,06:1, contra os 4,5:1 que a norma pede. O
+     cliente digitava o cupom sem enxergar o que digitava. */
+  background: var(--surface-raised);
   color: var(--ink);
   padding: 0 12px;
   text-transform: uppercase;
@@ -934,9 +937,10 @@
   background: #fff;
 }
 
-.category-token.is-active {
-  outline: 2px solid rgba(109, 40, 217, 0.18);
-}
+/* O `outline` roxo que ficava aqui marcava a ficha SELECIONADA, e uma regra mais
+   abaixo o cancelava com `outline: 0` — cancelando junto o anel de foco do
+   teclado, que e a unica pista de onde a pessoa esta. Selecao agora e cor de
+   borda e de preenchimento; `outline` volta a ser so do foco. */
 
 .category-token.is-active span {
   background: var(--purple);
@@ -2495,7 +2499,6 @@
 
 .category-token.is-active {
   border-color: rgb(var(--brand-rgb) / 0.72);
-  outline: 0;
 }
 
 .category-token.is-active span,
@@ -3252,9 +3255,12 @@
   font-size: clamp(3.3rem, 7vw, 7.2rem);
 }
 
+/* Toda area que exibe FOTO usa a moldura escura, no card e na pagina do
+   produto. Antes era --surface-page, o que no tema claro punha branco atras de
+   uma foto de fundo preto. */
 .product-image.has-product-photo {
   padding: 0;
-  background: var(--surface-page);
+  background: var(--surface-photo);
 }
 
 .product-image.has-product-photo::after {
@@ -3274,14 +3280,19 @@
   object-fit: contain;
 }
 
+/* A foto do catalogo e 1200x1200 — quadrada. Encaixotar num 4:3 sobrava faixa
+   dos dois lados e deixava o card maior que a imagem; era a queixa do "tamanho
+   errado do card". Com 1:1 a area corresponde a foto e nao sobra nada.
+
+   O fundo acompanha a foto (preto solido, sem alfa) em vez de tentar clarear:
+   qualquer veu claro so cria uma faixa cinza entre o card branco e o preto da
+   imagem. Ver --surface-photo em globals.css. */
 .hub-product-card .product-image.has-product-photo,
 .category-carousel-track .product-image.has-product-photo {
   min-height: 0;
-  aspect-ratio: 4 / 3;
-  border-bottom: 1px solid rgb(var(--ink-rgb) / 0.08);
-  background:
-    radial-gradient(circle at 50% 50%, rgb(var(--ink-rgb) / 0.08), transparent 62%),
-    var(--surface-page);
+  aspect-ratio: 1 / 1;
+  border-bottom: 1px solid var(--surface-photo-edge);
+  background: var(--surface-photo);
 }
 
 .category-carousel-list {
@@ -3347,19 +3358,22 @@
   min-width: 0;
 }
 
+/* Mesma regra do card: a foto e 1200x1200, entao a moldura e quadrada e escura.
+   Antes eram 570px de altura fixa com fundo --surface-page — no tema claro isso
+   punha branco em volta e atras de uma foto de fundo preto, e ainda deixava
+   faixas laterais porque 651x570 nao e 1:1. */
 .product-photo-main {
   position: relative;
-  min-height: 570px;
-  border: 1px solid rgb(var(--ink-rgb) / 0.13);
-  background: var(--surface-page);
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--surface-photo-edge);
+  background: var(--surface-photo);
   overflow: hidden;
   box-shadow: var(--shadow-tight);
 }
 
 .product-photo-main img {
-  min-height: inherit;
   object-fit: contain;
-  background: var(--surface-page);
+  background: var(--surface-photo);
 }
 
 .product-photo-controls {
@@ -3374,9 +3388,16 @@
 .product-photo-thumbs button {
   display: inline-grid;
   place-items: center;
+  aspect-ratio: 1 / 1;
   border: 1px solid rgb(var(--brand-rgb) / 0.58);
-  background: rgb(var(--shadow-rgb) / 0.68);
+  /* A miniatura mostra a mesma foto de fundo preto: a moldura acompanha. */
+  background: var(--surface-photo);
   color: var(--text-on-filled);
+  overflow: hidden;
+}
+
+.product-photo-thumbs button img {
+  object-fit: contain;
 }
 
 .product-photo-controls button {
@@ -4471,9 +4492,13 @@
   background: rgb(var(--shadow-rgb) / 0.24);
 }
 
+/* 1:1 para bater com a foto final. Era 4:3, entao quem recortava enquadrava num
+   formato e via o resultado noutro. A medicao mostrou que a arte ocupa o
+   quadrado inteiro — logo, faixa de frete e diagonais chegam nas bordas — entao
+   e o palco que acompanha a foto, nao o contrario. */
 .admin-image-crop-stage {
   position: relative;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1 / 1;
   min-height: 220px;
   overflow: hidden;
   border: 1px solid rgb(var(--brand-rgb) / 0.42);
@@ -4628,12 +4653,14 @@
   box-shadow: 0 2px 8px rgb(var(--shadow-rgb) / 0.5);
 }
 
+/* Mesma foto de fundo preto do catalogo: a previa do admin usa a mesma moldura,
+   e na proporcao real da imagem. Antes era branco no tema claro. */
 .admin-upload-preview-media img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
-  background: var(--surface-page);
+  background: var(--surface-photo);
   pointer-events: none;
 }
 
@@ -5075,14 +5102,21 @@
   text-transform: uppercase;
 }
 
+/* As tres barras eram `#fff` cravado. O botao que as contem tem fundo
+   `rgb(var(--brand-rgb) / 0.12)` — vermelho a 12% sobre a superficie da pagina —
+   entao no tema CLARO ficavam barras brancas sobre rosa claro: o icone de menu
+   sumia no celular, que e onde quase todo mundo compra.
+
+   `currentColor` resolve os dois temas de uma vez: as barras passam a seguir o
+   `color: var(--text-on-filled)` do proprio botao, que ja inverte. */
 .mobile-menu-icon {
   display: block;
   width: 18px;
   height: 12px;
   background:
-    linear-gradient(#fff, #fff) 0 0 / 100% 2px no-repeat,
-    linear-gradient(#fff, #fff) 0 5px / 100% 2px no-repeat,
-    linear-gradient(#fff, #fff) 0 10px / 100% 2px no-repeat;
+    linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 5px / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 10px / 100% 2px no-repeat;
 }
 
 .mobile-nav-details {
@@ -5770,10 +5804,16 @@
   gap: 8px;
 }
 
+/* A estrela VAZIA era `rgba(148, 163, 184, 0.65)` — valor solto, fora do sistema
+   de tokens, e 2.56:1 sobre o branco do tema claro. Abaixo do minimo de 3:1 que
+   vale para elemento grafico com significado.
+
+   `--status-neutral` da 4.8:1 no claro e 4.2:1 no escuro, e a estrela cheia
+   continua distinguivel porque muda de MATIZ (ambar), nao so de intensidade. */
 .review-stars {
   display: inline-flex;
   gap: 2px;
-  color: rgba(148, 163, 184, 0.65);
+  color: var(--status-neutral);
   letter-spacing: 0;
 }
 
@@ -7198,4 +7238,71 @@ html[data-navigation-loading="true"] .navigation-loading-overlay {
   font-size: 0.82rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* --- Revelacao na rolagem --------------------------------------------------
+   `animation-timeline: view()` amarra o progresso da animacao a posicao do
+   elemento na janela. O navegador resolve isso no compositor: nenhum
+   observador, nenhum listener de scroll, nenhum JavaScript.
+
+   Duas protecoes deliberadas, e as duas importam mais que o efeito:
+
+   1. O estado final e o proprio estado normal do elemento, e a animacao
+      SUBTRAI dele — por isso `@keyframes` tem so o `from`. Um `opacity: 0`
+      escrito fora do `@supports` deixaria o conteudo invisivel PARA SEMPRE em
+      navegador sem suporte, que hoje inclui o Firefox estavel. Como esta, sem
+      suporte o card aparece pronto; com suporte, ele entra.
+   2. Quem ja esta na janela no carregamento nasce no fim do intervalo, entao a
+      primeira dobra nao anima nada. E isso que mantem o LCP intacto: a foto do
+      hero nunca comeca transparente, e conteudo que comeca transparente e
+      contado como nao-pintado. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hub-product-card,
+    .section-heading {
+      animation: mo-entra var(--mo-curva) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+
+    /* Desencontro proposital nas colunas vizinhas: a grade inteira subindo no
+       mesmo instante parece um bloco unico se movendo, nao itens chegando. */
+    .product-grid > .hub-product-card:nth-child(3n + 2) {
+      animation-range: entry 8% entry 68%;
+    }
+
+    .product-grid > .hub-product-card:nth-child(3n + 3) {
+      animation-range: entry 16% entry 76%;
+    }
+  }
+}
+
+@keyframes mo-entra {
+  from {
+    opacity: 0;
+    /* `translateY`, e nao `translate3d`. Escrever a versao 3D promove o
+       elemento a camada propria de imediato, e aqui isso significaria dezenas
+       de cards de produto — cada um com uma foto de 1200x1200 — ocupando
+       textura na GPU o tempo todo, animando ou nao. O navegador promove sozinho
+       durante a animacao, que e quando faz diferenca. */
+    transform: translateY(20px);
+  }
+}
+
+/* --- Resposta ao toque -----------------------------------------------------
+   No celular nao existe hover: o dedo cobre o alvo e o unico retorno possivel
+   e o proprio elemento reagir ao ser pressionado. Sem isso, um toque em
+   conexao lenta parece nao ter registrado e o cliente toca de novo — que no
+   botao de pagar e exatamente o que ninguem quer.
+   `scale` em vez de sombra ou cor: e a unica forma de dar esse retorno sem
+   custar repintura. */
+@media (prefers-reduced-motion: no-preference) {
+  .button:active,
+  .pill-button:active,
+  .nav-link:active,
+  .profile-link:active,
+  .hub-product-card:active {
+    transform: scale(0.97);
+    transition-duration: var(--mo-toque);
+  }
 }

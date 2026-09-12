@@ -13,7 +13,7 @@ Nada de pagamento, tema ou automação é validado direto em produção.
 | Token admin | `TSZR15_ADMIN_TOKEN` | `TSZR15_ADMIN_TOKEN` próprio do Worker |
 | Access token | `MERCADOPAGO_ACCESS_TOKEN` | `MERCADOPAGO_SANDBOX_ACCESS_TOKEN` |
 | Public Key | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | `NEXT_PUBLIC_MERCADOPAGO_SANDBOX_PUBLIC_KEY` |
-| Segredo do webhook | `MERCADOPAGO_WEBHOOK_SECRET` | `MERCADOPAGO_WEBHOOK_SECRET` (o painel do provedor tem UM webhook só) |
+| Segredo do webhook | `MERCADOPAGO_WEBHOOK_SECRET` | `MERCADOPAGO_WEBHOOK_SECRET` (uma assinatura por aplicação; o painel tem URL de teste e URL de produção) |
 | Deploy | `npm run deploy` (só a partir de `main`) | `npm run deploy:preview` |
 
 ## Desenvolvimento local
@@ -158,7 +158,8 @@ O Mercado Pago de sandbox também: `npm run pagamento:verificar` confirma conta
 de teste, e uma cobrança Pix real foi criada no sandbox com QR válido.
 
 O segredo do webhook (`MERCADOPAGO_WEBHOOK_SECRET`) vale para os dois ambientes:
-o painel do provedor tem **um** webhook, não um por aplicação. Sem ele o
+o painel do provedor tem uma URL para o modo teste e outra para o modo produção,
+mas gera **uma** assinatura secreta por aplicação. Sem ele o
 pagamento fica desligado (`isOnlinePaymentEnabled` exige token E segredo),
 porque um webhook sem assinatura validada aceitaria confirmação de qualquer
 origem.

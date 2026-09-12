@@ -14,6 +14,24 @@ const ProductDetails = nextDynamic(() =>
 
 const siteUrl = "https://www.tszr15-store.com.br";
 
+// SOFT 404 CONHECIDO: um slug inexistente responde HTTP 200 com o corpo de
+// "produto nao encontrado". Medido com build limpa e cache MISS.
+//
+// A causa NAO e o `force-static` — remove-lo foi testado e o status continuou
+// 200. E a mesma limitacao que o middleware ja contorna para a rota de
+// pagamento: nesta versao do Next o cabecalho ja saiu quando o componente
+// chama `notFound()`.
+//
+// As duas saidas conhecidas, e por que nenhuma foi tomada aqui:
+//   - `dynamicParams = false` devolveria 404 de verdade, mas um produto NOVO
+//     passaria a responder 404 ate `generateStaticParams` rodar de novo. Troca
+//     um problema de indexacao por um de vitrine, que e pior.
+//   - guarda no middleware, como em `/pedido/pagamento`, decide antes do
+//     primeiro byte — mas precisa da lista de slugs validos na borda, e hoje
+//     ela so existe no banco.
+//
+// Enquanto isso: a pagina devolve `robots: noindex` quando o produto nao
+// existe, o que impede a indexacao mesmo com status 200.
 export const dynamic = "force-static";
 export const dynamicParams = true;
 export const revalidate = 3600;
@@ -48,7 +66,11 @@ export async function generateMetadata({ params }) {
   const product = await getProductBySlug(slug);
 
   if (!product) {
-    return { title: "Produto não encontrado | TSZR15" };
+    // `noindex` porque o status sai 200 (ver o comentario sobre soft 404 no
+    // topo do arquivo). Sem isto, o buscador guarda a pagina de erro como se
+    // fosse um produto da loja, e quem clicar no resultado cai numa vitrine
+    // quebrada. Nao conserta o status, mas corta o dano que ele causa.
+    return { robots: { follow: false, index: false }, title: "Produto não encontrado | TSZR15" };
   }
 
   const canonicalUrl = `${siteUrl}/produto/${product.slug}`;

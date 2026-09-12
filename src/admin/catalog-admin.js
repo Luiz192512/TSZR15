@@ -17,16 +17,11 @@ import {
   runWithAdminProductImageCleanup,
   uploadAdminProductImages
 } from "@/src/admin/catalog-product-images.js";
-import {
-  archiveAdminCouponById,
-  saveAdminCoupon
-} from "@/src/admin/catalog-coupon-persistence.js";
+import { archiveAdminCouponById, saveAdminCoupon } from "@/src/admin/catalog-coupon-persistence.js";
 import { saveAdminCatalogProductAggregate } from "@/src/admin/catalog-product-persistence.js";
-import {
-  parseAdminDateTimeInput,
-  parseAdminMoneyToCents
-} from "@/src/admin/admin-form-values.js";
+import { parseAdminDateTimeInput, parseAdminMoneyToCents } from "@/src/admin/admin-form-values.js";
 import { collectAdminVariationInventory } from "@/src/admin/catalog-variations.js";
+import { normalizeStoreKey } from "@/src/orders/supplier-store.js";
 
 const adminProductPageSize = 24;
 const adminCouponPageSize = 30;
@@ -52,6 +47,9 @@ const adminProductColumns = [
   "updated_at",
   "created_at",
   "catalog_product_costs(cost_cents)",
+  // So o admin le esta tabela: o grant para anon/authenticated foi revogado, e
+  // este cliente e o de service role.
+  "catalog_product_supplier_sources(internal_channel,source_store_name,source_product_url,source_variation_label,variation,size)",
   "catalog_variation_stock(variation,size,quantity)"
 ].join(",");
 const adminCouponColumns = [
@@ -72,6 +70,69 @@ const adminCouponColumns = [
   "updated_at",
   "created_at"
 ].join(",");
+
+// Canais aceitos pelo CHECK de catalog_product_supplier_sources. Recusar aqui
+// da mensagem legivel em vez de erro de constraint.
+const CANAIS_DE_FORNECEDOR = ["shopee", "aliexpress", "fornecedor_homologado", "outro"];
+
+/**
+ * Le a origem de compra do formulario do produto.
+ *
+ * Uma origem por produto nesta versao: `variation` e `size` ficam vazios, que na
+ * tabela significa "vale para todas". Refinar por variacao depois nao precisa de
+ * migracao nova.
+ *
+ * Devolve sempre um ARRAY, porque e o que a RPC espera — vazio quando o operador
+ * nao preencheu, e isso apaga a origem que existia.
+ */
+function collectSupplierSources(formData) {
+  const url = cleanString(formData.get("supplierProductUrl"), 900);
+  const canal = cleanString(formData.get("supplierChannel"), 40);
+  const loja = cleanString(formData.get("supplierStoreName"), 160);
+
+  if (!url && !canal && !loja) {
+    return [];
+  }
+
+  if (!url) {
+    throw new Error("Informe o link do produto no fornecedor ou limpe os outros campos da origem.");
+  }
+
+  // http/https so: um `javascript:` aqui viraria link clicavel no painel.
+  let endereco;
+
+  try {
+    endereco = new URL(url);
+  } catch {
+    throw new Error("O link do produto no fornecedor nao e uma URL valida.");
+  }
+
+  if (endereco.protocol !== "http:" && endereco.protocol !== "https:") {
+    throw new Error("O link do produto no fornecedor precisa comecar com http:// ou https://.");
+  }
+
+  if (!CANAIS_DE_FORNECEDOR.includes(canal)) {
+    throw new Error("Selecione onde o produto e comprado.");
+  }
+
+  // O nome da loja vira a chave que AGRUPA a compra. Um nome que normaliza para
+  // nada ("---") produziria chave sem parte identificadora, e duas lojas assim
+  // cairiam na mesma compra.
+  if (!normalizeStoreKey(canal, loja)) {
+    throw new Error("Informe o nome da loja no fornecedor, com pelo menos uma letra ou numero.");
+  }
+
+  return [
+    {
+      internal_channel: canal,
+      size: "",
+      source_product_url: url,
+      source_store_name: loja,
+      source_variation_label: cleanString(formData.get("supplierVariationLabel"), 160) || null,
+      variation: ""
+    }
+  ];
+}
 
 function cleanString(value, maxLength = 500) {
   return String(value ?? "")
@@ -159,11 +220,26 @@ function toAdminProduct(row) {
     : row.catalog_product_costs;
   const costCents = row.cost_cents ?? joinedCost?.cost_cents ?? null;
   const profitCents = Number.isInteger(costCents) ? row.price_cents - costCents : null;
+  // Uma origem por produto nesta versao — a que vale para todas as variacoes.
+  const origem = (row.catalog_product_supplier_sources ?? []).find(
+    (fonte) => !fonte?.variation && !fonte?.size
+  );
 
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
+    // NUNCA vai para o catalogo publico: `toPublicCatalogProduct`
+    // (src/catalog/index.js) monta o objeto do cliente a partir de outra fonte,
+    // e a tabela de origem nem e legivel com a chave publicavel.
+    supplierSource: origem
+      ? {
+          internalChannel: origem.internal_channel ?? "",
+          sourceProductUrl: origem.source_product_url ?? "",
+          sourceStoreName: origem.source_store_name ?? "",
+          sourceVariationLabel: origem.source_variation_label ?? ""
+        }
+      : null,
     storefrontCategoryIds: row.storefront_category_ids ?? [],
     productFamily: row.product_family,
     bikeModelScope: row.bike_model_scope ?? ["yamaha-r15"],
@@ -230,6 +306,7 @@ function collectProductPayload(formData) {
   const productFamily = cleanString(formData.get("productFamily"), 80);
   const priceCents = parseAdminMoneyToCents(formData.get("price"));
   const costCents = parseAdminMoneyToCents(formData.get("cost"), { allowZero: true });
+  const supplierSources = collectSupplierSources(formData);
   const {
     sizeOptions,
     stock: variationStock,
@@ -286,6 +363,7 @@ function collectProductPayload(formData) {
     id,
     imageOrderTokens,
     persistenceMode,
+    supplierSources,
     usesVariationCards,
     variationImageTokens,
     variationStock,
@@ -305,6 +383,21 @@ function collectProductPayload(formData) {
       shipping_class: cleanString(formData.get("shippingClass"), 80) || "medium",
       image_urls: imageUrls,
       checkout_channel: "whatsapp-business",
+      // ATENCAO: esta coluna e LIDA PELO PUBLICO. `catalog_products` libera
+      // `select` para `anon` de proposito — e o catalogo da loja — e nao existe
+      // filtro por coluna: tudo que entrar aqui sai no PostgREST para quem tiver
+      // a chave publicavel, que viaja no proprio pacote da loja.
+      //
+      // O nome `internal_purchase_source` e o `visibility: "internal-only"`
+      // sugerem o contrario, e ja enganaram: um lote antigo gravou `marginCents`
+      // aqui, e a margem de 6 produtos ficou publica ate 2026-09-08.
+      // `toPublicCatalogProduct` limpa o campo na aplicacao, mas quem chama o
+      // PostgREST direto pula a limpeza.
+      //
+      // Custo, margem, lucro e link de fornecedor moram em tabela com grant
+      // revogado: `catalog_product_costs` e `catalog_product_supplier_sources`.
+      // `tests/public-catalog-exposure.test.mjs` falha se algo com cara de
+      // dinheiro voltar para ca.
       internal_purchase_source: {
         importMode: "admin-curated",
         provider: "painel-admin",
@@ -589,6 +682,7 @@ export async function upsertAdminCatalogProduct(formData) {
     imageOrderTokens,
     persistenceMode,
     row,
+    supplierSources,
     usesVariationCards,
     variationImageTokens,
     variationStock
@@ -599,8 +693,11 @@ export async function upsertAdminCatalogProduct(formData) {
     productId: id,
     supabase
   });
-  const { paths: uploadedImagePaths, urls: uploadedImageUrls } =
-    await uploadAdminProductImages({ formData, productId: id, supabase });
+  const { paths: uploadedImagePaths, urls: uploadedImageUrls } = await uploadAdminProductImages({
+    formData,
+    productId: id,
+    supabase
+  });
   const finalVariationImages = usesVariationCards
     ? variationImageTokens.map((group) => ({
         image_urls: resolveImageOrder(group.imageTokens, uploadedImageUrls),
@@ -624,6 +721,7 @@ export async function upsertAdminCatalogProduct(formData) {
         persistenceMode,
         row: finalRow,
         supabase,
+        supplierSources,
         variationStock
       }),
     paths: uploadedImagePaths,

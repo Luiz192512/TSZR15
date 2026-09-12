@@ -1,12 +1,19 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./payment-experience.module.css";
 import { formatCurrency } from "@/src/checkout/whatsapp.js";
+import { MAX_INSTALLMENTS } from "@/src/payments/payment-config.js";
+import { formatCardExpiryInput, parseCardExpiry } from "@/src/payments/card-expiry.js";
 
 const SDK_URL = "https://sdk.mercadopago.com/js/v2";
+// Script separado do SDK. Ele coleta caracteristicas do navegador, manda para
+// `api.mercadopago.com/web_device` e devolve um identificador em
+// `window.MP_DEVICE_SESSION_ID`. E o campo de maior peso na analise de cartao:
+// sem ele o provedor nao distingue o comprador de sempre de um cartao roubado.
+const DEVICE_URL = "https://www.mercadopago.com/v2/security.js";
 const POLL_MS = 5000;
 
 const TABS = [
@@ -26,10 +33,9 @@ const MOLA_FORTE = { bounce: 0.5, duration: 0.6, type: "spring" };
 /**
  * Carrega o SDK do provedor SO quando a aba de cartao esta aberta.
  *
- * O SDK faz impressao digital do dispositivo assim que carrega: ele tenta falar
- * com mercadolibre.com e ate abrir um iframe. Nossa CSP bloqueia tudo isso, e o
- * bloqueio vira ruido no console de quem so queria pagar por Pix. Carregando sob
- * demanda, o custo existe apenas para quem realmente vai usar cartao.
+ * Pix e boleto sao resolvidos inteiros no servidor e nao precisam de SDK.
+ * Carregando sob demanda, o peso e o rastreamento que vem junto existem apenas
+ * para quem realmente vai usar cartao.
  */
 function useProviderSdk(publicKey, ativo) {
   const [sdk, setSdk] = useState(null);
@@ -72,6 +78,54 @@ function useProviderSdk(publicKey, ativo) {
   }, [ativo, publicKey]);
 
   return sdk;
+}
+
+/**
+ * Impressao digital do dispositivo, so na aba de cartao.
+ *
+ * Carregado junto com o SDK e pelo mesmo motivo: Pix e boleto nao precisam, e
+ * quem paga por esses meios nao deve ser rastreado a toa.
+ *
+ * O identificador chega de forma ASSINCRONA — o script consulta o provedor
+ * antes de publicar `MP_DEVICE_SESSION_ID`. Por isso o valor e lido por
+ * intervalo curto em vez de uma vez so: ler cedo demais devolveria `undefined`
+ * e a cobranca sairia sem o campo justamente no caso comum.
+ */
+function useDeviceSessionId(ativo) {
+  const [deviceId, setDeviceId] = useState("");
+
+  useEffect(() => {
+    if (!ativo || typeof window === "undefined") {
+      return undefined;
+    }
+
+    if (!document.querySelector(`script[src="${DEVICE_URL}"]`)) {
+      const script = document.createElement("script");
+
+      script.src = DEVICE_URL;
+      script.setAttribute("view", "checkout");
+      script.async = true;
+      document.head.append(script);
+    }
+
+    const id = window.setInterval(() => {
+      if (window.MP_DEVICE_SESSION_ID) {
+        setDeviceId(window.MP_DEVICE_SESSION_ID);
+        window.clearInterval(id);
+      }
+    }, 400);
+
+    // Desiste depois de 8s. Falta de identificador reduz a aprovacao, mas
+    // esperar por ele travaria o pagamento — o que seria pior.
+    const desistir = window.setTimeout(() => window.clearInterval(id), 8000);
+
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(desistir);
+    };
+  }, [ativo]);
+
+  return deviceId;
 }
 
 function useCountdown(expiresAt) {
@@ -123,7 +177,7 @@ async function postJson(url, body) {
   return data;
 }
 
-function CopyButton({ onErro, rotulo, texto }) {
+function CopyButton({ aoFalhar, onErro, rotulo, texto }) {
   const [copiado, setCopiado] = useState(false);
 
   async function copiar() {
@@ -132,7 +186,8 @@ function CopyButton({ onErro, rotulo, texto }) {
       setCopiado(true);
       window.setTimeout(() => setCopiado(false), 2400);
     } catch {
-      onErro("O navegador bloqueou a copia. Selecione o codigo e copie manualmente.");
+      aoFalhar?.();
+      onErro("O navegador bloqueou a copia. O codigo esta inteiro abaixo — selecione e copie.");
     }
   }
 
@@ -148,13 +203,26 @@ function CopyButton({ onErro, rotulo, texto }) {
   );
 }
 
-// O codigo Pix e longo demais para caber: fica truncado com o botao ao lado,
-// porque ninguem digita um copia-e-cola — so copia.
+/**
+ * Codigo com botao de copiar.
+ *
+ * Enquanto a copia funciona, o texto fica truncado numa linha — ninguem digita
+ * um copia-e-cola de 162 caracteres, so copia. Quando ela FALHA, truncar vira
+ * armadilha: a mensagem manda selecionar um codigo que nao esta visivel. Aí o
+ * codigo se abre por inteiro.
+ */
 function CopyRow({ onErro, rotulo, texto }) {
+  const [copiaFalhou, setCopiaFalhou] = useState(false);
+
   return (
-    <div className={styles.copyBox}>
+    <div className={`${styles.copyBox} ${copiaFalhou ? styles.copyBoxAberta : ""}`}>
       <code>{texto}</code>
-      <CopyButton onErro={onErro} rotulo={rotulo} texto={texto} />
+      <CopyButton
+        aoFalhar={() => setCopiaFalhou(true)}
+        onErro={onErro}
+        rotulo={rotulo}
+        texto={texto}
+      />
     </div>
   );
 }
@@ -174,7 +242,7 @@ function Feedback({ erro, texto }) {
   );
 }
 
-function PixPanel({ amountCents, onErro, orderId }) {
+function PixPanel({ amountCents, onCobrancaGerada, onErro, orderId }) {
   const [cobranca, setCobranca] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const contagem = useCountdown(cobranca?.expiresAt);
@@ -185,6 +253,10 @@ function PixPanel({ amountCents, onErro, orderId }) {
 
     try {
       setCobranca(await postJson("/api/pagamento/pix", { orderId }));
+      // Codigo novo e pagamento em aberto de novo. Se o status anterior era
+      // final (expirado, cancelado), a tela tinha parado de consultar: o
+      // cliente pagaria este codigo e nunca veria a confirmacao.
+      onCobrancaGerada?.();
     } catch (error) {
       onErro(error.message);
     } finally {
@@ -216,6 +288,14 @@ function PixPanel({ amountCents, onErro, orderId }) {
             </p>
           ) : null}
 
+          {/* A frase acima pede um codigo novo; sem este botao o unico caminho
+              era recarregar a pagina, e nada na tela dizia isso. */}
+          {contagem?.esgotado ? (
+            <button className={styles.action} disabled={carregando} onClick={gerar} type="button">
+              {carregando ? "Gerando codigo…" : "Gerar outro codigo Pix"}
+            </button>
+          ) : null}
+
           <p className={styles.hint}>
             A confirmacao chega sozinha assim que o banco avisar. Pode deixar esta pagina aberta.
           </p>
@@ -235,17 +315,169 @@ function PixPanel({ amountCents, onErro, orderId }) {
   );
 }
 
-function CardPanel({ onErro, onMensagem, orderId, sdk }) {
+// Rótulos dos trilhos que um cartão pode usar. `payment_type_id` é o vocabulário
+// do provedor; aqui ele vira o que o cliente entende.
+const ROTULO_DO_TIPO = {
+  credit_card: "Crédito",
+  debit_card: "Débito",
+  prepaid_card: "Pré-pago"
+};
+
+/**
+ * Quais trilhos ESTE cartão aceita, segundo o provedor.
+ *
+ * A lista vem do BIN, não de uma escolha nossa: é o número do cartão que decide
+ * se ele é de débito, de crédito ou dos dois. Oferecer a opção sem perguntar ao
+ * provedor criaria uma escolha que seria recusada na cobrança.
+ *
+ * Com um tipo só a tela não mostra seletor: não há escolha a fazer. É o caso de
+ * hoje. Conferido em 2026-09-10 com `/v1/payment_methods`: a conta da loja TEM
+ * débito ativo, mas só `debelo` (Cartão de Débito Virtual Caixa, bandeira Elo).
+ * Visa, Master e Elo de outros bancos chegam como crédito ou pré-pago.
+ *
+ * Não é opção desligada em painel nenhum: a conta de sandbox lista `debvisa`,
+ * `debmaster` e `maestro`, então essa liberação é do Mercado Pago, conta por
+ * conta. No dia em que liberarem, o provedor passa a devolver os dois tipos para
+ * o mesmo BIN e o seletor aparece aqui sozinho.
+ */
+function useCardPaymentTypes({ cardNumber, sdk }) {
+  const [tipos, setTipos] = useState([]);
+  const bin = cardNumber.replace(/\D/g, "").slice(0, 6);
+
+  useEffect(() => {
+    if (!sdk || bin.length < 6) {
+      setTipos([]);
+      return undefined;
+    }
+
+    let ativo = true;
+
+    (async () => {
+      try {
+        const metodos = await sdk.getPaymentMethods({ bin });
+        const vistos = new Map();
+
+        for (const metodo of metodos?.results ?? []) {
+          const tipo = metodo?.payment_type_id;
+
+          if (tipo && ROTULO_DO_TIPO[tipo] && !vistos.has(tipo)) {
+            vistos.set(tipo, { id: tipo, label: ROTULO_DO_TIPO[tipo] });
+          }
+        }
+
+        if (ativo) {
+          setTipos([...vistos.values()]);
+        }
+      } catch {
+        // Sem resposta do provedor, a tela segue sem seletor e a cobrança usa o
+        // primeiro método que ele devolver. Perder a escolha é um incômodo;
+        // travar o pagamento por causa dela seria o estrago.
+        if (ativo) {
+          setTipos([]);
+        }
+      }
+    })();
+
+    return () => {
+      ativo = false;
+    };
+  }, [bin, sdk]);
+
+  return tipos;
+}
+
+/**
+ * Parcelas e quanto cada uma custa, direto do provedor.
+ *
+ * O valor com juros NAO e calculado aqui: quem define a taxa e o emissor do
+ * cartao, e ela muda por bandeira e por parcela. Inventar uma formula mostraria
+ * um numero que nao bate com a fatura. O SDK devolve o que sera cobrado de
+ * verdade — o mesmo dado que o provedor usa para cobrar.
+ *
+ * Depende do bin (6 primeiros digitos), entao so consulta quando o cliente
+ * digitou o suficiente do cartao.
+ */
+function useInstallments({ amountCents, cardNumber, sdk }) {
+  const [opcoes, setOpcoes] = useState(null);
+  const bin = cardNumber.replace(/\D/g, "").slice(0, 6);
+
+  useEffect(() => {
+    if (!sdk || bin.length < 6) {
+      setOpcoes(null);
+      return undefined;
+    }
+
+    let cancelado = false;
+
+    (async () => {
+      try {
+        const resposta = await sdk.getInstallments({
+          amount: String(amountCents / 100),
+          bin,
+          locale: "pt-BR"
+        });
+        const custos = resposta?.[0]?.payer_costs ?? [];
+
+        if (!cancelado) {
+          setOpcoes(
+            // O provedor oferece mais parcelas do que a loja aceita. Mostrar o
+            // que a rota recusaria com 400 seria oferecer um erro.
+            custos
+              .filter((custo) => custo.installments <= MAX_INSTALLMENTS)
+              .map((custo) => ({
+                parcelas: custo.installments,
+                temJuros: Number(custo.installment_rate) > 0,
+                totalCents: Math.round(Number(custo.total_amount) * 100),
+                valorParcelaCents: Math.round(Number(custo.installment_amount) * 100)
+              }))
+          );
+        }
+      } catch {
+        // Sem simulacao o cliente ainda consegue pagar: o seletor cai para a
+        // lista simples e o provedor cobra o valor certo de qualquer jeito.
+        if (!cancelado) setOpcoes(null);
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [amountCents, bin, sdk]);
+
+  return opcoes;
+}
+
+function CardPanel({ amountCents, onCobrancaGerada, onErro, onMensagem, orderId, sdk }) {
   const [enviando, setEnviando] = useState(false);
   const [form, setForm] = useState({
-    cardExpirationMonth: "",
-    cardExpirationYear: "",
+    // Vencimento num campo so ("09/29"), como vem impresso no cartao. Separar
+    // em mes e ano obrigava o cliente a traduzir o que estava lendo.
+    cardExpiry: "",
     cardNumber: "",
     cardholderName: "",
     identificationNumber: "",
     installments: "1",
+    // Debito ou credito. So aparece quando o proprio provedor diz que o cartao
+    // aceita os dois — ver `useCardPaymentTypes`.
+    paymentTypeId: "",
     securityCode: ""
   });
+
+  const deviceId = useDeviceSessionId(true);
+  const tipos = useCardPaymentTypes({ cardNumber: form.cardNumber, sdk });
+  const tipoEscolhido = tipos.find((tipo) => tipo.id === form.paymentTypeId) ?? tipos[0] ?? null;
+  // Debito nao parcela: o valor sai da conta de uma vez. Mostrar um seletor de
+  // parcelas aqui seria oferecer algo que o provedor recusa.
+  const aceitaParcelar = tipoEscolhido?.id !== "debit_card";
+
+  const parcelas = useInstallments({
+    amountCents,
+    cardNumber: aceitaParcelar ? form.cardNumber : "",
+    sdk
+  });
+  const escolhida = aceitaParcelar
+    ? parcelas?.find((opcao) => String(opcao.parcelas) === form.installments)
+    : null;
 
   function campo(nome) {
     return {
@@ -272,8 +504,21 @@ function CardPanel({ onErro, onMensagem, orderId, sdk }) {
 
       // O bin (6 primeiros digitos) diz a bandeira e o emissor. Sem isso o
       // provedor nao sabe para onde mandar a autorizacao.
+      // Recusa aqui, antes de tokenizar: mensagem legivel em vez do erro
+      // generico que o provedor devolveria.
+      const vencimento = parseCardExpiry(form.cardExpiry);
+
+      if (!vencimento) {
+        throw new Error("Validade invalida. Use o formato MM/AA, como esta no cartao.");
+      }
+
       const metodos = await sdk.getPaymentMethods({ bin: numero.slice(0, 6) });
-      const metodo = metodos?.results?.[0];
+      // O tipo escolhido decide QUAL metodo usar: o mesmo cartao pode aparecer
+      // como credito e como debito, e o provedor precisa saber por qual trilho
+      // mandar a autorizacao.
+      const metodo =
+        metodos?.results?.find((candidato) => candidato.payment_type_id === tipoEscolhido?.id) ??
+        metodos?.results?.[0];
 
       if (!metodo) {
         throw new Error("Cartao nao reconhecido. Confira o numero.");
@@ -282,8 +527,8 @@ function CardPanel({ onErro, onMensagem, orderId, sdk }) {
       // O numero e o CVV param aqui: o SDK troca por um token de uso unico, e
       // so o token vai para o nosso servidor.
       const token = await sdk.createCardToken({
-        cardExpirationMonth: form.cardExpirationMonth,
-        cardExpirationYear: form.cardExpirationYear,
+        cardExpirationMonth: vencimento.month,
+        cardExpirationYear: vencimento.year,
         cardNumber: numero,
         cardholderName: form.cardholderName,
         identificationNumber: documento,
@@ -293,12 +538,21 @@ function CardPanel({ onErro, onMensagem, orderId, sdk }) {
 
       const resposta = await postJson("/api/pagamento/cartao", {
         cardToken: token.id,
-        installments: Number(form.installments),
+        // Unico campo do corpo que descreve o AMBIENTE, nao a identidade do
+        // pagador: ele so existe no navegador. Vazio quando o script ainda nao
+        // respondeu — a cobranca sai mesmo assim, com aprovacao mais baixa.
+        deviceId,
+        // Debito e sempre a vista: mandar parcelas aqui seria pedir ao provedor
+        // algo que ele recusa.
+        installments: metodo.payment_type_id === "debit_card" ? 1 : Number(form.installments),
         issuerId: metodo.issuer?.id,
         orderId,
         paymentMethodId: metodo.id
       });
 
+      // Um cartao recusado antes deixa o status final e a consulta parada; esta
+      // tentativa nova precisa voltar a ser consultada.
+      onCobrancaGerada?.();
       onMensagem(resposta.mensagem ?? "Pagamento em processamento.");
     } catch (error) {
       onErro(error.message || "Nao foi possivel processar o cartao.");
@@ -325,32 +579,48 @@ function CardPanel({ onErro, onMensagem, orderId, sdk }) {
         <input autoComplete="cc-name" required {...campo("cardholderName")} />
       </label>
 
-      <div className={styles.fieldRow}>
-        <label className={styles.field}>
-          <span>Mes</span>
-          <input
-            autoComplete="cc-exp-month"
-            inputMode="numeric"
-            maxLength={2}
-            placeholder="MM"
-            required
-            {...campo("cardExpirationMonth")}
-          />
-        </label>
-        <label className={styles.field}>
-          <span>Ano</span>
-          <input
-            autoComplete="cc-exp-year"
-            inputMode="numeric"
-            maxLength={4}
-            placeholder="AAAA"
-            required
-            {...campo("cardExpirationYear")}
-          />
-        </label>
-      </div>
+      {/* So aparece quando o provedor diz que ESTE cartao aceita os dois
+          trilhos. Oferecer a escolha sempre criaria uma opcao que seria
+          recusada — hoje, por exemplo, a conta da loja nem tem debito
+          habilitado, entao a lista vem com um tipo so e o seletor nao aparece. */}
+      {tipos.length > 1 ? (
+        <div className={styles.fieldRow} role="radiogroup" aria-label="Tipo do cartao">
+          {tipos.map((tipo) => (
+            <label className={styles.field} key={tipo.id}>
+              <input
+                checked={tipoEscolhido?.id === tipo.id}
+                name="paymentTypeId"
+                onChange={() => setForm((atual) => ({ ...atual, paymentTypeId: tipo.id }))}
+                type="radio"
+                value={tipo.id}
+              />
+              <span>{tipo.label}</span>
+            </label>
+          ))}
+        </div>
+      ) : null}
 
       <div className={styles.fieldRow}>
+        <label className={styles.field}>
+          <span>Validade</span>
+          <input
+            autoComplete="cc-exp"
+            inputMode="numeric"
+            maxLength={7}
+            onChange={(event) =>
+              setForm((atual) => ({
+                ...atual,
+                cardExpiry: formatCardExpiryInput(event.target.value)
+              }))
+            }
+            placeholder="MM/AA"
+            required
+            value={form.cardExpiry}
+          />
+          <small>Como esta impresso no cartao.</small>
+        </label>
+        {/* Validade e codigo de seguranca lado a lado: e como os dois aparecem
+            no cartao, e o cliente le os dois no mesmo lugar. */}
         <label className={styles.field}>
           <span>Codigo de seguranca</span>
           <input
@@ -361,22 +631,60 @@ function CardPanel({ onErro, onMensagem, orderId, sdk }) {
             {...campo("securityCode")}
           />
         </label>
-        <label className={styles.field}>
-          <span>CPF ou CNPJ</span>
-          <input inputMode="numeric" required {...campo("identificationNumber")} />
-        </label>
       </div>
 
       <label className={styles.field}>
-        <span>Parcelas</span>
-        <select {...campo("installments")}>
-          {Array.from({ length: 12 }, (_, indice) => indice + 1).map((parcela) => (
-            <option key={parcela} value={String(parcela)}>
-              {parcela}x
-            </option>
-          ))}
-        </select>
+        <span>CPF ou CNPJ</span>
+        <input inputMode="numeric" required {...campo("identificationNumber")} />
       </label>
+
+      {/* Débito sai da conta de uma vez. Mostrar parcelas aqui seria oferecer
+          algo que o provedor recusa na hora da cobrança. */}
+      {aceitaParcelar ? (
+        <label className={styles.field}>
+          <span>Parcelas</span>
+          <select {...campo("installments")}>
+            {parcelas
+              ? parcelas.map((opcao) => (
+                  <option key={opcao.parcelas} value={String(opcao.parcelas)}>
+                    {opcao.parcelas}x de {formatCurrency(opcao.valorParcelaCents)}
+                    {opcao.temJuros ? ` — total ${formatCurrency(opcao.totalCents)}` : " sem juros"}
+                  </option>
+                ))
+              : Array.from({ length: MAX_INSTALLMENTS }, (_, indice) => indice + 1).map(
+                  (parcela) => (
+                    <option key={parcela} value={String(parcela)}>
+                      {parcela}x
+                    </option>
+                  )
+                )}
+          </select>
+        </label>
+      ) : (
+        <p className={styles.hint}>
+          No débito o valor de {formatCurrency(amountCents)} sai de uma vez, sem parcelamento.
+        </p>
+      )}
+
+      {/* O valor com juros so aparece depois do bin: antes disso a loja nao tem
+          como saber a taxa do emissor, e um numero chutado aqui viraria
+          reclamacao quando a fatura chegasse diferente. */}
+      {escolhida ? (
+        <p className={escolhida.temJuros ? styles.totalDestacado : styles.hint}>
+          {escolhida.temJuros ? (
+            <>
+              Com {escolhida.parcelas}x, o total cobrado sobe para{" "}
+              <strong>{formatCurrency(escolhida.totalCents)}</strong> — juros do cartao, definidos
+              pelo emissor. O pedido continua valendo {formatCurrency(amountCents)}.
+            </>
+          ) : (
+            <>
+              {escolhida.parcelas}x sem juros. Total cobrado:{" "}
+              <strong>{formatCurrency(escolhida.totalCents)}</strong>.
+            </>
+          )}
+        </p>
+      ) : null}
 
       <button className={styles.action} disabled={enviando} type="submit">
         {enviando ? "Processando…" : "Pagar com cartao"}
@@ -385,7 +693,7 @@ function CardPanel({ onErro, onMensagem, orderId, sdk }) {
   );
 }
 
-function BoletoPanel({ onErro, orderId }) {
+function BoletoPanel({ onCobrancaGerada, onErro, orderId }) {
   const [boleto, setBoleto] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [form, setForm] = useState({ firstName: "", lastName: "", payerEmail: "", taxId: "" });
@@ -404,6 +712,7 @@ function BoletoPanel({ onErro, orderId }) {
 
     try {
       setBoleto(await postJson("/api/pagamento/boleto", { ...form, orderId }));
+      onCobrancaGerada?.();
     } catch (error) {
       onErro(error.message);
     } finally {
@@ -529,6 +838,13 @@ export function PaymentExperience({ amountCents, initialStatus, orderId, orderNu
 
   const limparErro = useCallback((texto) => setErro(texto), []);
 
+  // Cobranca nova feita pela tela e pagamento em aberto de novo. Se o status
+  // estava final (expirado, recusado, cancelado), a consulta tinha parado — e a
+  // confirmacao desta cobranca nunca apareceria. Pago nao volta atras.
+  const reabrirConsulta = useCallback(() => {
+    setStatus((atual) => (atual === STATUS_PAGO ? atual : "aguardando_pagamento"));
+  }, []);
+
   if (pago) {
     return (
       <section className={styles.shell}>
@@ -593,25 +909,51 @@ export function PaymentExperience({ amountCents, initialStatus, orderId, orderNu
       <Feedback erro texto={erro} />
       <Feedback texto={mensagem} />
 
-      {/* mode="wait" para o painel novo nao entrar por cima do que esta saindo:
-          com formularios de tamanhos diferentes, sobrepor faz a pagina pular. */}
-      <AnimatePresence initial={false} mode="wait">
+      {/* Sem AnimatePresence de proposito.
+          `mode="wait"` so monta o painel novo depois que a animacao de saida
+          TERMINA — e ela nao termina quando o navegador para o
+          requestAnimationFrame, o que acontece em aba de segundo plano. O
+          resultado e a pior falha possivel aqui: a aba marcada como "Boleto" e
+          o conteudo travado no Pix, indefinidamente.
+          Reproduzido em cobranca real no staging.
+
+          Trocando a montagem por remontagem por `key`, o painel certo aparece
+          na hora e a animacao vira enfeite: se ela nao rodar, a tela continua
+          correta. Correcao nunca depende de animacao terminar. */}
+      <div>
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: reduzido ? 0 : -8 }}
           initial={{ opacity: 0, y: reduzido ? 0 : 8 }}
           key={aba}
           transition={transicao}
         >
           {aba === "pix" ? (
-            <PixPanel amountCents={amountCents} onErro={limparErro} orderId={orderId} />
+            <PixPanel
+              amountCents={amountCents}
+              onCobrancaGerada={reabrirConsulta}
+              onErro={limparErro}
+              orderId={orderId}
+            />
           ) : null}
           {aba === "cartao" ? (
-            <CardPanel onErro={limparErro} onMensagem={setMensagem} orderId={orderId} sdk={sdk} />
+            <CardPanel
+              amountCents={amountCents}
+              onCobrancaGerada={reabrirConsulta}
+              onErro={limparErro}
+              onMensagem={setMensagem}
+              orderId={orderId}
+              sdk={sdk}
+            />
           ) : null}
-          {aba === "boleto" ? <BoletoPanel onErro={limparErro} orderId={orderId} /> : null}
+          {aba === "boleto" ? (
+            <BoletoPanel
+              onCobrancaGerada={reabrirConsulta}
+              onErro={limparErro}
+              orderId={orderId}
+            />
+          ) : null}
         </motion.div>
-      </AnimatePresence>
+      </div>
     </section>
   );
 }
