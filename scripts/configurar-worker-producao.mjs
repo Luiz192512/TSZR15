@@ -13,6 +13,8 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { avaliarPortaoDeVersao } from "./worker-version-gate.mjs";
+
 const enviar = process.argv.includes("--enviar");
 const envPath = resolve(process.cwd(), ".env.local");
 
@@ -29,8 +31,9 @@ const VARIAVEIS = [
   { nome: "RESEND_FROM_EMAIL", obrigatoria: false, segredo: false },
   { nome: "REVALIDATE_SECRET", obrigatoria: false, segredo: true },
   { nome: "MERCADOPAGO_ACCESS_TOKEN", obrigatoria: false, segredo: true },
-  // Um webhook so no painel do provedor: o segredo de assinatura vale para os
-  // dois ambientes.
+  // O painel tem uma URL de webhook para o modo teste e outra para o modo
+  // producao, mas a assinatura secreta e UMA por aplicacao: o segredo vale para
+  // os dois ambientes.
   { nome: "MERCADOPAGO_WEBHOOK_SECRET", obrigatoria: false, segredo: true },
   { nome: "PAYMENTS_ONLINE_ENABLED", obrigatoria: false, segredo: false }
 ];
@@ -90,6 +93,73 @@ function contaDoToken(token) {
   const partes = String(token ?? "").split("-");
 
   return partes.length >= 5 ? partes[partes.length - 1] : "";
+}
+
+// Saida JSON do wrangler, ou null. Falha de login, de rede ou de formato vira
+// null — e null nunca libera o envio.
+function wranglerJson(argumentos) {
+  const resultado = spawnSync(
+    "npx",
+    ["wrangler", ...argumentos, "--config", "wrangler.jsonc", "--json"],
+    { encoding: "utf8", shell: process.platform === "win32" }
+  );
+
+  if (resultado.status !== 0) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(resultado.stdout);
+  } catch {
+    return null;
+  }
+}
+
+function dataLocal(iso) {
+  const data = new Date(iso);
+
+  return Number.isNaN(data.getTime())
+    ? "?"
+    : data.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
+function explicarBloqueio(portao) {
+  if (portao.motivo !== "versao_nao_publicada_na_frente") {
+    console.error(
+      "\n  FALHA  nao deu para conferir as versoes do Worker (wrangler sem login, sem rede,"
+    );
+    console.error(
+      "         ou a versao no ar ficou fora da lista). Sem essa conferencia nada e enviado."
+    );
+    return;
+  }
+
+  console.error("\n  BLOQUEADO  versao enviada e nunca publicada na frente da que serve:");
+
+  for (const versao of portao.servindo) {
+    console.error(`             no ar          ${versao.id.slice(0, 8)}  ${dataLocal(versao.criadaEm)}`);
+  }
+
+  for (const versao of portao.naoPublicadas) {
+    console.error(`             nao publicada  ${versao.id.slice(0, 8)}  ${dataLocal(versao.criadaEm)}`);
+  }
+
+  console.error(
+    [
+      "",
+      "  Enquanto isso valer, a Cloudflare recusa todo 'wrangler secret put'. Neste",
+      "  projeto a causa e o build de branch, que envia versao para o Worker de",
+      "  producao sem publicar.",
+      "",
+      "  Saida: publicar 'main' e rodar este script LOGO EM SEGUIDA, antes de",
+      "  qualquer push de branch.",
+      "",
+      "  Nao contorne com 'wrangler versions secret put': ele cria a versao nova a",
+      "  partir da mais recente — a nao publicada — e publica-la leva codigo de",
+      "  branch nao revisado para a loja no ar.",
+      ""
+    ].join("\n")
+  );
 }
 
 const valores = carregarEnvLocal();
@@ -180,10 +250,31 @@ if (faltamObrigatorias.length) {
   process.exit(1);
 }
 
+// 4. A Cloudflare so aceita segredo quando a versao mais nova do Worker e a que
+// esta no ar. Conferido tambem no diagnostico: antes, o bloqueio so aparecia no
+// --enviar, como erro cru do wrangler na primeira variavel.
+const portao = avaliarPortaoDeVersao({
+  deployment: wranglerJson(["deployments", "status"]),
+  versoes: wranglerJson(["versions", "list"])
+});
+
+if (portao.liberado) {
+  const noAr = portao.servindo[portao.servindo.length - 1];
+
+  console.log(`\n  ok    versao mais nova esta no ar (${noAr.id.slice(0, 8)})`);
+} else {
+  explicarBloqueio(portao);
+}
+
 if (!enviar) {
   console.log("\nNada foi enviado. Para aplicar no Worker:");
   console.log("  npm run producao:configurar -- --enviar\n");
   process.exit(0);
+}
+
+if (!portao.liberado) {
+  console.error("ABORTADO: nada foi enviado.\n");
+  process.exit(1);
 }
 
 console.log("\nEnviando para o Worker tsz-store...\n");
@@ -198,14 +289,18 @@ for (const item of presentes) {
   if (resultado.status === 0) {
     console.log(`  enviada  ${item.nome}`);
   } else {
+    const erro = String(resultado.stderr ?? "").trim();
+
     console.error(`  FALHOU   ${item.nome}`);
-    console.error(
-      `           ${
-        String(resultado.stderr ?? "")
-          .trim()
-          .split("\n")[0]
-      }`
-    );
+    console.error(`           ${erro.split("\n")[0]}`);
+
+    // A conferencia acima passou, mas um push de branch pode ter enviado versao
+    // nova entre ela e este envio.
+    if (erro.includes("isn't currently deployed")) {
+      console.error("\n  Uma versao nova apareceu durante o envio. Rode o diagnostico de novo:");
+      console.error("  npm run producao:configurar\n");
+    }
+
     process.exit(1);
   }
 }
