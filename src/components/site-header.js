@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AccountNavLink } from "@/src/components/account-nav-link.js";
 import { CartIcon } from "@/src/components/cart-icon.js";
 import { CartCountBadge } from "@/src/components/cart-count-badge.js";
+import { ThemeToggle } from "@/src/components/theme/theme-toggle.js";
 
 export function SiteHeader({ showAccountNav = true, user } = {}) {
   return (
@@ -27,6 +28,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
         </Link>
 
         <div className={cx(globalStyles, "mobile-nav-actions")}>
+          <ThemeToggle />
           <Link
             aria-label="Carrinho - abrir pedido"
             className={cx(globalStyles, "cart-nav-link mobile-cart-link")}
@@ -83,6 +85,7 @@ export function SiteHeader({ showAccountNav = true, user } = {}) {
             user={user}
           />
         ) : null}
+        <ThemeToggle />
       </nav>
     </header>
   );

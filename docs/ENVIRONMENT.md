@@ -27,7 +27,9 @@ WHERE cp.table_schema = 'public'
   AND cp.privilege_type = 'SELECT'
   AND cp.table_name IN (
     'orders', 'order_items', 'payments', 'supplier_purchases',
-    'supplier_tracking_events', 'audit_logs', 'support_threads'
+    'supplier_tracking_events', 'audit_logs', 'support_threads',
+    -- Fase 3: taxa do gateway, custo real e margem por pedido.
+    'order_ledger', 'payment_webhook_events'
   )
 GROUP BY cp.table_name
 ORDER BY cp.table_name;
