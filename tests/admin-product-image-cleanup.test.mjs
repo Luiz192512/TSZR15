@@ -30,10 +30,7 @@ function createStorage({ failUploadAt = 0 } = {}) {
       uploadCount += 1;
       calls.push({ method: "upload", path });
       return {
-        error:
-          uploadCount === failUploadAt
-            ? { message: "storage unavailable" }
-            : null
+        error: uploadCount === failUploadAt ? { message: "storage unavailable" } : null
       };
     }
   };
@@ -61,7 +58,8 @@ test("a failed upload removes files already uploaded by the same attempt", async
   };
 
   await assert.rejects(
-    () => uploadAdminProductImages({ formData, productId: "produto-1", supabase: storage.supabase }),
+    () =>
+      uploadAdminProductImages({ formData, productId: "produto-1", supabase: storage.supabase }),
     /storage unavailable/
   );
 
@@ -72,9 +70,8 @@ test("a failed upload removes files already uploaded by the same attempt", async
 });
 
 test("a rejected product row removes newly uploaded files before they become referenced", async () => {
-  const { runWithAdminProductImageCleanup } = await import(
-    "../src/admin/catalog-product-images.js"
-  );
+  const { runWithAdminProductImageCleanup } =
+    await import("../src/admin/catalog-product-images.js");
   const storage = createStorage();
 
   await assert.rejects(
@@ -89,15 +86,12 @@ test("a rejected product row removes newly uploaded files before they become ref
     /duplicate product/
   );
 
-  assert.deepEqual(storage.calls, [
-    { method: "remove", paths: ["produto-1/nova.webp"] }
-  ]);
+  assert.deepEqual(storage.calls, [{ method: "remove", paths: ["produto-1/nova.webp"] }]);
 });
 
 test("only removed images owned by the edited product are selected for cleanup", async () => {
-  const { getRemovedAdminProductImagePaths } = await import(
-    "../src/admin/catalog-product-images.js"
-  );
+  const { getRemovedAdminProductImagePaths } =
+    await import("../src/admin/catalog-product-images.js");
   const publicBase = "https://project.supabase.co/storage/v1/object/public/product-images/";
 
   assert.deepEqual(
@@ -119,16 +113,28 @@ test("catalog save wires upload rollback and post-save removal cleanup", async (
   const source = await readFile(new URL("../src/admin/catalog-admin.js", import.meta.url), "utf8");
 
   assert.match(source, /loadAdminProductImageUrls\(\{[\s\S]*?persistenceMode/);
-  assert.match(source, /uploadAdminProductImages\(\{ formData, productId: id, supabase \}\)/);
-  assert.match(source, /runWithAdminProductImageCleanup\(\{[\s\S]*?saveAdminCatalogProductAggregate/);
+  // Tolerante a quebra de linha de proposito: o Prettier decide onde quebrar a
+  // chamada em funcao do comprimento do arquivo, entao a versao de uma linha so
+  // deixou de bater quando o modulo cresceu. O que precisa ser verificado sao os
+  // argumentos, nao a formatacao.
+  assert.match(
+    source,
+    /uploadAdminProductImages\(\{\s*formData,\s*productId: id,\s*supabase\s*\}\)/
+  );
+  assert.match(
+    source,
+    /runWithAdminProductImageCleanup\(\{[\s\S]*?saveAdminCatalogProductAggregate/
+  );
   assert.match(source, /getRemovedAdminProductImagePaths\(\{/);
-  assert.match(source, /removeAdminProductImagePathsSafely\(\{ paths: removedImagePaths, supabase \}\)/);
+  assert.match(
+    source,
+    /removeAdminProductImagePathsSafely\(\{ paths: removedImagePaths, supabase \}\)/
+  );
 });
 
 test("post-save cleanup failures are logged without failing the already saved product", async () => {
-  const { removeAdminProductImagePathsSafely } = await import(
-    "../src/admin/catalog-product-images.js"
-  );
+  const { removeAdminProductImagePathsSafely } =
+    await import("../src/admin/catalog-product-images.js");
   const warnings = [];
   const originalWarn = console.warn;
   console.warn = (...args) => warnings.push(args.join(" "));

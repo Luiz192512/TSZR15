@@ -12,6 +12,7 @@ import {
   RequiredMark
 } from "@/app/admin/_components/admin-ui.js";
 import { formatCategoryLabels } from "@/src/catalog/categories.js";
+import { supplierChannels } from "@/src/orders/status.js";
 import { AdminProductForm } from "@/src/components/admin/admin-product-form.js";
 import { ProductImageUploader } from "@/src/components/admin/product-image-uploader.js";
 
@@ -183,6 +184,60 @@ function ProductForm({ categories, draftIndex = 0, families, product }) {
               title="Custo interno do produto para calculo de lucro."
             />
             <small>Visivel apenas no admin. Fica fora do catalogo publico.</small>
+          </label>
+          {/* Origem de compra. Fica numa tabela propria, sem grant para
+              anon/authenticated — nao dentro de `catalog_products`, que tem
+              SELECT publico e entregaria o link a quem abrisse a API direto. */}
+          <label>
+            <span>Onde voce compra</span>
+            <select
+              defaultValue={product?.supplierSource?.internalChannel ?? ""}
+              name="supplierChannel"
+            >
+              {supplierChannels.map((canal) => (
+                <option key={canal.id} value={canal.id}>
+                  {canal.label}
+                </option>
+              ))}
+            </select>
+            <small>Usado para agrupar as compras de um pedido por loja.</small>
+          </label>
+          <label>
+            <span>Nome da loja no fornecedor</span>
+            <input
+              defaultValue={product?.supplierSource?.sourceStoreName ?? ""}
+              maxLength={160}
+              name="supplierStoreName"
+              placeholder="Loja Alfa"
+            />
+            <small>
+              Itens da mesma loja viram uma compra so. Escreva sempre igual para agrupar certo.
+            </small>
+          </label>
+          <label>
+            <span>Link do produto no fornecedor</span>
+            <input
+              defaultValue={product?.supplierSource?.sourceProductUrl ?? ""}
+              inputMode="url"
+              maxLength={900}
+              name="supplierProductUrl"
+              placeholder="https://..."
+              type="url"
+            />
+            <small>
+              <strong>Nunca aparece para o cliente.</strong> Serve para voce abrir a pagina na hora
+              de comprar.
+            </small>
+          </label>
+          <label>
+            <span>Variacao no fornecedor</span>
+            <input
+              defaultValue={product?.supplierSource?.sourceVariationLabel ?? ""}
+              maxLength={160}
+              name="supplierVariationLabel"
+              placeholder="Preto / M"
+            />
+            <small>Como a opcao se chama la, quando o nome for diferente do daqui.</small>
           </label>
           <label>
             <span>Disponibilidade</span>

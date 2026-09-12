@@ -19,6 +19,7 @@ export async function saveAdminCatalogProductAggregate({
   persistenceMode,
   row,
   supabase,
+  supplierSources,
   variationStock
 }) {
   if (persistenceMode !== "create" && persistenceMode !== "update") {
@@ -29,6 +30,11 @@ export async function saveAdminCatalogProductAggregate({
     p_cost_cents: Number.isInteger(costCents) ? costCents : null,
     p_persistence_mode: persistenceMode,
     p_product: row,
+    // A origem entra na MESMA transacao do produto. Gravar depois deixaria um
+    // produto novo sem origem quando a segunda escrita falhasse, e item sem
+    // origem cai no grupo "sem loja" na hora de comprar — justo o caso que da
+    // trabalho manual.
+    p_supplier_sources: Array.isArray(supplierSources) ? supplierSources : [],
     p_variation_stock: variationStock
   });
 

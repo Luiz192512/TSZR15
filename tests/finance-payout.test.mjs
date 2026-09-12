@@ -55,6 +55,17 @@ test("o total a repassar conta so o que esta pendente", () => {
   assert.equal(resumo.reconciliadosCount, 1);
 });
 
+// No parcelamento com juros do comprador, ele paga mais e a loja recebe a
+// diferenca — visto de verdade num cartao 3x: cobrado 129,00, recebido 139,63.
+// Sem explicacao na tela, os dois numeros lado a lado parecem inconsistencia.
+test("o financeiro explica recebido maior que o cobrado", async () => {
+  const painel = await source("app/admin/_components/admin-finance-view.js");
+
+  assert.match(painel, /recebido > \(ledger\.charged_amount_cents \?\? 0\)/);
+  assert.match(painel, /Juros do parcelamento/);
+  assert.match(painel, /pagos pelo cliente/);
+});
+
 // ---------------------------------------------------------------------------
 // O sistema nao move dinheiro
 // ---------------------------------------------------------------------------

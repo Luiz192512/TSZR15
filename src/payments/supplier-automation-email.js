@@ -27,7 +27,7 @@ function formatCents(cents) {
  * compra já está registrada no banco; perder o aviso é um incômodo, desfazer
  * tudo por causa dele seria um estrago.
  */
-export async function notifyOperatorOfPendingPurchase({ order, painelUrl }) {
+export async function notifyOperatorOfPendingPurchase({ compras, order, painelUrl }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   const to = process.env.TSZR15_OPERATOR_EMAIL || from;
@@ -44,15 +44,42 @@ export async function notifyOperatorOfPendingPurchase({ order, painelUrl }) {
     const total = escapeHtml(formatCents(order?.total_cents));
     const link = painelUrl ? `<p><a href="${escapeHtml(painelUrl)}">Abrir no painel</a></p>` : "";
 
+    // Um pedido pode virar VÁRIAS compras, uma por loja. Sem a lista, o e-mail
+    // diria "a compra está pendente" para um pedido com três compras a fazer, e
+    // duas seriam esquecidas.
+    const lista = (compras ?? []).length
+      ? `<ul>${compras
+          .map((compra) => {
+            const nome = escapeHtml(compra?.storeName ?? "");
+            const canal = escapeHtml(compra?.channel ?? "");
+
+            return nome
+              ? `<li><strong>${nome}</strong>${canal ? ` (${canal})` : ""}</li>`
+              : `<li><strong>Itens sem origem cadastrada</strong> — defina o fornecedor no produto</li>`;
+          })
+          .join("")}</ul>`
+      : "";
+
+    const quantas = (compras ?? []).length;
+    const chamada =
+      quantas > 1
+        ? `<p>São <strong>${quantas} compras</strong> a fazer, uma por loja:</p>${lista}`
+        : `<p>Há <strong>uma compra</strong> a fazer:</p>${lista}`;
+
     const { error } = await resend.emails.send({
       from,
       html:
         `<h1>Pedido ${numero}: pagamento confirmado</h1>` +
         `<p>Cliente: ${cliente}<br>Total: <strong>${total}</strong></p>` +
-        `<p>A compra no fornecedor está <strong>pendente</strong> e precisa ser feita por uma pessoa. ` +
-        `O sistema já registrou a linha de compra e moveu o pedido para "compra interna pendente".</p>` +
+        chamada +
+        `<p>O sistema separou os itens por loja e moveu o pedido para "compra interna pendente". ` +
+        `A compra no fornecedor precisa ser feita por uma pessoa — abra o painel para ver os ` +
+        `links de cada item.</p>` +
         link,
-      subject: `Comprar no fornecedor — pedido ${order?.order_number ?? ""}`,
+      subject:
+        quantas > 1
+          ? `Comprar em ${quantas} lojas — pedido ${order?.order_number ?? ""}`
+          : `Comprar no fornecedor — pedido ${order?.order_number ?? ""}`,
       to: [to]
     });
 
