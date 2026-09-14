@@ -22,6 +22,13 @@ Loja Yamaha R15 em `Next.js` com home estilo marketplace, catalogo, busca, filtr
 - painel admin protegido por token para atualizar pagamento, origem interna e rastreio
 - pagina publica de rastreio por numero de pedido e contato, sem expor fornecedor/origem interna
 - validacao automatica do catalogo e do contrato de checkout
+- tema claro por padrao, com alternador que respeita a preferencia do sistema
+- pagamento online por Pix, cartao e boleto (Mercado Pago), atras de uma chave de habilitacao por ambiente
+- webhook de pagamento com assinatura validada e idempotencia por evento
+- ledger financeiro por pedido: recebido, taxa, custo real e margem reconciliada
+- repasse de margem registrado por uma pessoa em `/admin/financeiro` — o sistema nao transfere dinheiro
+- automacao interna na confirmacao do pagamento: cria a compra no fornecedor, move o status e avisa o operador (nao compra em marketplace)
+- ambiente de staging separado, com projeto Supabase e Worker proprios
 
 ## Configuracao
 
@@ -71,6 +78,11 @@ O Supabase CLI esta instalado localmente como dependencia de desenvolvimento, en
 - `/admin`: painel interno para atualizar pagamento, compra em fornecedor e rastreio
 - `/api/catalog`: JSON do catalogo publicado
 - `/api/checkout/whatsapp`: valida o pedido no backend, salva no Supabase quando configurado e retorna mensagem, totais e URL de checkout para WhatsApp
+- `/pedido/pagamento/<id>`: tela de pagamento com Pix, cartao e boleto (404 com o pagamento desligado)
+- `/admin/financeiro`: margem por pedido e registro de repasse
+- `/api/pagamento/pix`, `/api/pagamento/cartao`, `/api/pagamento/boleto`: criacao de cobranca
+- `/api/pagamento/status`: consulta publica do status do pagamento (so status, valor e expiracao)
+- `/api/pagamento/webhook`: confirmacao vinda do provedor, unica fonte de verdade do pagamento
 
 ## Scripts
 
@@ -81,12 +93,37 @@ npm run build
 npm run validate
 npm test
 npx supabase --version
+
+# pagamento e ambientes
+npm run pagamento:verificar        # confere a credencial do ambiente atual
+npm run clone:preview -- --dry-run # simula o clone do catalogo para o staging
+npm run preview:configurar         # mostra o que falta no Worker de staging
+npm run deploy:preview             # publica o staging
 ```
+
+## Pagamento online
+
+O fluxo entra no ar **desligado**. A chave de habilitacao tem nome diferente por
+ambiente e nao tem fallback — `PAYMENTS_ONLINE_ENABLED` em producao,
+`PAYMENTS_PREVIEW_ONLINE_ENABLED` no staging — entao ligar o staging nao liga a
+loja no ar. Ausente ou diferente de `true`, o checkout continua terminando no
+WhatsApp e as rotas de pagamento respondem 404.
+
+O passo a passo completo de ativacao, o teste de ponta a ponta, o que observar
+no log e o rollback estao em
+[`docs/ROLLOUT-PAGAMENTO.md`](docs/ROLLOUT-PAGAMENTO.md). A separacao dos dois
+ambientes esta em [`docs/AMBIENTES.md`](docs/AMBIENTES.md) e o modelo financeiro
+em [`docs/LEDGER-FINANCEIRO.md`](docs/LEDGER-FINANCEIRO.md).
+
+Duas regras que o codigo protege com teste, e que nao devem ser "completadas"
+sem conversa: **o sistema nao transfere dinheiro** (calcula a margem e espera
+uma pessoa confirmar o repasse) e **a automacao nao compra no fornecedor** (ela
+prepara a compra e avisa o operador).
 
 ## APIs e credenciais
 
 A lista do que precisa ser obtido para evoluir do MVP manual para automacao esta em [`docs/APIS-NECESSARIAS.md`](docs/APIS-NECESSARIAS.md).
 
-Para a vitrine funcionar, basta configurar o numero do WhatsApp Business. Para login/cadastro, dados salvos e pedidos internos, configure Supabase e aplique `supabase/migrations/20260520_customer_accounts.sql`. Com `SUPABASE_SERVICE_ROLE_KEY`, a API tambem consegue registrar pedidos de clientes sem login; sem essa chave, convidados ainda abrem o WhatsApp, mas o pedido nao fica persistido. O painel `/admin` tambem depende de `SUPABASE_SERVICE_ROLE_KEY` e `TSZR15_ADMIN_TOKEN`; acesse por `/entrar` usando `admin` no campo de e-mail e o valor de `TSZR15_ADMIN_TOKEN` como senha.
+Para a vitrine funcionar, basta configurar o numero do WhatsApp Business. Para login/cadastro, dados salvos e pedidos internos, configure Supabase e aplique `supabase/migrations/20260520_customer_accounts.sql`. Com `SUPABASE_SERVICE_ROLE_KEY`, a API tambem consegue registrar pedidos de clientes sem login; sem essa chave, convidados ainda abrem o WhatsApp, mas o pedido nao fica persistido. O painel `/admin` tambem depende de `SUPABASE_SERVICE_ROLE_KEY` e do token do admin; acesse por `/entrar` usando `admin` no campo de e-mail e o token como senha. O token e por ambiente: `TSZR15_ADMIN_TOKEN` em producao e `TSZR15_PREVIEW_ADMIN_TOKEN` no staging, sem fallback entre eles.
 
 As APIs de pagamento, banco, WhatsApp Cloud API e marketplace entram quando o projeto for confirmar pagamento automaticamente ou automatizar parte da operacao com fornecedores externos. O rastreio manual ja pode ser registrado no admin e consultado pelo cliente. Nota fiscal, DANFE, XML e emissor fiscal/ERP ficaram fora do escopo do produto planejado.

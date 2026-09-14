@@ -44,6 +44,7 @@ function ProductCardVisual({ product }) {
             height={2000}
             sizes="120px"
             src={brandLogoSrc}
+            unoptimized
             width={2000}
           />
           <span>{categoryLabel}</span>

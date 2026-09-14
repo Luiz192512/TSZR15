@@ -158,10 +158,12 @@ function AccountOrderCard({ order, profile }) {
             <div className={cx(globalStyles, "tracking-current-step account-current-step")}>
               <span>Agora</span>
               <strong>{order.timeline.currentStep.label}</strong>
+              {/* Sem o código do fornecedor: rastreá-lo entregaria a origem
+                  do produto. O passo atual já diz onde o pedido está. */}
               <small>
-                {order.tracking?.trackingCode
-                  ? `Código: ${order.tracking.trackingCode}`
-                  : "Código ainda não liberado"}
+                {order.tracking?.shipmentCount > 1
+                  ? `${order.tracking.shipmentCount} envios neste pedido`
+                  : "Acompanhe por aqui"}
               </small>
             </div>
             <div className={cx(globalStyles, "account-tracking-facts")}>
@@ -209,7 +211,8 @@ function AccountOrderCard({ order, profile }) {
                 <div>
                   <strong>{item.productName}</strong>
                   <span>
-                    {item.quantity}x - {item.size ? `${item.variation} - ${item.size}` : item.variation}
+                    {item.quantity}x -{" "}
+                    {item.size ? `${item.variation} - ${item.size}` : item.variation}
                   </span>
                 </div>
                 <Link href={`/produto/${item.productSlug}`}>Ver produto</Link>

@@ -28,6 +28,33 @@ export const rateLimitProfiles = {
     scope: "coupon-validate-ip",
     windowSeconds: 60
   },
+  paymentCharge: {
+    blockSeconds: 60,
+    limit: 6,
+    scope: "payment-charge",
+    windowSeconds: 60
+  },
+  // A tela de pagamento consulta em laco enquanto o Pix nao confirma: e
+  // trafego legitimo e repetido do MESMO cliente, entao o limite e largo. A
+  // rota nao cria nada e devolve so status, valor e expiracao.
+  paymentStatus: {
+    blockSeconds: 60,
+    limit: 120,
+    scope: "payment-status",
+    windowSeconds: 60
+  },
+  // O provedor reenvia eventos em rajada e ate uma dezena de vezes para o
+  // mesmo pagamento. O limite existe contra flood, nao contra o provedor, e
+  // por isso e largo. failClosed: false porque perder um evento de pagamento
+  // por indisponibilidade do limitador e pior do que aceitar a rajada — a
+  // deduplicacao por provider_event_id ja protege o efeito colateral.
+  paymentWebhook: {
+    blockSeconds: 60,
+    failClosed: false,
+    limit: 240,
+    scope: "payment-webhook",
+    windowSeconds: 60
+  },
   tracking: {
     blockSeconds: 5 * 60,
     limit: 10,

@@ -1,9 +1,35 @@
+// `online: true` marca o que a tela de pagamento resolve sozinha. O resto
+// continua terminando no WhatsApp — "combinar" e "dinheiro" existem justamente
+// para quem nao quer pagar pelo site, e esse fluxo nao pode quebrar.
 export const paymentMethods = [
-  { id: "pix", label: "Pix" },
-  { id: "cartao", label: "Cartao" },
+  { id: "pix", label: "Pix", online: true },
+  { id: "cartao", label: "Cartao", online: true },
+  { id: "boleto", label: "Boleto", online: true },
   { id: "dinheiro", label: "Dinheiro" },
   { id: "combinar", label: "Combinar no atendimento" }
 ];
+
+/**
+ * Formas de pagamento oferecidas ao cliente.
+ *
+ * Boleto so aparece com o pagamento online LIGADO: ele existe porque o provedor
+ * emite. Com o fluxo desligado, oferecer boleto criaria trabalho manual que o
+ * operador nunca combinou de fazer. Pix, cartao e dinheiro ja eram combinados
+ * no atendimento antes do pagamento online e continuam na lista dos dois jeitos.
+ */
+export function listPaymentMethods({ isOnlinePaymentEnabled = false } = {}) {
+  if (isOnlinePaymentEnabled) {
+    return paymentMethods;
+  }
+
+  return paymentMethods.filter((paymentMethod) => paymentMethod.id !== "boleto");
+}
+
+export function isOnlinePaymentMethod(paymentMethodId) {
+  return paymentMethods.some(
+    (paymentMethod) => paymentMethod.id === paymentMethodId && paymentMethod.online === true
+  );
+}
 
 export const shippingOptions = [
   {

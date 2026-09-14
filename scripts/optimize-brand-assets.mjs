@@ -34,6 +34,23 @@ const targets = [
     input: { type: "url", url: heroSourceUrl },
     output: resolve(brandDir, "tszr15-hero-r15-dark.webp"),
     maxWidth: 1600
+  },
+  // O icone da aba sai em PNG, nao em webp: o webp so vale a pena quando o
+  // navegador escolhe entre formatos, e para favicon nao ha negociacao — quem
+  // nao entende o formato fica sem icone. PNG pequeno e universal.
+  {
+    label: "icone da aba",
+    format: "png",
+    input: { type: "file", path: resolve(brandDir, "logo-tszr15-store.png") },
+    output: resolve(brandDir, "icon-32.png"),
+    maxWidth: 32
+  },
+  {
+    label: "icone do atalho iOS",
+    format: "png",
+    input: { type: "file", path: resolve(brandDir, "logo-tszr15-store.png") },
+    output: resolve(brandDir, "icon-180.png"),
+    maxWidth: 180
   }
 ];
 
@@ -54,10 +71,14 @@ async function loadInput(input) {
 async function run() {
   for (const target of targets) {
     const source = await loadInput(target.input);
-    const output = await sharp(source)
-      .resize({ width: target.maxWidth, withoutEnlargement: true })
-      .webp({ quality: webpQuality })
-      .toBuffer();
+    const redimensionado = sharp(source).resize({
+      width: target.maxWidth,
+      withoutEnlargement: true
+    });
+    const output = await (target.format === "png"
+      ? redimensionado.png({ compressionLevel: 9 })
+      : redimensionado.webp({ quality: webpQuality })
+    ).toBuffer();
 
     await writeFile(target.output, output);
 
