@@ -79,7 +79,22 @@ function normalizarCausasDoProvedor(causa) {
   }));
 }
 
-async function providerRequest(path, { body, idempotencyKey, method = "GET" } = {}) {
+// Device ID do navegador, gerado pelo script de seguranca do provedor no
+// checkout. Vai no cabecalho `X-meli-session-id`, que e onde a API de
+// pagamentos le. No corpo, como `device_id`, a API recusa a cobranca inteira
+// ("The name of the following parameters is wrong : [device_id]"): foi o que
+// derrubou a primeira cobranca real em producao, em 2026-09-14. O staging nao
+// pegou porque os testes mandavam o id vazio, e o campo nem ia na requisicao.
+//
+// O valor vem do cliente, entao so passa com cara de identificador. Um
+// cabecalho com quebra de linha faria o fetch lancar, e a cobranca viraria
+// "provedor indisponivel" sem motivo nenhum.
+const DEVICE_SESSION_ID = /^[\w.:-]{1,200}$/;
+
+async function providerRequest(
+  path,
+  { body, deviceSessionId, idempotencyKey, method = "GET" } = {}
+) {
   const accessToken = getPaymentAccessToken();
 
   if (!accessToken) {
@@ -99,7 +114,10 @@ async function providerRequest(path, { body, idempotencyKey, method = "GET" } = 
         "Content-Type": "application/json",
         // Sem isto, um retry de rede criaria uma segunda cobranca para o
         // mesmo pedido.
-        ...(idempotencyKey ? { "X-Idempotency-Key": idempotencyKey } : {})
+        ...(idempotencyKey ? { "X-Idempotency-Key": idempotencyKey } : {}),
+        ...(DEVICE_SESSION_ID.test(deviceSessionId ?? "")
+          ? { "X-meli-session-id": deviceSessionId }
+          : {})
       },
       method,
       signal: controller.signal
@@ -225,10 +243,6 @@ export async function createCardPayment({
       additional_info: additionalInfo,
       capture,
       description,
-      // Impressao digital do navegador, gerada pelo SDK no cliente. E o campo de
-      // maior peso na analise de cartao: sem ele o provedor nao consegue
-      // distinguir o comprador de sempre de um cartao roubado.
-      device_id: deviceId || undefined,
       external_reference: externalReference,
       installments: Number(installments) || 1,
       issuer_id: issuerId || undefined,
@@ -241,6 +255,10 @@ export async function createCardPayment({
       token: cardToken,
       transaction_amount: Number((amountCents / 100).toFixed(2))
     },
+    // Impressao digital do navegador. E o dado de maior peso na analise de
+    // cartao: sem ele o provedor nao distingue o comprador de sempre de um
+    // cartao roubado. Vai como cabecalho, ver DEVICE_SESSION_ID.
+    deviceSessionId: deviceId,
     idempotencyKey,
     method: "POST"
   });
