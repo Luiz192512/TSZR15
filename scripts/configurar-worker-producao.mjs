@@ -35,6 +35,11 @@ const VARIAVEIS = [
   // producao, mas a assinatura secreta e UMA por aplicacao: o segredo vale para
   // os dois ambientes.
   { nome: "MERCADOPAGO_WEBHOOK_SECRET", obrigatoria: false, segredo: true },
+  // A Public Key nao e segredo: e com ela que o SDK tokeniza o cartao no
+  // navegador. Ela chega a pagina como propriedade, lida NO SERVIDOR por
+  // `getPaymentPublicKey()`, que consulta `process.env` em tempo de execucao.
+  // Sem ela no Worker a aba de cartao abre sem SDK, e so Pix e boleto cobram.
+  { nome: "NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY", obrigatoria: false, segredo: false },
   { nome: "PAYMENTS_ONLINE_ENABLED", obrigatoria: false, segredo: false }
 ];
 
@@ -54,11 +59,6 @@ const PROIBIDAS = [
   "VERCEL_TOKEN",
   "VERCEL_PROJECT_ID"
 ];
-
-// Gravadas no BUILD, nao em tempo de execucao: o Next inlina NEXT_PUBLIC_* no
-// bundle do navegador. Mandar como segredo do Worker nao tem efeito nenhum, e
-// da a falsa impressao de que foi configurado.
-const SOMENTE_NO_BUILD = ["NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY"];
 
 function carregarEnvLocal() {
   const valores = new Map();
@@ -137,11 +137,15 @@ function explicarBloqueio(portao) {
   console.error("\n  BLOQUEADO  versao enviada e nunca publicada na frente da que serve:");
 
   for (const versao of portao.servindo) {
-    console.error(`             no ar          ${versao.id.slice(0, 8)}  ${dataLocal(versao.criadaEm)}`);
+    console.error(
+      `             no ar          ${versao.id.slice(0, 8)}  ${dataLocal(versao.criadaEm)}`
+    );
   }
 
   for (const versao of portao.naoPublicadas) {
-    console.error(`             nao publicada  ${versao.id.slice(0, 8)}  ${dataLocal(versao.criadaEm)}`);
+    console.error(
+      `             nao publicada  ${versao.id.slice(0, 8)}  ${dataLocal(versao.criadaEm)}`
+    );
   }
 
   console.error(
@@ -226,12 +230,20 @@ if (tokenProducao.startsWith("TEST-")) {
   bloqueios.push("MERCADOPAGO_ACCESS_TOKEN tem prefixo TEST-: e credencial de sandbox.");
 }
 
-for (const nome of SOMENTE_NO_BUILD) {
-  if (valores.get(nome)) {
-    console.log(
-      `\n  nota  ${nome} e gravada no BUILD, nao aqui.\n        Ela chega ao navegador por 'npm run deploy', que le o .env.local.`
-    );
-  }
+// Public Key de sandbox na loja no ar: o SDK tokenizaria o cartao no ambiente de
+// teste e o token de producao recusaria a cobranca, com o cliente ja na tela de
+// pagar.
+const chavePublicaProducao = valores.get("NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY") ?? "";
+
+if (chavePublicaProducao.startsWith("TEST-")) {
+  bloqueios.push("NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY tem prefixo TEST-: e chave de sandbox.");
+}
+
+// Token sem Public Key: Pix e boleto cobram, o cartao nao abre.
+if (tokenProducao && !chavePublicaProducao) {
+  console.log(
+    "\n  aviso NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY vazia: o cartao nao abre na loja no ar."
+  );
 }
 
 if (bloqueios.length) {
