@@ -246,7 +246,11 @@ const METODO_DO_TIPO = {
  *     uma delas precisa ser estornada;
  *   - o valor aprovado nao bate com o do pedido.
  */
-async function reconciliarCobrancaSubstituida({ providerPayment, resolverValorDoPedido, supabase }) {
+async function reconciliarCobrancaSubstituida({
+  providerPayment,
+  resolverValorDoPedido,
+  supabase
+}) {
   const desconhecido = { applied: false, reason: "pagamento_desconhecido" };
   const orderId = String(providerPayment.externalReference ?? "");
 
@@ -254,7 +258,11 @@ async function reconciliarCobrancaSubstituida({ providerPayment, resolverValorDo
     return desconhecido;
   }
 
-  const { data: atual, error, status: statusHttp } = await supabase
+  const {
+    data: atual,
+    error,
+    status: statusHttp
+  } = await supabase
     .from("payments")
     .select("id, order_id, status, amount_cents")
     .eq("provider", PAYMENT_PROVIDER)
@@ -334,7 +342,11 @@ export async function applyProviderPayment({
   resolverValorDoPedido = resolveOrderChargeCents,
   supabase
 }) {
-  const { data: porId, error, status: statusHttp } = await supabase
+  const {
+    data: porId,
+    error,
+    status: statusHttp
+  } = await supabase
     .from("payments")
     .select("id, order_id, status, amount_cents")
     .eq("provider", PAYMENT_PROVIDER)
