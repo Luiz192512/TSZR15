@@ -71,6 +71,15 @@ export async function POST(request) {
     });
   } catch (error) {
     if (error instanceof PaymentBackendError) {
+      // Falha do lado da loja precisa de rastro. Sem isto o cliente via o erro e
+      // o log nao guardava nada.
+      if (error.status >= 500) {
+        logServerEvent("error", "payment_backend_failed", {
+          causaBanco: error.causaBanco,
+          status: error.status
+        });
+      }
+
       return paymentErrorResponse(error.message, error.status);
     }
 

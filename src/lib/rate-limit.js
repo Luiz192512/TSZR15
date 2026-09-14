@@ -220,7 +220,11 @@ export async function consumeRateLimit({
   const effectiveBlockSeconds = blockSeconds ?? windowSeconds;
 
   if (supabase) {
-    const { data, error } = await supabase.rpc("consume_rate_limit", {
+    const {
+      data,
+      error,
+      status: statusHttp
+    } = await supabase.rpc("consume_rate_limit", {
       p_block_seconds: effectiveBlockSeconds,
       p_identifier_hash: identifierHash,
       p_increment: increment,
@@ -233,8 +237,33 @@ export async function consumeRateLimit({
       return normalizeRateLimitResult(data, limit);
     }
 
+    // O que o banco respondeu, sem a mensagem: numa falha do gateway ela e uma
+    // pagina HTML inteira, e em erro de dado pode ecoar valor de linha.
+    const causa = { codigo: String(error?.code ?? ""), statusHttp: Number(statusHttp ?? 0) };
+
+    // Perfil tolerante, hoje so o webhook do provedor. Em 2026-09-14 o gateway do
+    // Supabase devolveu 502 a chamadas vindas de IAD, este limitador virou 503, e
+    // o Mercado Pago recebeu 503 numa notificacao de pagamento que nada tinha de
+    // abuso. Aqui o limite passa a ser contado so neste Worker, e a resposta avisa
+    // que esta degradada para a rota registrar.
+    if (!failClosed) {
+      return {
+        ...consumeLocalRateLimit({
+          blockSeconds: effectiveBlockSeconds,
+          identifierHash,
+          increment,
+          limit,
+          scope,
+          windowSeconds
+        }),
+        causa,
+        degradado: true
+      };
+    }
+
     return {
       allowed: false,
+      causa,
       count: 0,
       error,
       limit,

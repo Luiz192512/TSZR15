@@ -49,5 +49,13 @@
   ],
   "observability": {
     "enabled": true
+  },
+  // O Worker roda onde a requisicao chega. O webhook do Mercado Pago chega dos
+  // EUA, e em 2026-09-14 as chamadas ao Supabase (Sao Paulo) feitas a partir de
+  // IAD levaram de 4,5 a 7,7 s e caiam em 502. Com placement smart a Cloudflare
+  // mede a latencia das subrequisicoes e passa a executar o Worker perto do
+  // backend. Alternativa deterministica: mode "targeted" com a regiao do banco.
+  "placement": {
+    "mode": "smart"
   }
 }

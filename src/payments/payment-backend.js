@@ -33,11 +33,25 @@ export function isStatusRegression(currentStatus, nextStatus) {
 }
 
 export class PaymentBackendError extends Error {
-  constructor(message, { status = 400 } = {}) {
+  constructor(message, { causaBanco = null, status = 400 } = {}) {
     super(message);
     this.name = "PaymentBackendError";
+    // O que o banco respondeu quando a falha veio dele: codigo e status HTTP,
+    // nunca a mensagem. Em 2026-09-14 o webhook de producao falhou com 502 do
+    // gateway do Supabase, e o log so dizia "Nao foi possivel ler o pagamento":
+    // o logger censura toda chave com "message", e o motivo sumia.
+    this.causaBanco = causaBanco;
     this.status = status;
   }
+}
+
+/**
+ * Causa de uma falha de consulta ao Supabase, segura para log. Mensagem e
+ * detalhes ficam de fora: numa falha do gateway a mensagem e uma pagina HTML, e
+ * em erro de dado os detalhes podem ecoar valores da linha.
+ */
+export function causaDoBanco(error, statusHttp) {
+  return { codigo: String(error?.code ?? ""), statusHttp: Number(statusHttp ?? 0) };
 }
 
 /**
@@ -178,7 +192,7 @@ export async function markWebhookEventProcessed({
     return;
   }
 
-  await supabase
+  const { error, status: statusHttp } = await supabase
     .from("payment_webhook_events")
     .update({
       order_id: orderId ?? null,
@@ -190,6 +204,15 @@ export async function markWebhookEventProcessed({
       processing_error: processingError ?? null
     })
     .eq("id", eventRowId);
+
+  // Em 2026-09-14 esta gravacao caiu em 502 e o evento ficou sem processed_at e
+  // sem processing_error, sem nenhuma linha de log dizendo por que.
+  if (error) {
+    logServerEvent("error", "payment_webhook_marcacao_falhou", {
+      causaBanco: causaDoBanco(error, statusHttp),
+      eventRowId
+    });
+  }
 }
 
 // Id de pedido que as rotas de cobranca gravam em `external_reference`.
@@ -231,7 +254,7 @@ async function reconciliarCobrancaSubstituida({ providerPayment, resolverValorDo
     return desconhecido;
   }
 
-  const { data: atual, error } = await supabase
+  const { data: atual, error, status: statusHttp } = await supabase
     .from("payments")
     .select("id, order_id, status, amount_cents")
     .eq("provider", PAYMENT_PROVIDER)
@@ -239,7 +262,10 @@ async function reconciliarCobrancaSubstituida({ providerPayment, resolverValorDo
     .maybeSingle();
 
   if (error) {
-    throw new PaymentBackendError("Nao foi possivel ler o pagamento do pedido.", { status: 500 });
+    throw new PaymentBackendError("Nao foi possivel ler o pagamento do pedido.", {
+      causaBanco: causaDoBanco(error, statusHttp),
+      status: 500
+    });
   }
 
   // Pedido de outro ambiente apontando para o mesmo webhook.
@@ -308,7 +334,7 @@ export async function applyProviderPayment({
   resolverValorDoPedido = resolveOrderChargeCents,
   supabase
 }) {
-  const { data: porId, error } = await supabase
+  const { data: porId, error, status: statusHttp } = await supabase
     .from("payments")
     .select("id, order_id, status, amount_cents")
     .eq("provider", PAYMENT_PROVIDER)
@@ -316,7 +342,10 @@ export async function applyProviderPayment({
     .maybeSingle();
 
   if (error) {
-    throw new PaymentBackendError("Nao foi possivel ler o pagamento.", { status: 500 });
+    throw new PaymentBackendError("Nao foi possivel ler o pagamento.", {
+      causaBanco: causaDoBanco(error, statusHttp),
+      status: 500
+    });
   }
 
   let payment = porId;
