@@ -6,7 +6,7 @@ import { createServiceRoleSupabaseClient } from "../lib/supabase/admin.js";
 import { isJsonRequest, isSameOriginRequest } from "../security/origin.js";
 import { applyConfirmedPaymentEffects } from "./confirmed-payment.js";
 import { isPaymentLinkExpired, PAYMENT_LINK_TTL_DAYS } from "./payment-link.js";
-import { PaymentBackendError, resolveOrderChargeCents } from "./payment-backend.js";
+import { causaDoBanco, PaymentBackendError, resolveOrderChargeCents } from "./payment-backend.js";
 import { isOnlinePaymentEnabled, PAYMENT_PROVIDER } from "./payment-config.js";
 
 // Preâmbulo comum às três formas de pagamento (Pix, cartão, boleto). Existe
@@ -100,14 +100,21 @@ export async function loadChargeableOrder(orderId, supabase) {
     );
   }
 
-  const { data: payment, error } = await supabase
+  const {
+    data: payment,
+    error,
+    status: statusHttp
+  } = await supabase
     .from("payments")
     .select("id, status, provider_payment_id")
     .eq("order_id", orderId)
     .maybeSingle();
 
   if (error) {
-    throw new PaymentBackendError("Nao foi possivel ler o pagamento.", { status: 500 });
+    throw new PaymentBackendError("Nao foi possivel ler o pagamento.", {
+      causaBanco: causaDoBanco(error, statusHttp),
+      status: 500
+    });
   }
 
   if (!payment) {

@@ -97,8 +97,18 @@ export async function POST(request) {
     supabase: serviceSupabase
   });
 
+  // O banco falhou e o perfil do webhook e tolerante: a entrega segue, com o
+  // limite contado so neste Worker. O registro diz o que o banco respondeu.
+  if (rateLimit.degradado) {
+    logServerEvent("warn", "payment_webhook_limite_degradado", {
+      causaBanco: rateLimit.causa
+    });
+  }
+
   if (!rateLimit.allowed) {
     logServerEvent("warn", "payment_webhook_rate_limit_blocked", {
+      causaBanco: rateLimit.causa,
+      indisponivel: rateLimit.unavailable,
       retryAfterSeconds: rateLimit.retryAfterSeconds
     });
 
@@ -225,13 +235,25 @@ export async function POST(request) {
         (error?.causasProvedor ?? [])
           .map((causa) => causa.codigo)
           .filter(Boolean)
-          .join(", ")
+          .join(", "),
+        error?.causaBanco
+          ? `banco HTTP ${error.causaBanco.statusHttp} ${error.causaBanco.codigo}`.trim()
+          : ""
       ]
         .filter(Boolean)
         .join(" | ")
         .slice(0, 400),
       eventRowId: eventRow.id,
       supabase: serviceSupabase
+    });
+
+    // captureServerError grava so a mensagem, e o logger a censura. Este evento
+    // guarda o que da para investigar: a causa do banco e a do provedor.
+    logServerEvent("error", "payment_webhook_falhou", {
+      causaBanco: error?.causaBanco ?? null,
+      causasProvedor: error?.causasProvedor ?? [],
+      eventId,
+      providerPaymentId
     });
 
     if (error instanceof PaymentProviderError && error.retryable) {
